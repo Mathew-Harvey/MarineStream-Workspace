@@ -289,7 +289,27 @@
     <!-- Vessel List Panel (left side overlay) -->
     <div class="vessel-list-panel" id="vessel-panel">
       <div class="panel-header">
-        <h3>Vessels</h3>
+        <div class="panel-header-top">
+          <h3>Vessels</h3>
+          <div class="panel-header-actions">
+            <button class="icon-btn-sm" id="create-fleet-btn" title="Create Fleet">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="icon-btn-sm" id="manage-fleets-btn" title="Manage Fleets">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Fleet Tabs -->
+        <div class="fleet-tabs" id="fleet-tabs">
+          <button class="fleet-tab active" data-fleet="all">
+            <span class="fleet-tab-icon">🚢</span>
+            <span class="fleet-tab-name">All Vessels</span>
+          </button>
+          <!-- Fleet tabs will be dynamically added here -->
+        </div>
+        
         <div class="search-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <input type="text" id="vessel-search" placeholder="Search...">
@@ -373,6 +393,81 @@
       </div>
       <div class="activity-feed" id="activity-feed">
         <!-- Activity items populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Fleet Modal -->
+  <div id="create-fleet-modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content fleet-modal">
+      <div class="modal-header">
+        <h2>Create Fleet</h2>
+        <button class="close-btn" id="close-fleet-modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-intro">Group vessels together for easier tracking and management. Fleets can be used for operational areas, client groupings, or any logical organization.</p>
+        
+        <div class="form-group">
+          <label for="fleet-name">Fleet Name <span class="required">*</span></label>
+          <input type="text" id="fleet-name" placeholder="e.g., Darwin Patrol Fleet" autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+          <label for="fleet-description">Description</label>
+          <textarea id="fleet-description" placeholder="Brief description of this fleet's purpose..." rows="2"></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fleet-color">Color</label>
+            <div class="color-picker">
+              <button class="color-option active" data-color="#3b82f6" style="background: #3b82f6" title="Blue"></button>
+              <button class="color-option" data-color="#10b981" style="background: #10b981" title="Green"></button>
+              <button class="color-option" data-color="#f59e0b" style="background: #f59e0b" title="Amber"></button>
+              <button class="color-option" data-color="#ef4444" style="background: #ef4444" title="Red"></button>
+              <button class="color-option" data-color="#8b5cf6" style="background: #8b5cf6" title="Purple"></button>
+              <button class="color-option" data-color="#ec4899" style="background: #ec4899" title="Pink"></button>
+              <button class="color-option" data-color="#06b6d4" style="background: #06b6d4" title="Cyan"></button>
+              <button class="color-option" data-color="#84cc16" style="background: #84cc16" title="Lime"></button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="fleet-icon">Icon</label>
+            <div class="icon-picker">
+              <button class="icon-option active" data-icon="anchor" title="Anchor">⚓</button>
+              <button class="icon-option" data-icon="ship" title="Ship">🚢</button>
+              <button class="icon-option" data-icon="radar" title="Radar">📡</button>
+              <button class="icon-option" data-icon="flag" title="Flag">🚩</button>
+              <button class="icon-option" data-icon="star" title="Star">⭐</button>
+              <button class="icon-option" data-icon="shield" title="Shield">🛡️</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Select Vessels <span class="required">*</span> <span class="vessel-count-badge" id="selected-vessel-count">0 selected</span></label>
+          <div class="vessel-search-bar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="fleet-vessel-search" placeholder="Search vessels...">
+          </div>
+          <div class="vessel-selector" id="vessel-selector">
+            <!-- Vessels will be populated here by JS -->
+          </div>
+        </div>
+        
+        <div class="selected-vessels-preview" id="selected-vessels-preview">
+          <!-- Selected vessel chips will appear here -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancel-fleet">Cancel</button>
+        <button class="btn-primary" id="save-fleet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Create Fleet</span>
+        </button>
       </div>
     </div>
   </div>

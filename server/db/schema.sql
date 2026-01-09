@@ -94,6 +94,35 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 );
 
 -- ============================================
+-- Fleets (grouping of vessels)
+-- ============================================
+CREATE TABLE IF NOT EXISTS fleets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    color VARCHAR(7) DEFAULT '#3b82f6', -- Hex color for UI display
+    icon VARCHAR(50) DEFAULT 'anchor', -- Icon identifier
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    metadata JSONB DEFAULT '{}', -- Flexible storage for fleet details
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- Fleet Vessels (many-to-many relationship)
+-- ============================================
+CREATE TABLE IF NOT EXISTS fleet_vessels (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fleet_id UUID REFERENCES fleets(id) ON DELETE CASCADE,
+    vessel_id UUID REFERENCES vessels(id) ON DELETE CASCADE,
+    added_at TIMESTAMPTZ DEFAULT NOW(),
+    added_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE(fleet_id, vessel_id)
+);
+
+-- ============================================
 -- Audit log
 -- ============================================
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -119,6 +148,10 @@ CREATE INDEX IF NOT EXISTS idx_applications_visibility ON applications(visibilit
 CREATE INDEX IF NOT EXISTS idx_applications_active ON applications(is_active, sort_order);
 CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_fleets_org ON fleets(organization_id);
+CREATE INDEX IF NOT EXISTS idx_fleets_active ON fleets(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_fleet_vessels_fleet ON fleet_vessels(fleet_id);
+CREATE INDEX IF NOT EXISTS idx_fleet_vessels_vessel ON fleet_vessels(vessel_id);
 
 -- ============================================
 -- Seed Data: Franmarine Organization

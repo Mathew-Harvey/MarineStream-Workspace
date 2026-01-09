@@ -38,9 +38,16 @@ const state = {
   
   // Data state
   fleet: [],
+  fleets: [], // User-created fleet groupings
   summary: null,
   selectedVessel: null,
   filter: 'all', // all, ran, commercial
+  selectedFleetId: null, // Currently selected fleet filter
+  
+  // Fleet creation state
+  selectedVesselsForFleet: new Set(),
+  selectedFleetColor: '#3b82f6',
+  selectedFleetIcon: 'anchor',
   
   // Map state
   map: null,
@@ -168,6 +175,23 @@ function initElements() {
   // Filters
   elements.filterPills = document.querySelectorAll('.filter-pill');
   elements.styleButtons = document.querySelectorAll('.style-btn');
+  
+  // Fleet UI
+  elements.createFleetBtn = document.getElementById('create-fleet-btn');
+  elements.manageFleetsBtn = document.getElementById('manage-fleets-btn');
+  elements.fleetTabs = document.getElementById('fleet-tabs');
+  elements.createFleetModal = document.getElementById('create-fleet-modal');
+  elements.closeFleetModal = document.getElementById('close-fleet-modal');
+  elements.cancelFleetBtn = document.getElementById('cancel-fleet');
+  elements.saveFleetBtn = document.getElementById('save-fleet');
+  elements.fleetNameInput = document.getElementById('fleet-name');
+  elements.fleetDescInput = document.getElementById('fleet-description');
+  elements.fleetVesselSearch = document.getElementById('fleet-vessel-search');
+  elements.vesselSelector = document.getElementById('vessel-selector');
+  elements.selectedVesselCount = document.getElementById('selected-vessel-count');
+  elements.selectedVesselsPreview = document.getElementById('selected-vessels-preview');
+  elements.colorOptions = document.querySelectorAll('.color-option');
+  elements.iconOptions = document.querySelectorAll('.icon-option');
 }
 
 // ============================================
@@ -478,6 +502,9 @@ function setupEventListeners() {
   // Logout on user badge click
   elements.userBadge?.addEventListener('click', handleLogout);
   
+  // Fleet event listeners
+  setupFleetEventListeners();
+  
   // Filter pills
   elements.filterPills.forEach(pill => {
     pill.addEventListener('click', () => {
@@ -714,6 +741,9 @@ async function loadAllData() {
     updateMapMarkers();
     initPerfTrendChart();
     
+    // Load user-created fleet groupings
+    await loadFleets();
+    
     console.log('✅ Fleet data loaded:', state.fleet.length, 'vessels');
     
   } catch (error) {
@@ -767,7 +797,16 @@ function renderVesselList() {
   
   let vessels = state.fleet;
   
-  // Apply filter
+  // Apply fleet filter first
+  if (state.selectedFleetId) {
+    const selectedFleet = state.fleets.find(f => f.id === state.selectedFleetId);
+    if (selectedFleet && selectedFleet.vessel_ids) {
+      const fleetVesselIds = Array.isArray(selectedFleet.vessel_ids) ? selectedFleet.vessel_ids : [];
+      vessels = vessels.filter(v => fleetVesselIds.includes(v.id));
+    }
+  }
+  
+  // Apply type filter
   if (state.filter === 'ran') {
     vessels = vessels.filter(v => v.typeCategory === 'military');
   } else if (state.filter === 'commercial') {
@@ -775,7 +814,10 @@ function renderVesselList() {
   }
   
   if (vessels.length === 0) {
-    elements.vesselList.innerHTML = '<div class="empty-state">No vessels found</div>';
+    const message = state.selectedFleetId 
+      ? 'No vessels in this fleet'
+      : 'No vessels found';
+    elements.vesselList.innerHTML = `<div class="empty-state">${message}</div>`;
     return;
   }
   
@@ -1833,6 +1875,424 @@ function toggleActivityPanel() {
   if (feed) {
     feed.style.display = btn?.classList.contains('collapsed') ? 'none' : '';
   }
+}
+
+// ============================================
+// Fleet Management
+// ============================================
+
+/**
+ * Setup fleet-related event listeners
+ */
+function setupFleetEventListeners() {
+  // Open create fleet modal
+  elements.createFleetBtn?.addEventListener('click', openCreateFleetModal);
+  
+  // Close create fleet modal
+  elements.closeFleetModal?.addEventListener('click', closeCreateFleetModal);
+  elements.cancelFleetBtn?.addEventListener('click', closeCreateFleetModal);
+  elements.createFleetModal?.querySelector('.modal-backdrop')?.addEventListener('click', closeCreateFleetModal);
+  
+  // Save fleet
+  elements.saveFleetBtn?.addEventListener('click', saveFleet);
+  
+  // Fleet vessel search
+  elements.fleetVesselSearch?.addEventListener('input', (e) => {
+    filterVesselSelectorList(e.target.value);
+  });
+  
+  // Color picker
+  elements.colorOptions?.forEach(option => {
+    option.addEventListener('click', () => {
+      elements.colorOptions.forEach(o => o.classList.remove('active'));
+      option.classList.add('active');
+      state.selectedFleetColor = option.dataset.color;
+    });
+  });
+  
+  // Icon picker
+  elements.iconOptions?.forEach(option => {
+    option.addEventListener('click', () => {
+      elements.iconOptions.forEach(o => o.classList.remove('active'));
+      option.classList.add('active');
+      state.selectedFleetIcon = option.dataset.icon;
+    });
+  });
+}
+
+/**
+ * Load fleets from API
+ */
+async function loadFleets() {
+  try {
+    const response = await fetch('/api/fleets');
+    if (!response.ok) throw new Error('Failed to fetch fleets');
+    
+    const data = await response.json();
+    state.fleets = data.data || [];
+    
+    renderFleetTabs();
+    console.log(`✅ Loaded ${state.fleets.length} fleets`);
+  } catch (err) {
+    console.warn('Could not load fleets:', err.message);
+    state.fleets = [];
+  }
+}
+
+/**
+ * Render fleet tabs in the vessel panel
+ */
+function renderFleetTabs() {
+  if (!elements.fleetTabs) return;
+  
+  // Keep "All Vessels" tab, add fleet tabs
+  const allVesselsTab = `
+    <button class="fleet-tab ${state.selectedFleetId === null ? 'active' : ''}" data-fleet="all">
+      <span class="fleet-tab-icon">🚢</span>
+      <span class="fleet-tab-name">All</span>
+      <span class="fleet-tab-count">${state.fleet.length}</span>
+    </button>
+  `;
+  
+  const fleetTabsHTML = state.fleets.map(fleet => {
+    const iconMap = {
+      'anchor': '⚓',
+      'ship': '🚢',
+      'radar': '📡',
+      'flag': '🚩',
+      'star': '⭐',
+      'shield': '🛡️'
+    };
+    const icon = iconMap[fleet.icon] || '⚓';
+    const isActive = state.selectedFleetId === fleet.id;
+    
+    return `
+      <button class="fleet-tab ${isActive ? 'active' : ''}" data-fleet="${fleet.id}" title="${escapeHtml(fleet.name)}">
+        <span class="fleet-tab-color" style="background: ${fleet.color}"></span>
+        <span class="fleet-tab-name">${escapeHtml(fleet.name)}</span>
+        <span class="fleet-tab-count">${fleet.vessel_count || 0}</span>
+      </button>
+    `;
+  }).join('');
+  
+  elements.fleetTabs.innerHTML = allVesselsTab + fleetTabsHTML;
+  
+  // Add click handlers
+  elements.fleetTabs.querySelectorAll('.fleet-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const fleetId = tab.dataset.fleet === 'all' ? null : tab.dataset.fleet;
+      selectFleet(fleetId);
+    });
+  });
+}
+
+/**
+ * Select a fleet to filter the vessel list
+ */
+async function selectFleet(fleetId) {
+  state.selectedFleetId = fleetId;
+  
+  // Update tab active state
+  elements.fleetTabs?.querySelectorAll('.fleet-tab').forEach(tab => {
+    const tabFleetId = tab.dataset.fleet === 'all' ? null : tab.dataset.fleet;
+    tab.classList.toggle('active', tabFleetId === fleetId);
+  });
+  
+  // Re-render vessel list with fleet filter
+  renderVesselList();
+  
+  // If a fleet is selected, fly to show those vessels on the map
+  if (fleetId) {
+    const fleet = state.fleets.find(f => f.id === fleetId);
+    if (fleet && fleet.vessel_ids) {
+      // Get vessels in this fleet
+      const fleetVesselIds = Array.isArray(fleet.vessel_ids) ? fleet.vessel_ids : [];
+      const fleetVessels = state.fleet.filter(v => fleetVesselIds.includes(v.id));
+      
+      if (fleetVessels.length > 0 && state.map) {
+        // Fit map to show fleet vessels
+        const bounds = new mapboxgl.LngLatBounds();
+        fleetVessels.forEach(v => {
+          if (v._mapPos) {
+            bounds.extend([v._mapPos.lng, v._mapPos.lat]);
+          }
+        });
+        if (!bounds.isEmpty()) {
+          state.map.fitBounds(bounds, { padding: 100, duration: 1500 });
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Open the create fleet modal
+ */
+function openCreateFleetModal() {
+  // Reset form
+  if (elements.fleetNameInput) elements.fleetNameInput.value = '';
+  if (elements.fleetDescInput) elements.fleetDescInput.value = '';
+  if (elements.fleetVesselSearch) elements.fleetVesselSearch.value = '';
+  
+  state.selectedVesselsForFleet.clear();
+  state.selectedFleetColor = '#3b82f6';
+  state.selectedFleetIcon = 'anchor';
+  
+  // Reset color/icon selections
+  elements.colorOptions?.forEach(o => o.classList.toggle('active', o.dataset.color === '#3b82f6'));
+  elements.iconOptions?.forEach(o => o.classList.toggle('active', o.dataset.icon === 'anchor'));
+  
+  // Populate vessel selector
+  renderVesselSelector();
+  updateSelectedVesselUI();
+  
+  // Show modal
+  elements.createFleetModal?.classList.add('active');
+}
+
+/**
+ * Close the create fleet modal
+ */
+function closeCreateFleetModal() {
+  elements.createFleetModal?.classList.remove('active');
+}
+
+/**
+ * Render the vessel selector list in the create fleet modal
+ */
+function renderVesselSelector() {
+  if (!elements.vesselSelector) return;
+  
+  if (state.fleet.length === 0) {
+    elements.vesselSelector.innerHTML = '<div class="vessel-selector-empty">No vessels available</div>';
+    return;
+  }
+  
+  elements.vesselSelector.innerHTML = state.fleet.map(vessel => {
+    const isSelected = state.selectedVesselsForFleet.has(vessel.id);
+    const typeClass = vessel.typeCategory === 'military' ? 'ran' : 
+                      vessel.typeCategory === 'commercial' ? 'commercial' : 'other';
+    const typeColor = vessel.typeCategory === 'military' ? 'var(--color-ran)' : 
+                      vessel.typeCategory === 'commercial' ? 'var(--color-commercial)' : 'var(--text-muted)';
+    
+    return `
+      <label class="vessel-checkbox ${isSelected ? 'selected' : ''}" data-vessel-id="${vessel.id}">
+        <input type="checkbox" ${isSelected ? 'checked' : ''}>
+        <span class="vessel-checkbox-indicator" style="background: ${typeColor}"></span>
+        <div class="vessel-checkbox-info">
+          <div class="vessel-checkbox-name">${escapeHtml(vessel.name)}</div>
+          <div class="vessel-checkbox-type">${escapeHtml(vessel.class || vessel.typeLabel || 'Vessel')}</div>
+        </div>
+      </label>
+    `;
+  }).join('');
+  
+  // Add change handlers
+  elements.vesselSelector.querySelectorAll('.vessel-checkbox').forEach(checkbox => {
+    const input = checkbox.querySelector('input');
+    const vesselId = checkbox.dataset.vesselId;
+    
+    input?.addEventListener('change', () => {
+      if (input.checked) {
+        state.selectedVesselsForFleet.add(vesselId);
+        checkbox.classList.add('selected');
+      } else {
+        state.selectedVesselsForFleet.delete(vesselId);
+        checkbox.classList.remove('selected');
+      }
+      updateSelectedVesselUI();
+    });
+  });
+}
+
+/**
+ * Filter the vessel selector list
+ */
+function filterVesselSelectorList(searchTerm) {
+  const items = elements.vesselSelector?.querySelectorAll('.vessel-checkbox');
+  const term = searchTerm.toLowerCase();
+  
+  items?.forEach(item => {
+    const name = item.querySelector('.vessel-checkbox-name')?.textContent.toLowerCase();
+    const type = item.querySelector('.vessel-checkbox-type')?.textContent.toLowerCase();
+    
+    if (name?.includes(term) || type?.includes(term)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+/**
+ * Update the selected vessel count and preview chips
+ */
+function updateSelectedVesselUI() {
+  const count = state.selectedVesselsForFleet.size;
+  
+  // Update count badge
+  if (elements.selectedVesselCount) {
+    elements.selectedVesselCount.textContent = `${count} selected`;
+  }
+  
+  // Update preview chips
+  if (elements.selectedVesselsPreview) {
+    if (count === 0) {
+      elements.selectedVesselsPreview.innerHTML = '';
+    } else {
+      const selectedVessels = state.fleet.filter(v => state.selectedVesselsForFleet.has(v.id));
+      elements.selectedVesselsPreview.innerHTML = selectedVessels.map(vessel => `
+        <div class="selected-vessel-chip" data-vessel-id="${vessel.id}">
+          <span>${escapeHtml(vessel.name)}</span>
+          <button class="remove-chip" title="Remove">×</button>
+        </div>
+      `).join('');
+      
+      // Add remove handlers
+      elements.selectedVesselsPreview.querySelectorAll('.remove-chip').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const chip = btn.closest('.selected-vessel-chip');
+          const vesselId = chip.dataset.vesselId;
+          
+          state.selectedVesselsForFleet.delete(vesselId);
+          chip.remove();
+          
+          // Uncheck the checkbox
+          const checkbox = elements.vesselSelector?.querySelector(`[data-vessel-id="${vesselId}"]`);
+          if (checkbox) {
+            checkbox.classList.remove('selected');
+            checkbox.querySelector('input').checked = false;
+          }
+          
+          updateSelectedVesselUI();
+        });
+      });
+    }
+  }
+  
+  // Enable/disable save button
+  if (elements.saveFleetBtn) {
+    elements.saveFleetBtn.disabled = count === 0;
+  }
+}
+
+/**
+ * Save the new fleet
+ */
+async function saveFleet() {
+  const name = elements.fleetNameInput?.value?.trim();
+  const description = elements.fleetDescInput?.value?.trim();
+  const vesselIds = Array.from(state.selectedVesselsForFleet);
+  
+  if (!name) {
+    shakeElement(elements.fleetNameInput);
+    elements.fleetNameInput?.focus();
+    return;
+  }
+  
+  if (vesselIds.length === 0) {
+    alert('Please select at least one vessel for the fleet.');
+    return;
+  }
+  
+  try {
+    elements.saveFleetBtn.disabled = true;
+    elements.saveFleetBtn.innerHTML = '<span class="loading-spinner"></span>';
+    
+    const response = await fetch('/api/fleets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name,
+        description,
+        color: state.selectedFleetColor,
+        icon: state.selectedFleetIcon,
+        vessel_ids: vesselIds
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to create fleet');
+    }
+    
+    const result = await response.json();
+    console.log('✅ Fleet created:', result.data);
+    
+    // Reload fleets and close modal
+    await loadFleets();
+    closeCreateFleetModal();
+    
+    // Show success feedback
+    showToast(`Fleet "${name}" created with ${vesselIds.length} vessel(s)`);
+    
+  } catch (err) {
+    console.error('Error creating fleet:', err);
+    alert(err.message || 'Failed to create fleet. Please try again.');
+  } finally {
+    if (elements.saveFleetBtn) {
+      elements.saveFleetBtn.disabled = false;
+      elements.saveFleetBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Create Fleet</span>
+      `;
+    }
+  }
+}
+
+/**
+ * Show a toast notification
+ */
+function showToast(message) {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    <span>${escapeHtml(message)}</span>
+  `;
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    transition: transform 0.3s ease;
+  `;
+  toast.querySelector('svg').style.cssText = `
+    width: 20px;
+    height: 20px;
+    color: var(--color-excellent);
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+  });
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.style.transform = 'translateX(-50%) translateY(100px)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 
 // ============================================
