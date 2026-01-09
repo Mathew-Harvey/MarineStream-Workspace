@@ -22,6 +22,16 @@ const marinestreamRoutes = require('./routes/marinestream');
 const oauthRoutes = require('./routes/oauth');
 const marinesiaRoutes = require('./routes/marinesia');
 
+// Authoritative MMSI Registry - NEVER overwrite with blank/invalid data
+let mmsiRegistry;
+try {
+  mmsiRegistry = require('./data/vesselMmsiRegistry');
+  console.log(`✓ Loaded authoritative MMSI registry: ${mmsiRegistry.getAllValidMmsiNumbers().length} vessels with valid MMSI`);
+} catch (e) {
+  console.warn('⚠️ MMSI Registry not available:', e.message);
+  mmsiRegistry = null;
+}
+
 // AIS position cache (shared between routes and WebSocket handler)
 const aisPositionCache = mapRoutes.vesselPositions;
 
@@ -85,22 +95,36 @@ const connectedClients = new Set();
 let currentTrackedMMSI = new Set(); // Track which MMSIs we're subscribed to
 let discoveredFleetMMSI = []; // Store MMSI discovered from fleet API (persists across reconnects)
 
+// Initialize with authoritative MMSI registry on startup
+if (mmsiRegistry) {
+  discoveredFleetMMSI = mmsiRegistry.getAllValidMmsiNumbers();
+  console.log(`📡 Pre-loaded ${discoveredFleetMMSI.length} authoritative MMSI for AIS tracking`);
+}
+
 // Function to update AIS subscription with new MMSI list
 function updateAISSubscription(mmsiList) {
   // Filter to valid MMSI (9 digits, not placeholder patterns)
   const validMMSI = mmsiList.filter(m => {
     if (!m || typeof m !== 'string') return false;
-    // Must be 9 digits for Australian vessels (503xxxxxx)
+    // Must be 9 digits
     if (m.length !== 9) return false;
     // Skip placeholder-looking MMSI (503000xxx pattern used in demo data)
     if (/^50300\d{4}$/.test(m)) return false;
     return true;
   });
   
+  // MERGE with authoritative registry - NEVER lose registry MMSI
+  let allMMSI = [...validMMSI];
+  if (mmsiRegistry) {
+    const registryMMSI = mmsiRegistry.getAllValidMmsiNumbers();
+    const merged = new Set([...allMMSI, ...registryMMSI]);
+    allMMSI = [...merged];
+  }
+  
   // Store for reconnections
-  if (validMMSI.length > 0) {
-    discoveredFleetMMSI = validMMSI;
-    console.log(`💾 Stored ${validMMSI.length} MMSI for AIS tracking (persists across reconnects)`);
+  if (allMMSI.length > 0) {
+    discoveredFleetMMSI = allMMSI;
+    console.log(`💾 Stored ${allMMSI.length} MMSI for AIS tracking (${validMMSI.length} from API + registry)`);
   }
   
   if (!aisConnection || aisConnection.readyState !== WebSocket.OPEN) {
@@ -108,14 +132,14 @@ function updateAISSubscription(mmsiList) {
     return false;
   }
   
-  if (validMMSI.length === 0) {
+  if (allMMSI.length === 0) {
     console.log('ℹ️ No valid MMSI numbers to track via AIS');
     return false;
   }
   
   // Check if we need to update
-  const newSet = new Set(validMMSI);
-  const hasChanges = validMMSI.some(m => !currentTrackedMMSI.has(m)) || 
+  const newSet = new Set(allMMSI);
+  const hasChanges = allMMSI.some(m => !currentTrackedMMSI.has(m)) || 
                      [...currentTrackedMMSI].some(m => !newSet.has(m));
   
   if (!hasChanges && currentTrackedMMSI.size > 0) {
@@ -125,14 +149,15 @@ function updateAISSubscription(mmsiList) {
   
   currentTrackedMMSI = newSet;
   
-  console.log(`📡 Updating AIS subscription: ${validMMSI.length} vessels`);
-  validMMSI.forEach(m => console.log(`   - MMSI: ${m}`));
+  console.log(`📡 Updating AIS subscription: ${allMMSI.length} vessels`);
+  allMMSI.slice(0, 10).forEach(m => console.log(`   - MMSI: ${m}`));
+  if (allMMSI.length > 10) console.log(`   ... and ${allMMSI.length - 10} more`);
   
   // Send updated subscription
   aisConnection.send(JSON.stringify({
     APIKey: process.env.AISSTREAM_API_KEY,
     BoundingBoxes: [[[-90, -180], [90, 180]]], // World-wide 
-    FiltersShipMMSI: validMMSI,
+    FiltersShipMMSI: allMMSI,
     FilterMessageTypes: ['PositionReport', 'ShipStaticData']
   }));
   

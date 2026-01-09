@@ -27,7 +27,12 @@ const CACHE_TTL = {
 
 // Rate limiting state
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 100; // 100ms between requests
+const MIN_REQUEST_INTERVAL = 500; // 500ms between requests (more conservative)
+
+// API restriction tracking
+let apiRestricted = false;
+let restrictionDetectedAt = null;
+const RESTRICTION_BACKOFF_TIME = 60 * 60 * 1000; // 1 hour backoff when restricted
 
 /**
  * Get API key from environment
@@ -44,12 +49,59 @@ function isConfigured() {
 }
 
 /**
+ * Check if API is currently restricted
+ */
+function isRestricted() {
+  if (!apiRestricted) return false;
+  
+  // Check if backoff period has passed
+  if (restrictionDetectedAt && (Date.now() - restrictionDetectedAt) > RESTRICTION_BACKOFF_TIME) {
+    console.log('⏰ Marinesia restriction backoff period passed, retrying...');
+    apiRestricted = false;
+    restrictionDetectedAt = null;
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Mark API as restricted
+ */
+function markRestricted() {
+  if (!apiRestricted) {
+    console.warn('🚫 Marinesia API is restricted - backing off for 1 hour');
+    apiRestricted = true;
+    restrictionDetectedAt = Date.now();
+  }
+}
+
+/**
+ * Get API status
+ */
+function getApiStatus() {
+  return {
+    configured: isConfigured(),
+    restricted: isRestricted(),
+    restrictedSince: restrictionDetectedAt ? new Date(restrictionDetectedAt).toISOString() : null,
+    backoffRemaining: restrictionDetectedAt 
+      ? Math.max(0, RESTRICTION_BACKOFF_TIME - (Date.now() - restrictionDetectedAt))
+      : 0,
+  };
+}
+
+/**
  * Make a rate-limited API request
  */
 async function apiRequest(endpoint, params = {}) {
   const apiKey = getApiKey();
   if (!apiKey) {
     throw new Error('MARINESIA_API_KEY not configured');
+  }
+
+  // Check if API is restricted
+  if (isRestricted()) {
+    throw new Error('API_RESTRICTED');
   }
 
   // Rate limiting
@@ -79,20 +131,39 @@ async function apiRequest(endpoint, params = {}) {
 
     if (response.status === 429) {
       console.warn('⚠️ Marinesia API rate limit hit');
+      markRestricted();
       throw new Error('RATE_LIMITED');
     }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API error: ${response.status}`);
+      const errorMessage = errorData.message || `API error: ${response.status}`;
+      
+      // Detect account restriction
+      if (errorMessage.toLowerCase().includes('restricted') || 
+          errorMessage.toLowerCase().includes('blocked') ||
+          errorMessage.toLowerCase().includes('suspended')) {
+        markRestricted();
+        throw new Error('API_RESTRICTED');
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    if (error.message === 'RATE_LIMITED') {
+    if (error.message === 'RATE_LIMITED' || error.message === 'API_RESTRICTED') {
       throw error;
     }
+    
+    // Check for restriction in error message
+    if (error.message && (
+        error.message.toLowerCase().includes('restricted') || 
+        error.message.toLowerCase().includes('blocked'))) {
+      markRestricted();
+    }
+    
     console.error(`Marinesia API error [${endpoint}]:`, error.message);
     throw error;
   }
@@ -569,8 +640,10 @@ function cleanStaleCache() {
 setInterval(cleanStaleCache, 30 * 60 * 1000);
 
 module.exports = {
-  // Configuration
+  // Configuration & Status
   isConfigured,
+  isRestricted,
+  getApiStatus,
   
   // Vessel APIs
   getVesselProfile,

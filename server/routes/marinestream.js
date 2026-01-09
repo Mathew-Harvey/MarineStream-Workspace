@@ -27,6 +27,26 @@ try {
   console.warn('Marinesia service not available:', e.message);
 }
 
+// Import authoritative MMSI registry - NEVER overwrite with blank/invalid data
+let mmsiRegistry;
+try {
+  mmsiRegistry = require('../data/vesselMmsiRegistry');
+  console.log(`✓ Loaded authoritative MMSI registry with ${mmsiRegistry.getAllValidMmsiNumbers().length} vessels`);
+} catch (e) {
+  console.warn('MMSI Registry not available:', e.message);
+  mmsiRegistry = null;
+}
+
+// Import static vessel positions for fallback when live tracking unavailable
+let staticPositions;
+try {
+  staticPositions = require('../data/vesselStaticPositions');
+  console.log(`✓ Loaded static vessel positions database`);
+} catch (e) {
+  console.warn('Static positions not available:', e.message);
+  staticPositions = null;
+}
+
 const DIANA_API_BASE = 'api.idiana.io';
 
 /**
@@ -622,8 +642,16 @@ function extractVesselFromWork(work) {
   const vesselData = vesselObj.data || {};
   const typeInfo = detectVesselType(vesselObj, work.flowType);
   
-  // Search for MMSI in multiple possible locations
-  const mmsi = vesselData.mmsi || vesselData.MMSI || findValue(work, [
+  // Get vessel name first - needed for registry lookup
+  const vesselName = vesselObj.displayName || vesselObj.name || findValue(work, [
+    'data.ranVessel.data.name',
+    'data.vessel.data.name',
+    'data.ranVessel.name',
+    'data.vessel.name'
+  ]) || 'Unknown Vessel';
+  
+  // Search for MMSI in multiple possible locations (fallback)
+  const apiMmsi = vesselData.mmsi || vesselData.MMSI || findValue(work, [
     'data.ranVessel.data.mmsi',
     'data.ranVessel.data.MMSI',
     'data.ranVessel.mmsi',
@@ -638,8 +666,8 @@ function extractVesselFromWork(work) {
     'data.vessel.data.vesselDetails.mmsi'
   ]);
   
-  // Search for IMO in multiple locations
-  const imo = vesselData.imo || vesselData.IMO || findValue(work, [
+  // Search for IMO in multiple locations (fallback)
+  const apiImo = vesselData.imo || vesselData.IMO || findValue(work, [
     'data.ranVessel.data.imo',
     'data.ranVessel.data.IMO',
     'data.vessel.data.imo',
@@ -648,14 +676,30 @@ function extractVesselFromWork(work) {
     'data.vessel.data.imoNumber'
   ]);
   
+  // ==========================================
+  // AUTHORITATIVE MMSI LOOKUP
+  // Registry MMSI takes priority - NEVER overwrite with blank/invalid
+  // ==========================================
+  let mmsi = apiMmsi;
+  let imo = apiImo;
+  let mmsiSource = 'api';
+  
+  if (mmsiRegistry) {
+    const authMmsi = mmsiRegistry.getAuthoritativeMmsi(vesselName, apiMmsi);
+    if (authMmsi) {
+      mmsi = authMmsi;
+      mmsiSource = 'registry';
+    }
+    // Also get authoritative IMO if available
+    const registryEntry = mmsiRegistry.lookupVessel(vesselName);
+    if (registryEntry && registryEntry.imo && !imo) {
+      imo = registryEntry.imo;
+    }
+  }
+  
   return {
     id: vesselObj.id,
-    name: vesselObj.displayName || vesselObj.name || findValue(work, [
-      'data.ranVessel.data.name',
-      'data.vessel.data.name',
-      'data.ranVessel.name',
-      'data.vessel.name'
-    ]) || 'Unknown Vessel',
+    name: vesselName,
     entityType: vesselObj.thingType || vesselObj.entityType || 'Vessel',
     typeLabel: typeInfo.label,
     typeCategory: typeInfo.category,
@@ -670,6 +714,7 @@ function extractVesselFromWork(work) {
     ]),
     imo: imo,
     mmsi: mmsi,
+    mmsiSource: mmsiSource,
     flag: vesselData.flag || 'AU',
     // Biofouling assessment data
     generalArrangement: vesselData.generalArrangement || null
@@ -932,7 +977,9 @@ router.get('/fleet', async (req, res) => {
     // =========================================================
     // ENHANCE: Use Marinesia to find vessels and get positions
     // =========================================================
-    if (marinesia && marinesia.isConfigured()) {
+    const marinesiaStatus = marinesia?.getApiStatus ? marinesia.getApiStatus() : { configured: false, restricted: true };
+    
+    if (marinesia && marinesia.isConfigured() && !marinesia.isRestricted()) {
       console.log('🌐 Using Marinesia to discover vessel MMSI and positions...');
       
       let marinesiaEnhanced = 0;
@@ -992,6 +1039,37 @@ router.get('/fleet', async (req, res) => {
       
       console.log(`  🔍 Marinesia: Enhanced ${marinesiaEnhanced} vessels with MMSI`);
       console.log(`  📍 Marinesia: Found ${positionsFound} vessel positions`);
+    } else if (marinesiaStatus.restricted) {
+      console.log('⚠️ Marinesia API is restricted - skipping vessel enrichment');
+      console.log(`   Backoff remaining: ${Math.round(marinesiaStatus.backoffRemaining / 60000)} minutes`);
+    }
+    
+    // =========================================================
+    // FALLBACK: Use static positions for vessels without live data
+    // =========================================================
+    if (staticPositions) {
+      let staticFallbackCount = 0;
+      
+      for (const [vesselId, vessel] of vesselMap) {
+        if (!vessel.livePosition) {
+          const staticPos = staticPositions.getStaticPosition(vessel.name);
+          if (staticPos) {
+            vessel.livePosition = {
+              lat: staticPos.lat,
+              lng: staticPos.lng,
+              port: staticPos.port,
+              note: staticPos.note,
+              source: 'static',
+              timestamp: new Date().toISOString()
+            };
+            staticFallbackCount++;
+          }
+        }
+      }
+      
+      if (staticFallbackCount > 0) {
+        console.log(`📍 Static fallback: Assigned ${staticFallbackCount} vessels to estimated positions`);
+      }
     }
     
     // Calculate YTD performance and other derived metrics
@@ -1116,9 +1194,13 @@ router.get('/fleet', async (req, res) => {
       console.log('ℹ️ No MMSI values found in fleet data');
     }
 
-    // Count vessels with live positions
+    // Count vessels with positions
     const vesselsWithLivePosition = vessels.filter(v => v.hasLivePosition).length;
     const marinesiaPositions = vessels.filter(v => v.livePosition?.source === 'marinesia').length;
+    const staticPositionsCount = vessels.filter(v => v.livePosition?.source === 'static').length;
+    
+    // Get Marinesia API status
+    const apiStatus = marinesia?.getApiStatus ? marinesia.getApiStatus() : { configured: false, restricted: false };
     
     res.json({
       success: true,
@@ -1143,7 +1225,10 @@ router.get('/fleet', async (req, res) => {
           // Position tracking stats
           vesselsWithLivePosition,
           marinesiaPositions,
-          marinesiaEnabled: marinesia?.isConfigured() || false
+          staticPositions: staticPositionsCount,
+          marinesiaEnabled: apiStatus.configured,
+          marinesiaRestricted: apiStatus.restricted,
+          marinesiaBackoffRemaining: apiStatus.backoffRemaining ? Math.round(apiStatus.backoffRemaining / 60000) : 0
         }
       }
     });

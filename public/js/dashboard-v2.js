@@ -1242,7 +1242,9 @@ function updateAISStatus(status) {
   // Count fleet vessels with live positions
   const fleetWithPos = state.fleet.filter(v => v.hasLivePosition || v.livePosition).length;
   const marinesiaPos = state.fleet.filter(v => v.livePosition?.source === 'marinesia').length;
+  const staticPos = state.fleet.filter(v => v.livePosition?.source === 'static').length;
   const aisPos = state.aisPositions.size;
+  const liveCount = fleetWithPos - staticPos; // Exclude static from "live" count
   
   indicator.innerHTML = `
     <span style="display: flex; align-items: center; gap: 4px;">
@@ -1257,8 +1259,13 @@ function updateAISStatus(status) {
         🌐 ${marinesiaPos} Marinesia
       </span>
     ` : ''}
-    <span style="opacity: 0.9; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px; color: #22c55e;">
-      🚢 ${fleetWithPos}/${state.fleet.length} tracked
+    ${staticPos > 0 ? `
+      <span style="opacity: 0.5; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px;">
+        ⚓ ${staticPos} at port
+      </span>
+    ` : ''}
+    <span style="opacity: 0.9; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px; color: ${liveCount > 0 ? '#22c55e' : '#f59e0b'};">
+      🚢 ${liveCount}/${state.fleet.length} live
     </span>
   `;
 }
@@ -1321,6 +1328,19 @@ function getVesselPosition(vessel) {
   if (vessel.livePosition && vessel.livePosition.lat && vessel.livePosition.lng) {
     const pos = vessel.livePosition;
     const speedText = pos.speed !== undefined ? `${pos.speed?.toFixed(1) || 0} kn` : '';
+    
+    // Handle static positions (homeport estimates)
+    if (pos.source === 'static') {
+      return { 
+        lat: pos.lat, 
+        lng: pos.lng, 
+        name: pos.port || 'Estimated',
+        source: 'static',
+        note: pos.note
+      };
+    }
+    
+    // Handle marinesia or AIS live positions
     const sourceName = pos.source === 'marinesia' ? 'Marinesia' : 'AIS';
     return { 
       lat: pos.lat, 
@@ -1458,18 +1478,22 @@ function createMarkerElement(vessel) {
   const el = document.createElement('div');
   el.className = 'vessel-marker';
   
-  // Check if this vessel has live position (from API or WebSocket)
-  const hasLivePosition = vessel.hasLivePosition || vessel.livePosition || 
-                          (vessel.mmsi && state.aisPositions.has(vessel.mmsi) && 
-                           !state.aisPositions.get(vessel.mmsi).isStale);
-  
-  // Determine position source
+  // Check position source
   const posSource = vessel.livePosition?.source || 
                     (vessel.mmsi && state.aisPositions.has(vessel.mmsi) ? 'ais' : null);
   
+  // Check if this vessel has live position (from API or WebSocket) - not static
+  const hasLivePosition = (vessel.hasLivePosition || vessel.livePosition || 
+                          (vessel.mmsi && state.aisPositions.has(vessel.mmsi) && 
+                           !state.aisPositions.get(vessel.mmsi).isStale)) &&
+                           posSource !== 'static';
+  
+  // Check if static position (homeport estimate)
+  const hasStaticPosition = posSource === 'static';
+  
   const color = vessel.typeCategory === 'military' ? '#3b82f6' : '#10b981';
   
-  // Different marker style for live vs estimated positions
+  // Different marker style for live vs static vs estimated positions
   if (hasLivePosition) {
     // Live marker with pulsing effect and rotation for heading
     const aisPos = state.aisPositions.get(vessel.mmsi) || vessel.livePosition;
@@ -1520,6 +1544,27 @@ function createMarkerElement(vessel) {
       `;
       document.head.appendChild(style);
     }
+  } else if (hasStaticPosition) {
+    // Static position marker (homeport estimate) - subtle anchor icon
+    el.innerHTML = `
+      <svg viewBox="0 0 32 32" fill="none">
+        <circle cx="16" cy="10" r="4" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <path d="M16 14L16 28M8 22L16 28L24 22" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
+        <path d="M8 22L16 28L24 22" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>
+      <div style="
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #6b7280;
+        color: white;
+        font-size: 7px;
+        padding: 1px 3px;
+        border-radius: 2px;
+        white-space: nowrap;
+      ">AT PORT</div>
+    `;
   } else {
     // Standard marker for estimated positions
     el.innerHTML = `
@@ -1542,6 +1587,7 @@ function createPopupHTML(vessel) {
   const pos = vessel._mapPos || {};
   const isLive = pos.source === 'ais_live' || pos.source === 'marinesia_live';
   const isMarinesia = pos.source === 'marinesia_live';
+  const isStatic = pos.source === 'static';
   const locationName = pos.locationName || 'Unknown';
   const hasMMSI = vessel.mmsi && vessel.mmsi.length === 9;
   const marinesiaData = vessel.marinesia;
@@ -1567,6 +1613,26 @@ function createPopupHTML(vessel) {
         ${pos.destination ? `
           <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
             📍 Destination: ${escapeHtml(pos.destination)}${pos.eta ? ` (ETA: ${pos.eta})` : ''}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else if (isStatic) {
+    // Static position (homeport estimate from server)
+    locationHtml = `
+      <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: rgba(100, 116, 139, 0.15); border-radius: 4px; border-left: 3px solid #6b7280;">
+        <div style="display: flex; align-items: center; gap: 4px; color: #6b7280; font-weight: 500;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 15h2v2h-2zM17 11h2v2h-2zM17 7h2v2h-2zM13.74 7l1.26.84V7zM13 15h2v2h-2zM13 11h2v2h-2zM19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM9 15h2v2H9zM9 11h2v2H9z"/>
+          </svg>
+          <span>At Homeport</span>
+        </div>
+        <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
+          📍 ${escapeHtml(locationName)}
+        </div>
+        ${vessel.livePosition?.note ? `
+          <div style="color: var(--text-muted); margin-top: 2px; font-size: 9px; font-style: italic;">
+            ${escapeHtml(vessel.livePosition.note)}
           </div>
         ` : ''}
       </div>
