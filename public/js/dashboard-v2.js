@@ -14,6 +14,9 @@ import {
   escapeHtml 
 } from './map-utils.js';
 
+// Import fouling calculator module
+import * as FoulingCalculator from './fouling-calculator.js';
+
 // ============================================
 // Humorous Loading Messages
 // ============================================
@@ -803,6 +806,7 @@ function updateFleetHealth() {
 
 /**
  * Render the vessel health breakdown list in the expanded Fleet Health panel
+ * Now includes fouling rating predictions
  */
 function renderVesselHealthList(vessels) {
   const listEl = document.getElementById('vessel-health-list');
@@ -813,60 +817,98 @@ function renderVesselHealthList(vessels) {
     return;
   }
   
-  // Sort vessels: those with real data first, then by FON score
+  // Calculate fleet health metrics using fouling calculator
+  const fleetMetrics = FoulingCalculator.calculateFleetHealthMetrics(vessels);
+  
+  // Render fleet health summary first
+  const summaryHTML = `
+    <div class="fleet-health-summary">
+      <div class="health-gauge-mini">
+        <div class="gauge-circle" style="--gauge-color: ${fleetMetrics.healthColor}; --gauge-value: ${(fleetMetrics.avgFoulingRating || 0) / 5 * 100}%;">
+          <span class="gauge-text">${fleetMetrics.avgFoulingRating !== null ? fleetMetrics.avgFoulingRating.toFixed(1) : '--'}</span>
+        </div>
+        <div class="gauge-info">
+          <span class="gauge-status" style="color: ${fleetMetrics.healthColor};">${fleetMetrics.healthLabel}</span>
+          <span class="gauge-sublabel">Avg Fouling Rating</span>
+        </div>
+      </div>
+      <div class="health-quick-stats">
+        <div class="quick-stat">
+          <span class="qs-value">${fleetMetrics.avgDaysSinceClean || '--'}</span>
+          <span class="qs-label">Avg Days</span>
+        </div>
+        <div class="quick-stat ${fleetMetrics.needsCleaning > 0 ? 'alert' : ''}">
+          <span class="qs-value">${fleetMetrics.needsCleaning}</span>
+          <span class="qs-label">Need Clean</span>
+        </div>
+      </div>
+    </div>
+    <div class="health-list-header">
+      <span>Vessel</span>
+      <span>FR</span>
+      <span>Days</span>
+      <span>FON</span>
+    </div>
+  `;
+  
+  // Sort vessels: those needing cleaning first, then by FR level, then by days since clean
   const sortedVessels = [...vessels].sort((a, b) => {
-    const aHasData = a.performance?.hasRealData;
-    const bHasData = b.performance?.hasRealData;
-    if (aHasData && !bHasData) return -1;
-    if (!aHasData && bHasData) return 1;
+    const aFR = a.foulingPrediction?.frLevel ?? -1;
+    const bFR = b.foulingPrediction?.frLevel ?? -1;
     
-    const aFON = a.performance?.freedomOfNavigation || 0;
-    const bFON = b.performance?.freedomOfNavigation || 0;
-    return bFON - aFON;
+    // Vessels needing cleaning (FR4+) first
+    if (aFR >= 4 && bFR < 4) return -1;
+    if (bFR >= 4 && aFR < 4) return 1;
+    
+    // Then by FR level descending
+    if (aFR !== bFR) return bFR - aFR;
+    
+    // Then by days since clean
+    const aDays = a.daysSinceLastClean ?? 0;
+    const bDays = b.daysSinceLastClean ?? 0;
+    return bDays - aDays;
   });
   
-  listEl.innerHTML = sortedVessels.map(vessel => {
+  const vesselsHTML = sortedVessels.map(vessel => {
     const perf = vessel.performance || {};
-    const hasRealData = perf.hasRealData;
-    const hasRealCleaningData = vessel.hasRealCleaningData;
-    const fon = hasRealData ? perf.freedomOfNavigation : null;
-    const hp = hasRealData ? perf.currentHullPerformance : null;
-    const days = hasRealCleaningData ? vessel.daysToNextClean : null;
+    const fouling = vessel.foulingPrediction;
+    const frLevel = fouling?.frLevel;
+    const frDetails = FoulingCalculator.getFRDetails(frLevel);
+    const daysSinceClean = vessel.daysSinceLastClean;
+    const fon = perf.hasRealData ? perf.freedomOfNavigation : null;
     
-    const fonDisplay = fon !== null ? fon : '<span class="no-data">No data</span>';
-    const hpDisplay = hp !== null ? hp : '<span class="no-data">No data</span>';
-    const daysDisplay = days !== null 
-      ? `<span class="${days <= 30 ? 'critical' : days <= 60 ? 'warning' : ''}">${days}d</span>` 
-      : '<span class="no-data">No data</span>';
+    const frDisplay = frLevel !== null && frLevel !== undefined
+      ? `<span style="color: ${frDetails.color}; font-weight: 600;">${frDetails.name}</span>`
+      : '<span class="no-data">--</span>';
     
-    const fonClass = fon !== null ? getScoreClass(fon) : 'unknown';
-    const hpClass = hp !== null ? getScoreClass(hp) : 'unknown';
+    const daysDisplay = daysSinceClean !== null
+      ? `<span class="${daysSinceClean >= 60 ? 'warning' : daysSinceClean >= 90 ? 'critical' : ''}">${daysSinceClean}d</span>`
+      : '<span class="no-data">--</span>';
+    
+    const fonDisplay = fon !== null
+      ? `<span class="${getScoreClass(fon)}">${fon}</span>`
+      : '<span class="no-data">--</span>';
+    
     const typeClass = vessel.typeCategory === 'military' ? 'ran' : 
                       vessel.typeCategory === 'commercial' ? 'commercial' : 'other';
     
+    // Add alert class if vessel needs cleaning (FR4+)
+    const alertClass = frLevel >= 4 ? 'needs-cleaning' : frLevel >= 3 ? 'at-risk' : '';
+    
     return `
-      <div class="health-item" data-vessel-id="${vessel.id}">
+      <div class="health-item ${alertClass}" data-vessel-id="${vessel.id}">
         <div class="health-vessel">
           <div class="health-indicator ${typeClass}"></div>
-          <div class="health-name">${escapeHtml(vessel.name)}</div>
+          <div class="health-name" title="${escapeHtml(vessel.name)}">${escapeHtml(vessel.name)}</div>
         </div>
-        <div class="health-metrics">
-          <div class="health-metric">
-            <span class="health-value ${fonClass}">${fonDisplay}</span>
-            <span class="health-label">FON</span>
-          </div>
-          <div class="health-metric">
-            <span class="health-value ${hpClass}">${hpDisplay}</span>
-            <span class="health-label">Hull</span>
-          </div>
-          <div class="health-metric">
-            <span class="health-value">${daysDisplay}</span>
-            <span class="health-label">Clean</span>
-          </div>
-        </div>
+        <div class="health-fr">${frDisplay}</div>
+        <div class="health-days">${daysDisplay}</div>
+        <div class="health-fon">${fonDisplay}</div>
       </div>
     `;
   }).join('');
+  
+  listEl.innerHTML = summaryHTML + vesselsHTML;
   
   // Add click handlers
   listEl.querySelectorAll('.health-item').forEach(item => {

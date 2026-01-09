@@ -47,6 +47,16 @@ try {
   staticPositions = null;
 }
 
+// Import Hull Fouling Calculator for performance predictions
+let foulingCalculator;
+try {
+  foulingCalculator = require('../lib/fouling-calculator');
+  console.log(`✓ Loaded Hull Fouling Calculator module`);
+} catch (e) {
+  console.warn('Fouling Calculator not available:', e.message);
+  foulingCalculator = null;
+}
+
 const DIANA_API_BASE = 'api.idiana.io';
 
 /**
@@ -907,9 +917,10 @@ router.get('/fleet', async (req, res) => {
     
     // =========================================================
     // ENHANCE: Fetch assets from registries to get MMSI data
+    // and bfmpProperties (daysSinceLastClean, fouling data)
     // =========================================================
-    console.log('📦 Fetching vessel MMSI from asset registries...');
-    const assetMMSILookup = new Map(); // name -> { mmsi, registry }
+    console.log('📦 Fetching vessel data from asset registries...');
+    const assetMMSILookup = new Map(); // name -> { mmsi, registry, bfmpProperties }
     
     for (const [registryName, registryId] of Object.entries(FLOW_ORIGINS.assetRegistries)) {
       try {
@@ -918,61 +929,110 @@ router.get('/fleet', async (req, res) => {
         if (assetRes.statusCode === 200) {
           const assets = JSON.parse(assetRes.body);
           let mmsiCount = 0;
+          let bfmpCount = 0;
           
           assets.forEach(asset => {
             const name = (asset.displayName || asset.name || asset.data?.name || '').toLowerCase().trim();
             const mmsi = asset.data?.mmsi || asset.data?.MMSI;
             
-            if (name && mmsi && String(mmsi).length >= 7) {
-              assetMMSILookup.set(name, {
-                mmsi: String(mmsi),
-                imo: asset.data?.imo || asset.data?.IMO,
+            // Extract bfmpProperties for fouling data
+            const bfmpProperties = asset.data?.bfmpProperties || null;
+            const daysSinceLastClean = bfmpProperties?.daysSinceLastClean ?? null;
+            
+            if (name) {
+              const assetData = {
+                mmsi: mmsi ? String(mmsi) : null,
+                imo: asset.data?.imo || asset.data?.IMO || null,
                 registry: registryName,
-                assetId: asset.id
-              });
-              mmsiCount++;
+                assetId: asset.id,
+                // BFMP (Biofouling Management Plan) properties
+                bfmpProperties: bfmpProperties,
+                daysSinceLastClean: daysSinceLastClean,
+                lastCleanDate: bfmpProperties?.lastCleanDate || null,
+                foulingRating: bfmpProperties?.foulingRating || null,
+                // Vessel configuration for fouling calculations
+                vesselConfig: {
+                  length: asset.data?.length || asset.data?.loa || null,
+                  beam: asset.data?.beam || asset.data?.breadth || null,
+                  draft: asset.data?.draft || null,
+                  type: asset.data?.vesselType || asset.data?.type || null
+                }
+              };
+              
+              assetMMSILookup.set(name, assetData);
+              
+              if (mmsi && String(mmsi).length >= 7) mmsiCount++;
+              if (daysSinceLastClean !== null) bfmpCount++;
             }
           });
           
-          console.log(`  ✓ ${registryName}: ${assets.length} assets (${mmsiCount} with MMSI)`);
+          console.log(`  ✓ ${registryName}: ${assets.length} assets (${mmsiCount} MMSI, ${bfmpCount} with BFMP data)`);
         }
       } catch (err) {
         console.log(`  ⚠ ${registryName}: ${err.message}`);
       }
     }
     
-    console.log(`📡 Total MMSI lookup entries: ${assetMMSILookup.size}`);
+    console.log(`📡 Total asset lookup entries: ${assetMMSILookup.size}`);
     
-    // Merge MMSI data into vessels from work items
+    // Merge MMSI and BFMP data into vessels from work items
     let mmsiEnhanced = 0;
+    let bfmpEnhanced = 0;
     vesselMap.forEach((vessel, vesselId) => {
-      if (!vessel.mmsi || vessel.mmsi === '-') {
-        // Try to find MMSI by vessel name
-        const vesselNameLower = (vessel.name || '').toLowerCase().trim();
+      // Try to find asset data by vessel name
+      const vesselNameLower = (vessel.name || '').toLowerCase().trim();
+      
+      if (assetMMSILookup.has(vesselNameLower)) {
+        const assetData = assetMMSILookup.get(vesselNameLower);
         
-        // Try exact match first
-        if (assetMMSILookup.has(vesselNameLower)) {
-          const assetData = assetMMSILookup.get(vesselNameLower);
+        // Update MMSI if not already set
+        if ((!vessel.mmsi || vessel.mmsi === '-') && assetData.mmsi) {
           vessel.mmsi = assetData.mmsi;
-          if (!vessel.imo && assetData.imo) vessel.imo = assetData.imo;
-          vessel.assetRegistry = assetData.registry;
           mmsiEnhanced++;
-        } else {
-          // Try partial match (for cases like "HMAS Stalwart" vs "Stalwart")
-          for (const [assetName, assetData] of assetMMSILookup) {
-            if (vesselNameLower.includes(assetName) || assetName.includes(vesselNameLower)) {
+        }
+        
+        // Update IMO if not already set
+        if (!vessel.imo && assetData.imo) vessel.imo = assetData.imo;
+        vessel.assetRegistry = assetData.registry;
+        
+        // Add BFMP (Biofouling Management Plan) data
+        vessel.bfmpProperties = assetData.bfmpProperties;
+        vessel.daysSinceLastClean = assetData.daysSinceLastClean;
+        vessel.lastCleanDate = assetData.lastCleanDate;
+        vessel.apiFoulingRating = assetData.foulingRating;
+        
+        // Add vessel configuration for fouling calculations
+        if (assetData.vesselConfig) {
+          vessel.vesselConfig = assetData.vesselConfig;
+        }
+        
+        if (assetData.daysSinceLastClean !== null) {
+          bfmpEnhanced++;
+        }
+      } else {
+        // Try partial match for MMSI (for cases like "HMAS Stalwart" vs "Stalwart")
+        for (const [assetName, assetData] of assetMMSILookup) {
+          if (vesselNameLower.includes(assetName) || assetName.includes(vesselNameLower)) {
+            if ((!vessel.mmsi || vessel.mmsi === '-') && assetData.mmsi) {
               vessel.mmsi = assetData.mmsi;
-              if (!vessel.imo && assetData.imo) vessel.imo = assetData.imo;
-              vessel.assetRegistry = assetData.registry;
               mmsiEnhanced++;
-              break;
             }
+            if (!vessel.imo && assetData.imo) vessel.imo = assetData.imo;
+            vessel.assetRegistry = assetData.registry;
+            
+            // Also add BFMP data from partial match
+            if (assetData.daysSinceLastClean !== null) {
+              vessel.daysSinceLastClean = assetData.daysSinceLastClean;
+              vessel.bfmpProperties = assetData.bfmpProperties;
+              bfmpEnhanced++;
+            }
+            break;
           }
         }
       }
     });
     
-    console.log(`📊 Enhanced ${mmsiEnhanced} vessels with MMSI from asset registries`);
+    console.log(`📊 Enhanced ${mmsiEnhanced} vessels with MMSI, ${bfmpEnhanced} with BFMP data`);
     
     // =========================================================
     // ADD: Include vessels from registries with NO work history
@@ -1213,12 +1273,31 @@ router.get('/fleet', async (req, res) => {
       
       // Track if this vessel has real biofouling data from the API
       const hasRealFoulingData = vessel.performance.freedomOfNavigation !== null;
-      const hasRealCleaningData = daysToNextClean !== null;
+      const hasRealCleaningData = daysToNextClean !== null || vessel.daysSinceLastClean !== null;
       
       // If no biofouling assessment data, leave as null (don't generate placeholders)
       // The frontend will display "No data available" for vessels without real data
       vessel.performance.hasRealData = hasRealFoulingData;
       vessel.performance.hasRealCleaningData = hasRealCleaningData;
+      
+      // Calculate days since last clean - prefer API data, fallback to job data
+      let daysSinceLastClean = vessel.daysSinceLastClean;
+      if (daysSinceLastClean === null && lastClean) {
+        const cleanDate = new Date(lastClean.lastModified);
+        daysSinceLastClean = Math.floor((new Date() - cleanDate) / (1000 * 60 * 60 * 24));
+      }
+      
+      // Calculate fouling prediction if we have cleaning data
+      let foulingPrediction = null;
+      if (foulingCalculator && daysSinceLastClean !== null) {
+        foulingPrediction = foulingCalculator.predictFoulingRating(daysSinceLastClean, 'mixed', 0.5);
+        
+        // If we have an API fouling rating, use it to validate/override prediction
+        if (vessel.apiFoulingRating !== null && vessel.apiFoulingRating !== undefined) {
+          foulingPrediction.apiFoulingRating = vessel.apiFoulingRating;
+          foulingPrediction.frLevel = vessel.apiFoulingRating;
+        }
+      }
       
       return {
         id: vessel.id,
@@ -1233,12 +1312,14 @@ router.get('/fleet', async (req, res) => {
         mmsi: vessel.mmsi,
         flag: vessel.flag,
         daysToNextClean,
+        daysSinceLastClean,
         hasRealCleaningData,
         totalJobs: vessel.jobs.length,
         completedJobs: vessel.jobs.filter(j => j.status === 'Complete').length,
         activeJobs: vessel.jobs.filter(j => !['Complete', 'Deleted', 'Cancelled'].includes(j.status)).length,
         lastActivity: vessel.jobs[0]?.lastModified || null,
         performance: vessel.performance,
+        foulingPrediction,
         recentJobs: vessel.jobs.slice(0, 5),
         // Live position from Marinesia or AIS
         livePosition: vessel.livePosition || null,
@@ -1246,6 +1327,8 @@ router.get('/fleet', async (req, res) => {
         // Marinesia enrichment
         marinesia: vessel.marinesia || null,
         marinesiaSource: vessel.marinesiaSource || null,
+        // Vessel configuration for calculations
+        vesselConfig: vessel.vesselConfig || null,
         // Include job history summary
         jobHistory: {
           total: vessel.jobs.length,

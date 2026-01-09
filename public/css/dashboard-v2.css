@@ -1289,6 +1289,377 @@ body {
   color: var(--text-muted);
 }
 
+/* Fleet Fouling Health Widget */
+.fleet-health-widget {
+  padding: var(--space-sm);
+}
+
+.fleet-health-widget.no-data {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.fleet-health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.fleet-health-header h4 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.health-status {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fleet-health-gauge {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-sm) 0;
+}
+
+.gauge-display {
+  position: relative;
+  width: 100px;
+  height: 60px;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.gauge-svg .gauge-bg {
+  fill: none;
+  stroke: var(--bg-hover);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.gauge-svg .gauge-fill {
+  fill: none;
+  stroke: var(--color-excellent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--transition-normal);
+}
+
+.gauge-center {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.gauge-center .gauge-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.gauge-center .gauge-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fleet-health-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: var(--space-sm) 0;
+  padding: var(--space-xs) 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.health-stat {
+  text-align: center;
+}
+
+.health-stat .stat-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.health-stat .stat-label {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.health-stat.critical .stat-value {
+  color: var(--color-critical);
+}
+
+.health-stat.warning .stat-value {
+  color: var(--color-warning);
+}
+
+.fleet-health-distribution {
+  margin: var(--space-sm) 0;
+}
+
+.dist-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--bg-hover);
+}
+
+.dist-segment {
+  height: 100%;
+  min-width: 2px;
+  transition: width var(--transition-normal);
+}
+
+.dist-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-xs);
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.fleet-health-info {
+  text-align: center;
+  margin-top: var(--space-xs);
+}
+
+.fleet-health-info .info-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.fleet-health-empty {
+  padding: var(--space-md);
+}
+
+.fleet-health-empty p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.fleet-health-empty .muted {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* Fouling Badge */
+.fouling-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.fouling-badge.no-data {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.fouling-badge-level {
+  font-weight: 600;
+}
+
+.fouling-badge-days {
+  font-size: 9px;
+  opacity: 0.8;
+}
+
+/* Fleet Health Summary (in expanded panel) */
+.fleet-health-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--bg-hover);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
+}
+
+.health-gauge-mini {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.gauge-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--gauge-color, var(--accent-primary)) calc(var(--gauge-value, 0) * 3.6deg),
+    var(--bg-surface) 0deg
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.gauge-circle::before {
+  content: '';
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-panel);
+}
+
+.gauge-text {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.gauge-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.gauge-status {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gauge-sublabel {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.health-quick-stats {
+  display: flex;
+  gap: var(--space-md);
+  margin-left: auto;
+}
+
+.quick-stat {
+  text-align: center;
+}
+
+.quick-stat .qs-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.quick-stat .qs-label {
+  font-size: 8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.quick-stat.alert .qs-value {
+  color: var(--color-critical);
+}
+
+.health-list-header {
+  display: grid;
+  grid-template-columns: 1fr 40px 40px 40px;
+  gap: 4px;
+  padding: 4px 0;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 2px;
+}
+
+.health-list-header span:not(:first-child) {
+  text-align: center;
+}
+
+.health-item {
+  display: grid;
+  grid-template-columns: 1fr 40px 40px 40px;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.health-item:hover {
+  background: var(--bg-hover);
+}
+
+.health-item:last-child {
+  border-bottom: none;
+}
+
+.health-item.needs-cleaning {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.health-item.at-risk {
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.health-fr,
+.health-days,
+.health-fon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.health-fr span,
+.health-days span,
+.health-fon span {
+  font-weight: 500;
+}
+
+.health-days .warning {
+  color: var(--color-warning);
+}
+
+.health-days .critical {
+  color: var(--color-critical);
+}
+
 /* ========================================
    Vessel List Panel (left side)
    ======================================== */
