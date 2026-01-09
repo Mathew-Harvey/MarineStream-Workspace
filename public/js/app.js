@@ -33,7 +33,11 @@ const elements = {
   filterBtns: document.querySelectorAll('.filter-btn'),
   vesselPanel: document.getElementById('vessel-panel'),
   closePanel: document.getElementById('close-panel'),
-  authModal: document.getElementById('auth-modal')
+  authModal: document.getElementById('auth-modal'),
+  expandMap: document.getElementById('expand-map'),
+  mapModal: document.getElementById('map-modal'),
+  closeMapModal: document.getElementById('close-map-modal'),
+  appCount: document.getElementById('app-count')
 };
 
 /**
@@ -320,6 +324,33 @@ function setupEventListeners() {
     } else {
       mapSection.requestFullscreen();
     }
+  });
+  
+  // Expand map to modal
+  elements.expandMap?.addEventListener('click', () => {
+    if (elements.mapModal) {
+      elements.mapModal.classList.remove('hidden');
+      elements.mapModal.classList.add('show');
+      
+      // Trigger map resize after modal opens
+      setTimeout(() => {
+        state.map?.resize();
+      }, 100);
+    }
+  });
+  
+  // Close map modal
+  elements.closeMapModal?.addEventListener('click', () => {
+    if (elements.mapModal) {
+      elements.mapModal.classList.remove('show');
+      elements.mapModal.classList.add('hidden');
+    }
+  });
+  
+  // Close modal on backdrop click
+  elements.mapModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => {
+    elements.mapModal.classList.remove('show');
+    elements.mapModal.classList.add('hidden');
   });
 }
 

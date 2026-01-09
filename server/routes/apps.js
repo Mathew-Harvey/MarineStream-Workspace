@@ -11,44 +11,18 @@ const { optionalAuth } = require('../middleware/auth');
 /**
  * GET /api/apps
  * List accessible applications for current user
+ * Note: This is an internal workspace - all apps are shown to everyone
  */
 router.get('/', optionalAuth, async (req, res) => {
   try {
-    let query;
-    let params = [];
-
-    if (req.user && req.user.role === 'admin') {
-      // Admins see all apps
-      query = `
-        SELECT * FROM applications 
-        WHERE is_active = true 
-        ORDER BY sort_order, name
-      `;
-    } else if (req.user && req.user.organization_id) {
-      // Organization users see public apps + apps granted to their org
-      query = `
-        SELECT DISTINCT a.* FROM applications a
-        LEFT JOIN app_access aa ON a.id = aa.application_id
-        WHERE a.is_active = true
-          AND (
-            a.visibility = 'public'
-            OR aa.organization_id = $1
-            OR (a.visibility = 'internal' AND EXISTS (
-              SELECT 1 FROM organizations o 
-              WHERE o.id = $1 AND o.is_internal = true
-            ))
-          )
-        ORDER BY a.sort_order, a.name
-      `;
-      params = [req.user.organization_id];
-    } else {
-      // Unauthenticated or users without org see only public apps
-      query = `
-        SELECT * FROM applications 
-        WHERE is_active = true AND visibility = 'public'
-        ORDER BY sort_order, name
-      `;
-    }
+    // For internal workspace, show all active apps regardless of auth
+    // When deploying client-facing, restore visibility checks
+    const query = `
+      SELECT * FROM applications 
+      WHERE is_active = true 
+      ORDER BY sort_order, name
+    `;
+    const params = [];
 
     const result = await db.query(query, params);
 

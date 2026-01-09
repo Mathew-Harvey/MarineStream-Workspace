@@ -21,6 +21,9 @@ const configRoutes = require('./routes/config');
 const marinestreamRoutes = require('./routes/marinestream');
 const oauthRoutes = require('./routes/oauth');
 
+// AIS position cache (shared between routes and WebSocket handler)
+const aisPositionCache = mapRoutes.vesselPositions;
+
 // Database
 const db = require('./db');
 
@@ -77,6 +80,65 @@ app.get('*', (req, res) => {
 const WebSocket = require('ws');
 let aisConnection = null;
 const connectedClients = new Set();
+let currentTrackedMMSI = new Set(); // Track which MMSIs we're subscribed to
+let discoveredFleetMMSI = []; // Store MMSI discovered from fleet API (persists across reconnects)
+
+// Function to update AIS subscription with new MMSI list
+function updateAISSubscription(mmsiList) {
+  // Filter to valid MMSI (9 digits, not placeholder patterns)
+  const validMMSI = mmsiList.filter(m => {
+    if (!m || typeof m !== 'string') return false;
+    // Must be 9 digits for Australian vessels (503xxxxxx)
+    if (m.length !== 9) return false;
+    // Skip placeholder-looking MMSI (503000xxx pattern used in demo data)
+    if (/^50300\d{4}$/.test(m)) return false;
+    return true;
+  });
+  
+  // Store for reconnections
+  if (validMMSI.length > 0) {
+    discoveredFleetMMSI = validMMSI;
+    console.log(`💾 Stored ${validMMSI.length} MMSI for AIS tracking (persists across reconnects)`);
+  }
+  
+  if (!aisConnection || aisConnection.readyState !== WebSocket.OPEN) {
+    console.log('⚠️ Cannot update AIS subscription - not connected (will apply on reconnect)');
+    return false;
+  }
+  
+  if (validMMSI.length === 0) {
+    console.log('ℹ️ No valid MMSI numbers to track via AIS');
+    return false;
+  }
+  
+  // Check if we need to update
+  const newSet = new Set(validMMSI);
+  const hasChanges = validMMSI.some(m => !currentTrackedMMSI.has(m)) || 
+                     [...currentTrackedMMSI].some(m => !newSet.has(m));
+  
+  if (!hasChanges && currentTrackedMMSI.size > 0) {
+    console.log('ℹ️ AIS subscription unchanged');
+    return true;
+  }
+  
+  currentTrackedMMSI = newSet;
+  
+  console.log(`📡 Updating AIS subscription: ${validMMSI.length} vessels`);
+  validMMSI.forEach(m => console.log(`   - MMSI: ${m}`));
+  
+  // Send updated subscription
+  aisConnection.send(JSON.stringify({
+    APIKey: process.env.AISSTREAM_API_KEY,
+    BoundingBoxes: [[[-90, -180], [90, 180]]], // World-wide 
+    FiltersShipMMSI: validMMSI,
+    FilterMessageTypes: ['PositionReport', 'ShipStaticData']
+  }));
+  
+  return true;
+}
+
+// Store reference for route handlers to access
+app.updateAISSubscription = updateAISSubscription;
 
 function connectToAISStream() {
   if (!process.env.AISSTREAM_API_KEY) {
@@ -89,45 +151,93 @@ function connectToAISStream() {
   aisConnection.on('open', async () => {
     console.log('✅ Connected to AISstream.io');
     
-    // Get tracked vessels from database
-    try {
-      const result = await db.query(
-        'SELECT mmsi FROM vessels WHERE is_tracked = true AND mmsi IS NOT NULL'
-      );
-      const mmsiList = result.rows.map(r => r.mmsi);
+    // WORLDWIDE bounding box - we track vessels globally (SAAM Towage operates in Canada, etc.)
+    const worldwideBounds = [[[-90, -180], [90, 180]]];
+    
+    // PRIORITY 1: Use discovered fleet MMSI (from MarineStream API)
+    if (discoveredFleetMMSI.length > 0) {
+      console.log(`📡 Using ${discoveredFleetMMSI.length} discovered fleet MMSI for AIS tracking (worldwide)`);
+      discoveredFleetMMSI.forEach(m => console.log(`   - MMSI: ${m}`));
+      currentTrackedMMSI = new Set(discoveredFleetMMSI);
       
-      if (mmsiList.length === 0) {
-        console.log('ℹ️  No vessels to track - using demo bounding box');
-        // Demo: Track vessels around Australian waters
-        aisConnection.send(JSON.stringify({
-          APIKey: process.env.AISSTREAM_API_KEY,
-          BoundingBoxes: [[[-45, 110], [-10, 155]]] // Australia region
-        }));
-      } else {
-        console.log(`📡 Tracking ${mmsiList.length} vessels`);
-        aisConnection.send(JSON.stringify({
-          APIKey: process.env.AISSTREAM_API_KEY,
-          FiltersShipMMSI: mmsiList
-        }));
-      }
-    } catch (err) {
-      console.error('Database error getting vessels:', err.message);
-      // Fallback to bounding box
       aisConnection.send(JSON.stringify({
         APIKey: process.env.AISSTREAM_API_KEY,
-        BoundingBoxes: [[[-45, 110], [-10, 155]]]
+        BoundingBoxes: worldwideBounds,
+        FiltersShipMMSI: discoveredFleetMMSI,
+        FilterMessageTypes: ['PositionReport', 'ShipStaticData']
       }));
+      return;
     }
+    
+    // PRIORITY 2: Use worldwide bounding box to catch all vessels
+    // This allows us to track SAAM Towage (Canada), Royal Navy (UK), USN (global), etc.
+    console.log('🌍 Using worldwide bounding box for AIS (waiting for fleet MMSI from dashboard)');
+    console.log('   Fleet data will update subscription with specific MMSI on first dashboard load');
+    
+    aisConnection.send(JSON.stringify({
+      APIKey: process.env.AISSTREAM_API_KEY,
+      BoundingBoxes: worldwideBounds,
+      FilterMessageTypes: ['PositionReport', 'ShipStaticData']
+    }));
   });
 
   aisConnection.on('message', (data) => {
-    // Relay to all connected clients
-    const message = data.toString();
-    connectedClients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
+    // Parse and store the AIS message
+    try {
+      const message = JSON.parse(data.toString());
+      
+      // Store position data in cache
+      if (message.MessageType === 'PositionReport' && message.MetaData) {
+        const mmsi = String(message.MetaData.MMSI);
+        const posData = message.Message?.PositionReport || {};
+        
+        // Update position cache using the map routes function
+        mapRoutes.updateVesselPosition(mmsi, {
+          Latitude: message.MetaData.latitude,
+          Longitude: message.MetaData.longitude,
+          Sog: posData.Sog,
+          Cog: posData.Cog,
+          TrueHeading: posData.TrueHeading,
+          NavigationalStatus: posData.NavigationalStatus,
+          ShipName: message.MetaData.ShipName,
+          Timestamp: message.MetaData.time_utc
+        });
+        
+        console.log(`📍 AIS Position: ${message.MetaData.ShipName || mmsi} @ ${message.MetaData.latitude?.toFixed(4)}, ${message.MetaData.longitude?.toFixed(4)}`);
       }
-    });
+      
+      // Also handle ShipStaticData for vessel info
+      if (message.MessageType === 'ShipStaticData' && message.MetaData) {
+        const mmsi = String(message.MetaData.MMSI);
+        const staticData = message.Message?.ShipStaticData || {};
+        
+        // Merge with existing position if available
+        const existing = aisPositionCache.get(mmsi) || {};
+        aisPositionCache.set(mmsi, {
+          ...existing,
+          shipName: staticData.Name || message.MetaData.ShipName,
+          callSign: staticData.CallSign,
+          imo: staticData.ImoNumber,
+          shipType: staticData.Type,
+          destination: staticData.Destination,
+          dimensions: staticData.Dimension
+        });
+      }
+      
+      // Relay to all connected clients
+      connectedClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data.toString());
+        }
+      });
+    } catch (err) {
+      // If parse fails, still relay the raw message
+      connectedClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data.toString());
+        }
+      });
+    }
   });
 
   aisConnection.on('close', () => {

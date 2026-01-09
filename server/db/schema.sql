@@ -131,12 +131,12 @@ ON CONFLICT (slug) DO NOTHING;
 -- Seed Data: Applications
 -- ============================================
 INSERT INTO applications (slug, name, description, url, icon, category, visibility, sort_order) VALUES
-('core', 'Job Delivery', 'Multi-party workflow for delivering inspection & cleaning jobs', 'https://app.marinestream.io', 'briefcase', 'Operations', 'public', 1),
-('iwc', 'IWC Approval Portal', 'Plan and get approval for in-water cleaning work', 'https://iwc-approval-portal.onrender.com', 'clipboard-check', 'Planning & Compliance', 'internal', 2),
+('core', 'Job Delivery', 'Multi-party workflow for delivering inspection & cleaning jobs (MarineStream Core)', 'https://app.marinestream.io', 'briefcase', 'Operations', 'public', 1),
+('iwc', 'IWC Approval Portal', 'Planning and getting approval for in-water cleaning work', 'https://iwc-approval-portal.onrender.com', 'clipboard-check', 'Planning & Compliance', 'public', 2),
 ('idguide', 'Biofouling ID Guide', 'Visual guide for diver IMS identification', 'https://mathew-harvey.github.io/BiofoulingIdGuide', 'search', 'Reference & Analysis', 'public', 3),
 ('hullcalc', 'Hull Calculator', 'Calculate fouling impact on fuel costs', 'https://www.marinestream.com.au/interactive-tools/hullCalc.html', 'calculator', 'Reference & Analysis', 'public', 4),
-('docgen', 'Document Generator', 'Generate biofouling management plans', 'https://mathew-harvey.github.io/Document-Generator', 'file-text', 'Planning & Compliance', 'internal', 5),
-('rov', 'ROV AutoConnect', 'Connect to Deep Trekker ROV systems', 'https://www.marinestream.com.au/core-pages/rov-autoconnect.html', 'video', 'Operations', 'internal', 6)
+('docgen', 'Document Generator', 'Generate biofouling management plans', 'https://mathew-harvey.github.io/Document-Generator', 'file-text', 'Planning & Compliance', 'public', 5),
+('rov', 'ROV AutoConnect', 'Connect to Deep Trekker ROV systems', 'https://www.marinestream.com.au/core-pages/rov-autoconnect.html', 'video', 'Operations', 'public', 6)
 ON CONFLICT (slug) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,

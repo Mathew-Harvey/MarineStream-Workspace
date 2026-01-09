@@ -93,29 +93,22 @@ export async function loadApps(container) {
 function getDefaultApps() {
   return [
     {
-      slug: 'dashboard',
-      name: 'Fleet Dashboard',
-      description: 'View fleet performance, vessel status, and recent work',
-      url: '/dashboard.html',
-      icon: 'dashboard',
-      category: 'Operations',
-      badge: 'NEW'
-    },
-    {
       slug: 'core',
       name: 'Job Delivery',
-      description: 'Multi-party workflow for delivering inspection & cleaning jobs',
+      description: 'Multi-party workflow for delivering inspection & cleaning jobs (MarineStream Core)',
       url: 'https://app.marinestream.io',
       icon: 'briefcase',
-      category: 'Operations'
+      category: 'Operations',
+      sort_order: 1
     },
     {
       slug: 'iwc',
       name: 'IWC Approval Portal',
-      description: 'Plan and get approval for in-water cleaning work',
+      description: 'Planning and getting approval for in-water cleaning work',
       url: 'https://iwc-approval-portal.onrender.com',
       icon: 'clipboard-check',
-      category: 'Planning & Compliance'
+      category: 'Planning & Compliance',
+      sort_order: 2
     },
     {
       slug: 'idguide',
@@ -123,7 +116,8 @@ function getDefaultApps() {
       description: 'Visual guide for diver IMS identification',
       url: 'https://mathew-harvey.github.io/BiofoulingIdGuide',
       icon: 'search',
-      category: 'Reference & Analysis'
+      category: 'Reference & Analysis',
+      sort_order: 3
     },
     {
       slug: 'hullcalc',
@@ -131,7 +125,8 @@ function getDefaultApps() {
       description: 'Calculate fouling impact on fuel costs',
       url: 'https://www.marinestream.com.au/interactive-tools/hullCalc.html',
       icon: 'calculator',
-      category: 'Reference & Analysis'
+      category: 'Reference & Analysis',
+      sort_order: 4
     },
     {
       slug: 'docgen',
@@ -139,7 +134,8 @@ function getDefaultApps() {
       description: 'Generate biofouling management plans',
       url: 'https://mathew-harvey.github.io/Document-Generator',
       icon: 'file-text',
-      category: 'Planning & Compliance'
+      category: 'Planning & Compliance',
+      sort_order: 5
     },
     {
       slug: 'rov',
@@ -147,7 +143,8 @@ function getDefaultApps() {
       description: 'Connect to Deep Trekker ROV systems',
       url: 'https://www.marinestream.com.au/core-pages/rov-autoconnect.html',
       icon: 'video',
-      category: 'Operations'
+      category: 'Operations',
+      sort_order: 6
     }
   ];
 }

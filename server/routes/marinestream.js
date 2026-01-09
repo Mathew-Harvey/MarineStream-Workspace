@@ -61,9 +61,15 @@ const FLOW_ORIGINS = {
   commercialBiofouling: [
     '3490a6ee-7fa6-4cc9-adee-905559229fb5'  // Commercial workboard
   ],
-  // Asset registries
-  ranVessels: '6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca',
-  commercialVessels: 'e7f07ad3-8dda-4f7b-b293-7de922cf3abe'
+  // Asset registries - Vessels
+  assetRegistries: {
+    ranVessels: '6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca',         // RAN Assets (30 items)
+    commercialVessels: 'e7f07ad3-8dda-4f7b-b293-7de922cf3abe', // Commercial Vessels (62 items)
+    saamTowage: 'd71c7b39-076d-4ebd-8781-fd592c94499b',         // SAAM Towage (23 items)
+    royalNavy: 'a33e33f1-0de0-86ea-ef5d-c3ebe74b960e',          // Royal Navy Assets (3 items)
+    usnAssets: '811c11df-ebce-64c8-cd3b-a1c9c52974ec',          // USN Assets (2 items)
+    rnznAssets: '97325246-f7f5-4811-b079-5f60d77d8956'          // RNZN Assets (2 items)
+  }
 };
 
 // Flatten all workflow flow origin IDs for complete querying
@@ -496,6 +502,32 @@ function extractVesselFromWork(work) {
   const vesselData = vesselObj.data || {};
   const typeInfo = detectVesselType(vesselObj, work.flowType);
   
+  // Search for MMSI in multiple possible locations
+  const mmsi = vesselData.mmsi || vesselData.MMSI || findValue(work, [
+    'data.ranVessel.data.mmsi',
+    'data.ranVessel.data.MMSI',
+    'data.ranVessel.mmsi',
+    'data.vessel.data.mmsi',
+    'data.vessel.data.MMSI',
+    'data.vessel.mmsi',
+    'data.data.mmsi',
+    'data.data.MMSI',
+    // Check nested vessel properties
+    'data.ranVessel.data.vesselDetails.mmsi',
+    'data.ranVessel.data.vesselInfo.mmsi',
+    'data.vessel.data.vesselDetails.mmsi'
+  ]);
+  
+  // Search for IMO in multiple locations
+  const imo = vesselData.imo || vesselData.IMO || findValue(work, [
+    'data.ranVessel.data.imo',
+    'data.ranVessel.data.IMO',
+    'data.vessel.data.imo',
+    'data.vessel.data.IMO',
+    'data.ranVessel.data.imoNumber',
+    'data.vessel.data.imoNumber'
+  ]);
+  
   return {
     id: vesselObj.id,
     name: vesselObj.displayName || vesselObj.name || findValue(work, [
@@ -516,8 +548,8 @@ function extractVesselFromWork(work) {
       'data.ranVessel.data.pennant',
       'data.vessel.data.pennant'
     ]),
-    imo: vesselData.imo,
-    mmsi: vesselData.mmsi,
+    imo: imo,
+    mmsi: mmsi,
     flag: vesselData.flag || 'AU',
     // Biofouling assessment data
     generalArrangement: vesselData.generalArrangement || null
@@ -708,6 +740,75 @@ router.get('/fleet', async (req, res) => {
       }
     });
     
+    // =========================================================
+    // ENHANCE: Fetch assets from registries to get MMSI data
+    // =========================================================
+    console.log('📦 Fetching vessel MMSI from asset registries...');
+    const assetMMSILookup = new Map(); // name -> { mmsi, registry }
+    
+    for (const [registryName, registryId] of Object.entries(FLOW_ORIGINS.assetRegistries)) {
+      try {
+        const assetRes = await makeApiRequest(`/api/v3/thing?thingTypeId=${registryId}`, token);
+        
+        if (assetRes.statusCode === 200) {
+          const assets = JSON.parse(assetRes.body);
+          let mmsiCount = 0;
+          
+          assets.forEach(asset => {
+            const name = (asset.displayName || asset.name || asset.data?.name || '').toLowerCase().trim();
+            const mmsi = asset.data?.mmsi || asset.data?.MMSI;
+            
+            if (name && mmsi && String(mmsi).length >= 7) {
+              assetMMSILookup.set(name, {
+                mmsi: String(mmsi),
+                imo: asset.data?.imo || asset.data?.IMO,
+                registry: registryName,
+                assetId: asset.id
+              });
+              mmsiCount++;
+            }
+          });
+          
+          console.log(`  ✓ ${registryName}: ${assets.length} assets (${mmsiCount} with MMSI)`);
+        }
+      } catch (err) {
+        console.log(`  ⚠ ${registryName}: ${err.message}`);
+      }
+    }
+    
+    console.log(`📡 Total MMSI lookup entries: ${assetMMSILookup.size}`);
+    
+    // Merge MMSI data into vessels from work items
+    let mmsiEnhanced = 0;
+    vesselMap.forEach((vessel, vesselId) => {
+      if (!vessel.mmsi || vessel.mmsi === '-') {
+        // Try to find MMSI by vessel name
+        const vesselNameLower = (vessel.name || '').toLowerCase().trim();
+        
+        // Try exact match first
+        if (assetMMSILookup.has(vesselNameLower)) {
+          const assetData = assetMMSILookup.get(vesselNameLower);
+          vessel.mmsi = assetData.mmsi;
+          if (!vessel.imo && assetData.imo) vessel.imo = assetData.imo;
+          vessel.assetRegistry = assetData.registry;
+          mmsiEnhanced++;
+        } else {
+          // Try partial match (for cases like "HMAS Stalwart" vs "Stalwart")
+          for (const [assetName, assetData] of assetMMSILookup) {
+            if (vesselNameLower.includes(assetName) || assetName.includes(vesselNameLower)) {
+              vessel.mmsi = assetData.mmsi;
+              if (!vessel.imo && assetData.imo) vessel.imo = assetData.imo;
+              vessel.assetRegistry = assetData.registry;
+              mmsiEnhanced++;
+              break;
+            }
+          }
+        }
+      }
+    });
+    
+    console.log(`📊 Enhanced ${mmsiEnhanced} vessels with MMSI from asset registries`);
+    
     // Calculate YTD performance and other derived metrics
     const vessels = Array.from(vesselMap.values()).map(vessel => {
       // Sort jobs by date
@@ -800,6 +901,30 @@ router.get('/fleet', async (req, res) => {
       ? Math.round(vesselsWithHP.reduce((sum, v) => sum + v.performance.currentHullPerformance, 0) / vesselsWithHP.length)
       : null;
 
+    // Extract MMSI values for AIS tracking
+    const mmsiList = vessels
+      .filter(v => v.mmsi && String(v.mmsi).trim() !== '' && String(v.mmsi).trim() !== '-')
+      .map(v => String(v.mmsi).trim());
+    
+    if (mmsiList.length > 0) {
+      console.log(`🔍 Found ${mmsiList.length} vessels with MMSI numbers:`);
+      vessels.filter(v => v.mmsi).forEach(v => {
+        const mmsi = String(v.mmsi || '').trim();
+        const isValid = mmsi.length === 9 && !/^50300\d{4}$/.test(mmsi);
+        const status = mmsi === '-' || mmsi === '' ? '(empty)' : 
+                       mmsi.length !== 9 ? `(invalid: ${mmsi.length} digits)` :
+                       /^50300\d{4}$/.test(mmsi) ? '(placeholder)' : '✓';
+        console.log(`   - ${v.name}: MMSI ${mmsi} ${status}`);
+      });
+      
+      // Update AIS subscription with discovered MMSI values
+      if (req.app.updateAISSubscription) {
+        req.app.updateAISSubscription(mmsiList);
+      }
+    } else {
+      console.log('ℹ️ No MMSI values found in fleet data');
+    }
+
     res.json({
       success: true,
       data: {
@@ -818,7 +943,8 @@ router.get('/fleet', async (req, res) => {
           vesselsWithMetrics: vesselsWithFON.length,
           avgFON,
           avgHullPerformance: avgHP,
-          vesselsDueSoon: vessels.filter(v => v.daysToNextClean !== null && v.daysToNextClean <= 30).length
+          vesselsDueSoon: vessels.filter(v => v.daysToNextClean !== null && v.daysToNextClean <= 30).length,
+          vesselsWithMMSI: mmsiList.length
         }
       }
     });
@@ -1383,14 +1509,234 @@ router.get('/extract/flows', async (req, res) => {
     data: {
       ranBiofouling: FLOW_ORIGINS.ranBiofouling,
       commercialBiofouling: FLOW_ORIGINS.commercialBiofouling,
-      assetRegistries: {
-        ranVessels: FLOW_ORIGINS.ranVessels,
-        commercialVessels: FLOW_ORIGINS.commercialVessels
-      },
+      assetRegistries: FLOW_ORIGINS.assetRegistries,
       allWorkflowFlows: ALL_WORKFLOW_FLOW_ORIGINS,
       description: 'Use flowOriginId parameter with /extract endpoint to query specific flows'
     }
   });
+});
+
+// GET /api/marinestream/discover/thingtypes - Discover available thing types and registries
+router.get('/discover/thingtypes', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    // Try to get thing types from the API
+    const result = await makeApiRequest('/api/v3/thingtype', token);
+    
+    if (result.statusCode === 200) {
+      const thingTypes = JSON.parse(result.body);
+      
+      res.json({
+        success: true,
+        data: thingTypes,
+        help: 'Look for vessel/asset registries. The "flowOriginId" or "id" can be used to query assets.'
+      });
+    } else {
+      res.status(result.statusCode).json({
+        success: false,
+        error: { message: 'Failed to fetch thing types' }
+      });
+    }
+  } catch (error) {
+    console.error('Discover thing types error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+// GET /api/marinestream/discover/flows - Discover available flows  
+router.get('/discover/flows', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    // Try multiple endpoints to discover flows
+    const results = {};
+    
+    // Try flow endpoint
+    try {
+      const flowRes = await makeApiRequest('/api/v3/flow', token);
+      if (flowRes.statusCode === 200) {
+        results.flows = JSON.parse(flowRes.body);
+      }
+    } catch (e) {
+      results.flowsError = e.message;
+    }
+    
+    // Try flow origin endpoint
+    try {
+      const flowOriginRes = await makeApiRequest('/api/v3/floworigin', token);
+      if (flowOriginRes.statusCode === 200) {
+        results.flowOrigins = JSON.parse(flowOriginRes.body);
+      }
+    } catch (e) {
+      results.flowOriginsError = e.message;
+    }
+    
+    res.json({
+      success: true,
+      data: results,
+      help: 'Use these IDs to configure asset registry querying'
+    });
+  } catch (error) {
+    console.error('Discover flows error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+// GET /api/marinestream/assets/:registryId - Get assets from a specific registry
+router.get('/assets/:registryId', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const { registryId } = req.params;
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    // Query assets from the registry
+    const result = await makeApiRequest(`/api/v3/thing?thingTypeId=${registryId}`, token);
+    
+    if (result.statusCode === 200) {
+      const assets = JSON.parse(result.body);
+      
+      // Extract vessel information
+      const vessels = assets.map(asset => ({
+        id: asset.id,
+        name: asset.displayName || asset.name || asset.data?.name,
+        entityType: asset.thingType,
+        data: asset.data,
+        mmsi: asset.data?.mmsi || asset.data?.MMSI,
+        imo: asset.data?.imo || asset.data?.IMO,
+        class: asset.data?.class,
+        pennant: asset.data?.pennant,
+        flag: asset.data?.flag
+      }));
+      
+      console.log(`📦 Fetched ${vessels.length} assets from registry ${registryId}`);
+      
+      res.json({
+        success: true,
+        data: {
+          registryId,
+          count: vessels.length,
+          assets: vessels
+        }
+      });
+    } else {
+      res.status(result.statusCode).json({
+        success: false,
+        error: { message: 'Failed to fetch assets' }
+      });
+    }
+  } catch (error) {
+    console.error('Assets API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+// GET /api/marinestream/assets - Get all vessels from all configured registries
+router.get('/assets', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    const allAssets = [];
+    const registryResults = {};
+    
+    // Query each configured registry
+    for (const [name, registryId] of Object.entries(FLOW_ORIGINS.assetRegistries)) {
+      // Skip placeholder IDs
+      if (registryId.includes('_FLOW_ORIGIN_ID')) {
+        registryResults[name] = { status: 'not_configured', count: 0 };
+        continue;
+      }
+      
+      try {
+        const result = await makeApiRequest(`/api/v3/thing?thingTypeId=${registryId}`, token);
+        
+        if (result.statusCode === 200) {
+          const assets = JSON.parse(result.body);
+          
+          const vessels = assets.map(asset => ({
+            id: asset.id,
+            name: asset.displayName || asset.name || asset.data?.name,
+            entityType: asset.thingType,
+            registry: name,
+            mmsi: asset.data?.mmsi || asset.data?.MMSI,
+            imo: asset.data?.imo || asset.data?.IMO,
+            class: asset.data?.class,
+            pennant: asset.data?.pennant,
+            flag: asset.data?.flag,
+            data: asset.data
+          }));
+          
+          allAssets.push(...vessels);
+          registryResults[name] = { status: 'success', count: vessels.length };
+          console.log(`  ✓ ${name}: ${vessels.length} assets`);
+        } else {
+          registryResults[name] = { status: 'error', statusCode: result.statusCode };
+        }
+      } catch (err) {
+        registryResults[name] = { status: 'error', message: err.message };
+      }
+    }
+    
+    // Extract unique MMSI values
+    const mmsiList = allAssets
+      .filter(a => a.mmsi && a.mmsi.length === 9)
+      .map(a => ({ name: a.name, mmsi: a.mmsi, registry: a.registry }));
+    
+    console.log(`📦 Total assets from all registries: ${allAssets.length}`);
+    console.log(`📡 Vessels with valid MMSI: ${mmsiList.length}`);
+    
+    res.json({
+      success: true,
+      data: {
+        totalAssets: allAssets.length,
+        registries: registryResults,
+        assets: allAssets,
+        vesselsWithMMSI: mmsiList
+      }
+    });
+  } catch (error) {
+    console.error('All assets API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
 });
 
 module.exports = router;

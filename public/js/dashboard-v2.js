@@ -24,6 +24,11 @@ const state = {
   map: null,
   markers: [],
   
+  // AIS real-time tracking
+  aisWebSocket: null,
+  aisPositions: new Map(), // MMSI -> position data
+  aisReconnectAttempts: 0,
+  
   // UI state
   charts: {
     perfTrend: null
@@ -886,10 +891,263 @@ function initMap() {
       });
       
       state.map.on('load', () => {
-        updateMapMarkers();
+        // Load initial cached AIS positions
+        loadCachedAISPositions().then(() => {
+          updateMapMarkers();
+        });
+        
+        // Connect to real-time AIS stream
+        connectAISStream();
       });
     })
     .catch(err => console.error('Failed to load map config:', err));
+}
+
+// ============================================
+// AIS Real-Time Tracking (via AISStream.io)
+// ============================================
+
+/**
+ * Load cached AIS positions from server
+ */
+async function loadCachedAISPositions() {
+  try {
+    const response = await fetch('/api/map/positions');
+    if (!response.ok) throw new Error('Failed to fetch AIS positions');
+    
+    const data = await response.json();
+    
+    if (data.success && Array.isArray(data.data)) {
+      data.data.forEach(pos => {
+        state.aisPositions.set(pos.mmsi, {
+          lat: pos.lat,
+          lng: pos.lng,
+          speed: pos.speed,
+          course: pos.course,
+          heading: pos.heading,
+          shipName: pos.shipName,
+          timestamp: pos.timestamp,
+          isStale: pos.isStale
+        });
+      });
+      
+      console.log(`📍 Loaded ${data.data.length} cached AIS positions (${data.meta?.live || 0} live)`);
+    }
+  } catch (err) {
+    console.warn('Could not load cached AIS positions:', err.message);
+  }
+}
+
+/**
+ * Connect to real-time AIS WebSocket stream
+ */
+function connectAISStream() {
+  // Determine WebSocket URL
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.host}/api/map/stream`;
+  
+  console.log('🔌 Connecting to AIS stream:', wsUrl);
+  
+  try {
+    state.aisWebSocket = new WebSocket(wsUrl);
+    
+    state.aisWebSocket.onopen = () => {
+      console.log('✅ Connected to AIS real-time stream');
+      state.aisReconnectAttempts = 0;
+      
+      // Update UI to show AIS connected status
+      updateAISStatus('connected');
+    };
+    
+    state.aisWebSocket.onmessage = (event) => {
+      handleAISMessage(event.data);
+    };
+    
+    state.aisWebSocket.onclose = () => {
+      console.log('🔌 AIS stream disconnected');
+      updateAISStatus('disconnected');
+      
+      // Reconnect with exponential backoff
+      const delay = Math.min(5000 * Math.pow(2, state.aisReconnectAttempts), 60000);
+      state.aisReconnectAttempts++;
+      
+      console.log(`⏳ Reconnecting in ${delay/1000}s...`);
+      setTimeout(connectAISStream, delay);
+    };
+    
+    state.aisWebSocket.onerror = (err) => {
+      console.warn('AIS WebSocket error:', err);
+      updateAISStatus('error');
+    };
+  } catch (err) {
+    console.error('Failed to connect to AIS stream:', err);
+  }
+  
+  // Periodically update markers to pick up AIS positions
+  setInterval(() => {
+    if (state.aisPositions.size > 0 && state.fleet.length > 0) {
+      // Check if any fleet vessels now have AIS data and update markers
+      let updatedCount = 0;
+      state.fleet.forEach(vessel => {
+        if (vessel.mmsi && state.aisPositions.has(vessel.mmsi)) {
+          const aisPos = state.aisPositions.get(vessel.mmsi);
+          if (aisPos.lat && aisPos.lng && vessel._mapPos?.source !== 'ais_live') {
+            updateVesselMarkerPosition(vessel.mmsi);
+            updatedCount++;
+          }
+        }
+      });
+      if (updatedCount > 0) {
+        console.log(`🔄 Updated ${updatedCount} vessel markers with AIS positions`);
+      }
+    }
+    // Update the AIS status
+    updateAISStatus('connected');
+  }, 5000); // Check every 5 seconds
+}
+
+/**
+ * Handle incoming AIS message from WebSocket
+ */
+function handleAISMessage(data) {
+  try {
+    const message = JSON.parse(data);
+    
+    // Handle position reports
+    if (message.MessageType === 'PositionReport' && message.MetaData) {
+      const mmsi = String(message.MetaData.MMSI);
+      const posData = message.Message?.PositionReport || {};
+      
+      // Store/update position for ALL vessels (not just our fleet)
+      state.aisPositions.set(mmsi, {
+        lat: message.MetaData.latitude,
+        lng: message.MetaData.longitude,
+        speed: posData.Sog,
+        course: posData.Cog,
+        heading: posData.TrueHeading,
+        status: posData.NavigationalStatus,
+        shipName: message.MetaData.ShipName,
+        timestamp: new Date().toISOString(),
+        isStale: false
+      });
+      
+      // Update the marker for this vessel if it's in our fleet
+      updateVesselMarkerPosition(mmsi);
+      
+      // Update AIS status indicator periodically (every 10 positions to reduce UI updates)
+      if (state.aisPositions.size % 10 === 0) {
+        updateAISStatus('connected');
+      }
+    }
+    
+    // Handle static data (vessel name, dimensions, etc.)
+    if (message.MessageType === 'ShipStaticData' && message.MetaData) {
+      const mmsi = String(message.MetaData.MMSI);
+      const staticData = message.Message?.ShipStaticData || {};
+      
+      // Merge with existing position data
+      const existing = state.aisPositions.get(mmsi) || {};
+      state.aisPositions.set(mmsi, {
+        ...existing,
+        shipName: staticData.Name || message.MetaData.ShipName || existing.shipName,
+        destination: staticData.Destination,
+        imo: staticData.ImoNumber
+      });
+    }
+  } catch (err) {
+    // Silently ignore parse errors
+  }
+}
+
+/**
+ * Update a specific vessel marker with new AIS position
+ */
+function updateVesselMarkerPosition(mmsi) {
+  // Find the vessel in our fleet with this MMSI
+  const vesselIndex = state.fleet.findIndex(v => v.mmsi === mmsi);
+  if (vesselIndex === -1) return;
+  
+  const vessel = state.fleet[vesselIndex];
+  const marker = state.markers[vesselIndex];
+  if (!marker) return;
+  
+  const aisPos = state.aisPositions.get(mmsi);
+  if (!aisPos || !aisPos.lat || !aisPos.lng) return;
+  
+  // Only log the first time we get live position for this vessel
+  if (vessel._mapPos?.source !== 'ais_live') {
+    console.log(`📍 LIVE: ${vessel.name} now tracking at ${aisPos.lat.toFixed(4)}, ${aisPos.lng.toFixed(4)}`);
+  }
+  
+  // Update the marker position
+  marker.setLngLat([aisPos.lng, aisPos.lat]);
+  
+  // Update vessel's stored position
+  vessel._mapPos = { 
+    lat: aisPos.lat, 
+    lng: aisPos.lng, 
+    locationName: `Live GPS (${aisPos.speed?.toFixed(1) || 0} kn)`,
+    source: 'ais_live',
+    speed: aisPos.speed,
+    course: aisPos.course,
+    heading: aisPos.heading
+  };
+  
+  // Recreate marker element to show LIVE indicator
+  const newEl = createMarkerElement(vessel);
+  const oldEl = marker.getElement();
+  if (oldEl && oldEl.parentNode) {
+    oldEl.parentNode.replaceChild(newEl, oldEl);
+  }
+  
+  // Update popup content
+  marker.setPopup(
+    new mapboxgl.Popup({ offset: 25, closeButton: false })
+      .setHTML(createPopupHTML(vessel))
+  );
+}
+
+/**
+ * Update AIS connection status indicator
+ */
+function updateAISStatus(status) {
+  // Add a small indicator to the UI showing AIS status
+  let indicator = document.getElementById('ais-status');
+  
+  if (!indicator) {
+    // Create the indicator if it doesn't exist
+    indicator = document.createElement('div');
+    indicator.id = 'ais-status';
+    indicator.style.cssText = `
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 1000;
+      background: rgba(0,0,0,0.7);
+      color: white;
+    `;
+    document.body.appendChild(indicator);
+  }
+  
+  const statusConfig = {
+    connected: { color: '#22c55e', text: 'AIS Live', icon: '●' },
+    disconnected: { color: '#f59e0b', text: 'AIS Reconnecting...', icon: '○' },
+    error: { color: '#ef4444', text: 'AIS Error', icon: '○' }
+  };
+  
+  const config = statusConfig[status] || statusConfig.disconnected;
+  indicator.innerHTML = `
+    <span style="color: ${config.color}; font-size: 10px;">${config.icon}</span>
+    <span>${config.text}</span>
+    <span style="opacity: 0.6">${state.aisPositions.size} positions</span>
+  `;
 }
 
 function getMapStyle(style) {
@@ -918,6 +1176,122 @@ function setMapStyle(style) {
   }
 }
 
+// Known Australian naval bases and ports with GPS coordinates
+const KNOWN_LOCATIONS = {
+  // Naval Bases
+  'fleet base west': { lat: -32.2316, lng: 115.7450, name: 'Fleet Base West' },
+  'fleet base east': { lat: -33.8350, lng: 151.2536, name: 'Fleet Base East (Sydney)' },
+  'garden island west': { lat: -32.2316, lng: 115.7450, name: 'Garden Island (WA)' },
+  'garden island': { lat: -33.8438, lng: 151.2297, name: 'Garden Island (Sydney)' },
+  'hmas stirling': { lat: -32.2316, lng: 115.7450, name: 'HMAS Stirling' },
+  'hmas coonawarra': { lat: -12.4634, lng: 130.8456, name: 'HMAS Coonawarra (Darwin)' },
+  'hmas cairns': { lat: -16.9203, lng: 145.7710, name: 'HMAS Cairns' },
+  'hmas waterhen': { lat: -33.8450, lng: 151.1850, name: 'HMAS Waterhen' },
+  'hmas kuttabul': { lat: -33.8635, lng: 151.2200, name: 'HMAS Kuttabul' },
+  'jervis bay': { lat: -35.0300, lng: 150.6900, name: 'Jervis Bay' },
+  'darwin': { lat: -12.4634, lng: 130.8456, name: 'Darwin' },
+  'fremantle': { lat: -32.0569, lng: 115.7439, name: 'Fremantle' },
+  'henderson': { lat: -32.1833, lng: 115.7667, name: 'Henderson (AMC)' },
+  // Commercial Ports
+  'brisbane': { lat: -27.3800, lng: 153.1700, name: 'Brisbane' },
+  'melbourne': { lat: -37.8300, lng: 144.9100, name: 'Melbourne' },
+  'adelaide': { lat: -34.8500, lng: 138.5100, name: 'Adelaide' },
+  'townsville': { lat: -19.2590, lng: 146.8169, name: 'Townsville' },
+  'gladstone': { lat: -23.8500, lng: 151.2600, name: 'Gladstone' },
+  'newcastle': { lat: -32.9283, lng: 151.7817, name: 'Newcastle' },
+  'port hedland': { lat: -20.3100, lng: 118.5800, name: 'Port Hedland' },
+  'dampier': { lat: -20.6600, lng: 116.7100, name: 'Dampier' },
+};
+
+function getVesselPosition(vessel) {
+  // 0. FIRST: Check for live AIS position (real-time GPS from AISStream.io)
+  if (vessel.mmsi && state.aisPositions.has(vessel.mmsi)) {
+    const aisPos = state.aisPositions.get(vessel.mmsi);
+    if (aisPos.lat && aisPos.lng && !aisPos.isStale) {
+      return { 
+        lat: aisPos.lat, 
+        lng: aisPos.lng, 
+        name: `Live GPS (${aisPos.speed?.toFixed(1) || 0} kn)`,
+        source: 'ais_live',
+        speed: aisPos.speed,
+        course: aisPos.course,
+        heading: aisPos.heading
+      };
+    }
+  }
+  
+  // 1. Check if vessel has a last known location from recent jobs
+  const lastLocation = vessel.recentJobs?.[0]?.location;
+  if (lastLocation) {
+    const locationKey = lastLocation.toLowerCase().trim();
+    for (const [key, coords] of Object.entries(KNOWN_LOCATIONS)) {
+      if (locationKey.includes(key) || key.includes(locationKey)) {
+        return { ...coords, source: 'job_location' };
+      }
+    }
+  }
+  
+  // 2. Try to match vessel name to a home port
+  const vesselName = (vessel.name || '').toLowerCase();
+  
+  // Perth-based vessels (WA fleet)
+  if (vesselName.includes('stalwart') || vesselName.includes('stirling') || 
+      vesselName.includes('collins') || vesselName.includes('farncomb') ||
+      vesselName.includes('rankin') || vesselName.includes('sheean') ||
+      vesselName.includes('waller') || vesselName.includes('dechaineux')) {
+    return { ...KNOWN_LOCATIONS['fleet base west'], source: 'home_port' };
+  }
+  
+  // Sydney-based vessels
+  if (vesselName.includes('hobart') || vesselName.includes('brisbane') || 
+      vesselName.includes('sydney') || vesselName.includes('adelaide') ||
+      vesselName.includes('supply') || vesselName.includes('choules') ||
+      vesselName.includes('canberra')) {
+    return { ...KNOWN_LOCATIONS['fleet base east'], source: 'home_port' };
+  }
+  
+  // Darwin-based vessels
+  if (vesselName.includes('armidale') || vesselName.includes('patrol')) {
+    return { ...KNOWN_LOCATIONS['darwin'], source: 'home_port' };
+  }
+  
+  // Svitzer tugs - various ports
+  if (vesselName.includes('svitzer')) {
+    if (vesselName.includes('redhead')) return { ...KNOWN_LOCATIONS['newcastle'], source: 'home_port' };
+    if (vesselName.includes('abrolhos')) return { ...KNOWN_LOCATIONS['fremantle'], source: 'home_port' };
+    return { ...KNOWN_LOCATIONS['brisbane'], source: 'home_port' };
+  }
+  
+  // Cape class - various
+  if (vesselName.includes('cape')) {
+    return { ...KNOWN_LOCATIONS['darwin'], source: 'home_port' };
+  }
+  
+  // 3. Use deterministic position based on vessel ID (not random!)
+  // This ensures same vessel always appears at same location
+  const hash = (vessel.id || vessel.name || 'unknown').split('')
+    .reduce((a, c) => a + c.charCodeAt(0), 0);
+  
+  const baseLocations = vessel.typeCategory === 'military' 
+    ? [KNOWN_LOCATIONS['fleet base west'], KNOWN_LOCATIONS['fleet base east'], 
+       KNOWN_LOCATIONS['darwin'], KNOWN_LOCATIONS['hmas cairns']]
+    : [KNOWN_LOCATIONS['brisbane'], KNOWN_LOCATIONS['melbourne'], 
+       KNOWN_LOCATIONS['fremantle'], KNOWN_LOCATIONS['adelaide']];
+  
+  const basePos = baseLocations[hash % baseLocations.length];
+  
+  // Small offset within port area (NOT random - deterministic from hash)
+  const offsetLat = ((hash % 100) - 50) * 0.001;  // ~100m offset max
+  const offsetLng = ((hash % 73) - 36) * 0.001;
+  
+  return { 
+    lat: basePos.lat + offsetLat, 
+    lng: basePos.lng + offsetLng, 
+    name: basePos.name,
+    source: 'fallback' 
+  };
+}
+
 function updateMapMarkers() {
   if (!state.map) return;
   
@@ -927,34 +1301,10 @@ function updateMapMarkers() {
   
   // Add markers for each vessel
   state.fleet.forEach(vessel => {
-    // Generate realistic positions around Australian waters
-    const basePositions = {
-      'military': [
-        { lat: -33.85, lng: 151.21 },  // Sydney
-        { lat: -35.03, lng: 150.69 },  // Jervis Bay
-        { lat: -32.93, lng: 151.78 },  // Newcastle
-        { lat: -12.43, lng: 130.84 },  // Darwin
-        { lat: -31.95, lng: 115.86 },  // Perth/Fremantle
-        { lat: -19.26, lng: 146.82 },  // Townsville
-      ],
-      'commercial': [
-        { lat: -27.47, lng: 153.03 },  // Brisbane
-        { lat: -37.84, lng: 144.95 },  // Melbourne
-        { lat: -34.93, lng: 138.60 },  // Adelaide
-        { lat: -23.85, lng: 151.26 },  // Gladstone
-        { lat: -21.15, lng: 149.18 },  // Mackay
-        { lat: -20.45, lng: 148.75 },  // Bowen
-      ]
-    };
+    // Get proper position (not random!)
+    const pos = getVesselPosition(vessel);
     
-    const positions = vessel.typeCategory === 'military' ? basePositions.military : basePositions.commercial;
-    const pos = positions[Math.floor(Math.random() * positions.length)];
-    
-    // Add some randomness
-    const lat = pos.lat + (Math.random() - 0.5) * 2;
-    const lng = pos.lng + (Math.random() - 0.5) * 2;
-    
-    vessel._mapPos = { lat, lng };
+    vessel._mapPos = { lat: pos.lat, lng: pos.lng, locationName: pos.name, source: pos.source };
     
     // Create marker element
     const el = createMarkerElement(vessel);
@@ -965,7 +1315,7 @@ function updateMapMarkers() {
     
     // Add marker
     const marker = new mapboxgl.Marker(el)
-      .setLngLat([lng, lat])
+      .setLngLat([pos.lng, pos.lat])
       .setPopup(popup)
       .addTo(state.map);
     
@@ -977,14 +1327,70 @@ function createMarkerElement(vessel) {
   const el = document.createElement('div');
   el.className = 'vessel-marker';
   
+  // Check if this vessel has live AIS position
+  const hasLiveAIS = vessel.mmsi && state.aisPositions.has(vessel.mmsi) && 
+                     !state.aisPositions.get(vessel.mmsi).isStale;
+  
   const color = vessel.typeCategory === 'military' ? '#3b82f6' : '#10b981';
   
-  el.innerHTML = `
-    <svg viewBox="0 0 32 32" fill="none">
-      <path d="M16 2L4 16h4v12h16V16h4L16 2z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <rect x="10" y="18" width="12" height="6" fill="#fff" opacity="0.3"/>
-    </svg>
-  `;
+  // Different marker style for live vs estimated positions
+  if (hasLiveAIS) {
+    // Live AIS marker with pulsing effect and rotation for heading
+    const aisPos = state.aisPositions.get(vessel.mmsi);
+    const rotation = aisPos.heading || aisPos.course || 0;
+    
+    el.innerHTML = `
+      <div class="marker-pulse" style="
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: ${color};
+        opacity: 0.3;
+        animation: pulse 2s infinite;
+        top: -4px;
+        left: -4px;
+      "></div>
+      <svg viewBox="0 0 32 32" fill="none" style="transform: rotate(${rotation}deg);">
+        <path d="M16 2L4 16h4v12h16V16h4L16 2z" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <circle cx="16" cy="14" r="3" fill="#fff"/>
+      </svg>
+      <div style="
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #22c55e;
+        color: white;
+        font-size: 8px;
+        padding: 1px 4px;
+        border-radius: 2px;
+        white-space: nowrap;
+      ">LIVE</div>
+    `;
+    
+    // Add pulse animation if not already added
+    if (!document.getElementById('marker-pulse-style')) {
+      const style = document.createElement('style');
+      style.id = 'marker-pulse-style';
+      style.textContent = `
+        @keyframes pulse {
+          0% { transform: scale(0.8); opacity: 0.3; }
+          50% { transform: scale(1.2); opacity: 0.1; }
+          100% { transform: scale(0.8); opacity: 0.3; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  } else {
+    // Standard marker for estimated positions
+    el.innerHTML = `
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M16 2L4 16h4v12h16V16h4L16 2z" fill="${color}" stroke="#fff" stroke-width="2" opacity="0.7"/>
+        <rect x="10" y="18" width="12" height="6" fill="#fff" opacity="0.2"/>
+      </svg>
+    `;
+  }
   
   el.addEventListener('click', () => openVesselDetail(vessel));
   
@@ -995,6 +1401,58 @@ function createPopupHTML(vessel) {
   const perf = vessel.performance || {};
   const fonColor = perf.freedomOfNavigation ? getScoreColor(perf.freedomOfNavigation) : 'var(--text-muted)';
   const hpColor = perf.currentHullPerformance ? getScoreColor(perf.currentHullPerformance) : 'var(--text-muted)';
+  const pos = vessel._mapPos || {};
+  const isLive = pos.source === 'ais_live';
+  const locationName = pos.locationName || 'Unknown';
+  const hasMMSI = vessel.mmsi && vessel.mmsi.length === 9;
+  
+  // Determine tracking status message
+  let locationHtml = '';
+  if (isLive) {
+    // Live AIS tracking
+    locationHtml = `
+      <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: rgba(34, 197, 94, 0.15); border-radius: 4px; border-left: 3px solid #22c55e;">
+        <div style="display: flex; align-items: center; gap: 4px; color: #22c55e; font-weight: 500;">
+          <span style="font-size: 8px;">●</span>
+          <span>Live AIS Tracking</span>
+        </div>
+        <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
+          ${pos.speed !== undefined ? `Speed: ${pos.speed?.toFixed(1) || 0} kn` : ''}
+          ${pos.course !== undefined ? ` • Course: ${Math.round(pos.course || 0)}°` : ''}
+        </div>
+      </div>
+    `;
+  } else if (hasMMSI) {
+    // Has MMSI but not broadcasting (military vessels)
+    locationHtml = `
+      <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; border-left: 3px solid #f59e0b;">
+        <div style="display: flex; align-items: center; gap: 4px; color: #f59e0b; font-weight: 500;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h2v2h-2v-2zm0-8h2v6h-2V9z"/>
+          </svg>
+          <span>AIS Not Broadcasting</span>
+        </div>
+        <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
+          Showing: ${escapeHtml(locationName)}
+        </div>
+      </div>
+    `;
+  } else {
+    // No MMSI configured
+    locationHtml = `
+      <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: rgba(100, 116, 139, 0.15); border-radius: 4px; border-left: 3px solid #64748b;">
+        <div style="display: flex; align-items: center; gap: 4px; color: #64748b; font-weight: 500;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+          <span>Tracking Disabled</span>
+        </div>
+        <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
+          Showing home port: ${escapeHtml(locationName)}
+        </div>
+      </div>
+    `;
+  }
   
   return `
     <div class="popup-content">
@@ -1009,6 +1467,7 @@ function createPopupHTML(vessel) {
           <div class="popup-class">${escapeHtml(vessel.class || vessel.typeLabel)}</div>
         </div>
       </div>
+      ${locationHtml}
       <div class="popup-scores">
         <div class="popup-score">
           <div class="popup-score-value" style="color: ${fonColor}">${perf.freedomOfNavigation || '--'}</div>
