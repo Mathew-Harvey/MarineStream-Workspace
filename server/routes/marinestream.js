@@ -19,7 +19,127 @@ try {
   console.warn('OAuth routes not available, using header-only auth');
 }
 
+// Import Marinesia service for vessel lookup and tracking
+let marinesia;
+try {
+  marinesia = require('../services/marinesia');
+} catch (e) {
+  console.warn('Marinesia service not available:', e.message);
+}
+
 const DIANA_API_BASE = 'api.idiana.io';
+
+/**
+ * Use Marinesia to find vessel MMSI and position by name
+ * This is crucial for tracking vessels that don't have MMSI in registries
+ */
+async function findVesselViaMarinesia(vesselName, existingIMO = null, existingMMSI = null) {
+  if (!marinesia || !marinesia.isConfigured()) {
+    return null;
+  }
+  
+  try {
+    // If we have a valid MMSI, get full data from Marinesia
+    if (existingMMSI && String(existingMMSI).length === 9 && !/^50300\d{4}$/.test(existingMMSI)) {
+      const [profile, location] = await Promise.allSettled([
+        marinesia.getVesselProfile(existingMMSI),
+        marinesia.getVesselLatestLocation(existingMMSI)
+      ]);
+      
+      if (profile.status === 'fulfilled' && profile.value) {
+        return {
+          mmsi: existingMMSI,
+          imo: profile.value.imo || existingIMO,
+          marinesia: profile.value,
+          position: location.status === 'fulfilled' ? location.value : null,
+          source: 'marinesia_direct'
+        };
+      }
+    }
+    
+    // Search by name if no valid MMSI
+    const cleanName = vesselName
+      .replace(/^hmas\s+/i, '')  // Remove HMAS prefix
+      .replace(/^mv\s+/i, '')    // Remove MV prefix
+      .replace(/^hms\s+/i, '')   // Remove HMS prefix
+      .replace(/\s*\([^)]*\)\s*$/, '')  // Remove trailing parenthetical
+      .trim();
+    
+    if (cleanName.length < 3) return null;
+    
+    // Search Marinesia vessel database
+    const searchResult = await marinesia.searchVesselProfiles({
+      filters: `name:${cleanName}`,
+      limit: 5
+    });
+    
+    if (searchResult.vessels && searchResult.vessels.length > 0) {
+      // Try to find best match
+      const match = searchResult.vessels.find(v => {
+        const mName = (v.name || '').toLowerCase();
+        const searchName = cleanName.toLowerCase();
+        return mName.includes(searchName) || searchName.includes(mName);
+      }) || searchResult.vessels[0];
+      
+      if (match && match.mmsi) {
+        // Get location for matched vessel
+        const location = await marinesia.getVesselLatestLocation(match.mmsi).catch(() => null);
+        
+        console.log(`  🔍 Marinesia: Found "${vesselName}" -> MMSI ${match.mmsi} (${match.name})`);
+        
+        return {
+          mmsi: String(match.mmsi),
+          imo: match.imo || existingIMO,
+          marinesia: {
+            name: match.name,
+            ship_type: match.type,
+            country: match.flag,
+            length: match.l,
+            width: match.w,
+            callsign: match.cs
+          },
+          position: location,
+          source: 'marinesia_search'
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.log(`  ⚠️ Marinesia lookup failed for "${vesselName}":`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Get live position from Marinesia for a known MMSI
+ */
+async function getMarinesiaPosition(mmsi) {
+  if (!marinesia || !marinesia.isConfigured() || !mmsi) {
+    return null;
+  }
+  
+  try {
+    const location = await marinesia.getVesselLatestLocation(mmsi);
+    if (location && location.lat && location.lng) {
+      return {
+        lat: location.lat,
+        lng: location.lng,
+        speed: location.sog,
+        course: location.cog,
+        heading: location.hdt,
+        status: location.status,
+        destination: location.dest,
+        eta: location.eta,
+        timestamp: location.ts,
+        source: 'marinesia'
+      };
+    }
+  } catch (error) {
+    // Silent fail
+  }
+  return null;
+}
 
 /**
  * Get access token from request
@@ -809,6 +929,71 @@ router.get('/fleet', async (req, res) => {
     
     console.log(`📊 Enhanced ${mmsiEnhanced} vessels with MMSI from asset registries`);
     
+    // =========================================================
+    // ENHANCE: Use Marinesia to find vessels and get positions
+    // =========================================================
+    if (marinesia && marinesia.isConfigured()) {
+      console.log('🌐 Using Marinesia to discover vessel MMSI and positions...');
+      
+      let marinesiaEnhanced = 0;
+      let positionsFound = 0;
+      
+      for (const [vesselId, vessel] of vesselMap) {
+        // Try to find vessel via Marinesia if no valid MMSI
+        const hasValidMMSI = vessel.mmsi && 
+                            String(vessel.mmsi).length === 9 && 
+                            !/^50300\d{4}$/.test(vessel.mmsi) &&
+                            vessel.mmsi !== '-';
+        
+        if (!hasValidMMSI || !vessel.marinesia) {
+          const marinesiaData = await findVesselViaMarinesia(
+            vessel.name, 
+            vessel.imo, 
+            hasValidMMSI ? vessel.mmsi : null
+          );
+          
+          if (marinesiaData) {
+            if (!hasValidMMSI && marinesiaData.mmsi) {
+              vessel.mmsi = marinesiaData.mmsi;
+              marinesiaEnhanced++;
+            }
+            if (marinesiaData.imo && !vessel.imo) {
+              vessel.imo = marinesiaData.imo;
+            }
+            vessel.marinesia = marinesiaData.marinesia;
+            vessel.marinesiaSource = marinesiaData.source;
+            
+            // Store position from Marinesia
+            if (marinesiaData.position) {
+              vessel.livePosition = {
+                lat: marinesiaData.position.lat,
+                lng: marinesiaData.position.lng,
+                speed: marinesiaData.position.sog,
+                course: marinesiaData.position.cog,
+                heading: marinesiaData.position.hdt,
+                status: marinesiaData.position.status,
+                destination: marinesiaData.position.dest,
+                eta: marinesiaData.position.eta,
+                timestamp: marinesiaData.position.ts,
+                source: 'marinesia'
+              };
+              positionsFound++;
+            }
+          }
+        } else if (hasValidMMSI && !vessel.livePosition) {
+          // If we have MMSI but no position, try to get it from Marinesia
+          const position = await getMarinesiaPosition(vessel.mmsi);
+          if (position) {
+            vessel.livePosition = position;
+            positionsFound++;
+          }
+        }
+      }
+      
+      console.log(`  🔍 Marinesia: Enhanced ${marinesiaEnhanced} vessels with MMSI`);
+      console.log(`  📍 Marinesia: Found ${positionsFound} vessel positions`);
+    }
+    
     // Calculate YTD performance and other derived metrics
     const vessels = Array.from(vesselMap.values()).map(vessel => {
       // Sort jobs by date
@@ -869,6 +1054,12 @@ router.get('/fleet', async (req, res) => {
         lastActivity: vessel.jobs[0]?.lastModified || null,
         performance: vessel.performance,
         recentJobs: vessel.jobs.slice(0, 5),
+        // Live position from Marinesia or AIS
+        livePosition: vessel.livePosition || null,
+        hasLivePosition: !!vessel.livePosition,
+        // Marinesia enrichment
+        marinesia: vessel.marinesia || null,
+        marinesiaSource: vessel.marinesiaSource || null,
         // Include job history summary
         jobHistory: {
           total: vessel.jobs.length,
@@ -925,6 +1116,10 @@ router.get('/fleet', async (req, res) => {
       console.log('ℹ️ No MMSI values found in fleet data');
     }
 
+    // Count vessels with live positions
+    const vesselsWithLivePosition = vessels.filter(v => v.hasLivePosition).length;
+    const marinesiaPositions = vessels.filter(v => v.livePosition?.source === 'marinesia').length;
+    
     res.json({
       success: true,
       data: {
@@ -944,7 +1139,11 @@ router.get('/fleet', async (req, res) => {
           avgFON,
           avgHullPerformance: avgHP,
           vesselsDueSoon: vessels.filter(v => v.daysToNextClean !== null && v.daysToNextClean <= 30).length,
-          vesselsWithMMSI: mmsiList.length
+          vesselsWithMMSI: mmsiList.length,
+          // Position tracking stats
+          vesselsWithLivePosition,
+          marinesiaPositions,
+          marinesiaEnabled: marinesia?.isConfigured() || false
         }
       }
     });

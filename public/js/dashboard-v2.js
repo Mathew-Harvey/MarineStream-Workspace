@@ -1201,10 +1201,10 @@ function updateVesselMarkerPosition(mmsi) {
 }
 
 /**
- * Update AIS connection status indicator
+ * Update AIS/Marinesia tracking status indicator
  */
 function updateAISStatus(status) {
-  // Add a small indicator to the UI showing AIS status
+  // Add a small indicator to the UI showing tracking status
   let indicator = document.getElementById('ais-status');
   
   if (!indicator) {
@@ -1221,25 +1221,45 @@ function updateAISStatus(status) {
       font-weight: 500;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       z-index: 1000;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.8);
       color: white;
+      flex-wrap: wrap;
+      max-width: 300px;
     `;
     document.body.appendChild(indicator);
   }
   
   const statusConfig = {
-    connected: { color: '#22c55e', text: 'AIS Live', icon: '●' },
-    disconnected: { color: '#f59e0b', text: 'AIS Reconnecting...', icon: '○' },
+    connected: { color: '#22c55e', text: 'AIS', icon: '●' },
+    disconnected: { color: '#f59e0b', text: 'AIS...', icon: '○' },
     error: { color: '#ef4444', text: 'AIS Error', icon: '○' }
   };
   
   const config = statusConfig[status] || statusConfig.disconnected;
+  
+  // Count fleet vessels with live positions
+  const fleetWithPos = state.fleet.filter(v => v.hasLivePosition || v.livePosition).length;
+  const marinesiaPos = state.fleet.filter(v => v.livePosition?.source === 'marinesia').length;
+  const aisPos = state.aisPositions.size;
+  
   indicator.innerHTML = `
-    <span style="color: ${config.color}; font-size: 10px;">${config.icon}</span>
-    <span>${config.text}</span>
-    <span style="opacity: 0.6">${state.aisPositions.size} positions</span>
+    <span style="display: flex; align-items: center; gap: 4px;">
+      <span style="color: ${config.color}; font-size: 10px;">${config.icon}</span>
+      <span>${config.text}</span>
+    </span>
+    <span style="opacity: 0.7; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px;">
+      📡 ${aisPos} AIS
+    </span>
+    ${marinesiaPos > 0 ? `
+      <span style="opacity: 0.7; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px;">
+        🌐 ${marinesiaPos} Marinesia
+      </span>
+    ` : ''}
+    <span style="opacity: 0.9; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px; color: #22c55e;">
+      🚢 ${fleetWithPos}/${state.fleet.length} tracked
+    </span>
   `;
 }
 
@@ -1297,14 +1317,32 @@ const KNOWN_LOCATIONS = {
 };
 
 function getVesselPosition(vessel) {
-  // 0. FIRST: Check for live AIS position (real-time GPS from AISStream.io)
+  // 0. FIRST: Check for live position from API (Marinesia or AIS)
+  if (vessel.livePosition && vessel.livePosition.lat && vessel.livePosition.lng) {
+    const pos = vessel.livePosition;
+    const speedText = pos.speed !== undefined ? `${pos.speed?.toFixed(1) || 0} kn` : '';
+    const sourceName = pos.source === 'marinesia' ? 'Marinesia' : 'AIS';
+    return { 
+      lat: pos.lat, 
+      lng: pos.lng, 
+      name: `Live ${sourceName}${speedText ? ` (${speedText})` : ''}`,
+      source: pos.source === 'marinesia' ? 'marinesia_live' : 'ais_live',
+      speed: pos.speed,
+      course: pos.course,
+      heading: pos.heading,
+      destination: pos.destination,
+      eta: pos.eta
+    };
+  }
+  
+  // 1. SECOND: Check for live AIS position from WebSocket (real-time GPS from AISStream.io)
   if (vessel.mmsi && state.aisPositions.has(vessel.mmsi)) {
     const aisPos = state.aisPositions.get(vessel.mmsi);
     if (aisPos.lat && aisPos.lng && !aisPos.isStale) {
       return { 
         lat: aisPos.lat, 
         lng: aisPos.lng, 
-        name: `Live GPS (${aisPos.speed?.toFixed(1) || 0} kn)`,
+        name: `Live AIS (${aisPos.speed?.toFixed(1) || 0} kn)`,
         source: 'ais_live',
         speed: aisPos.speed,
         course: aisPos.course,
@@ -1313,7 +1351,7 @@ function getVesselPosition(vessel) {
     }
   }
   
-  // 1. Check if vessel has a last known location from recent jobs
+  // 2. Check if vessel has a last known location from recent jobs
   const lastLocation = vessel.recentJobs?.[0]?.location;
   if (lastLocation) {
     const locationKey = lastLocation.toLowerCase().trim();
@@ -1420,17 +1458,24 @@ function createMarkerElement(vessel) {
   const el = document.createElement('div');
   el.className = 'vessel-marker';
   
-  // Check if this vessel has live AIS position
-  const hasLiveAIS = vessel.mmsi && state.aisPositions.has(vessel.mmsi) && 
-                     !state.aisPositions.get(vessel.mmsi).isStale;
+  // Check if this vessel has live position (from API or WebSocket)
+  const hasLivePosition = vessel.hasLivePosition || vessel.livePosition || 
+                          (vessel.mmsi && state.aisPositions.has(vessel.mmsi) && 
+                           !state.aisPositions.get(vessel.mmsi).isStale);
+  
+  // Determine position source
+  const posSource = vessel.livePosition?.source || 
+                    (vessel.mmsi && state.aisPositions.has(vessel.mmsi) ? 'ais' : null);
   
   const color = vessel.typeCategory === 'military' ? '#3b82f6' : '#10b981';
   
   // Different marker style for live vs estimated positions
-  if (hasLiveAIS) {
-    // Live AIS marker with pulsing effect and rotation for heading
-    const aisPos = state.aisPositions.get(vessel.mmsi);
-    const rotation = aisPos.heading || aisPos.course || 0;
+  if (hasLivePosition) {
+    // Live marker with pulsing effect and rotation for heading
+    const aisPos = state.aisPositions.get(vessel.mmsi) || vessel.livePosition;
+    const rotation = aisPos?.heading || aisPos?.course || 0;
+    const badgeColor = posSource === 'marinesia' ? '#f59e0b' : '#22c55e';
+    const badgeText = posSource === 'marinesia' ? 'MARINESIA' : 'LIVE';
     
     el.innerHTML = `
       <div class="marker-pulse" style="
@@ -1453,13 +1498,13 @@ function createMarkerElement(vessel) {
         bottom: -8px;
         left: 50%;
         transform: translateX(-50%);
-        background: #22c55e;
+        background: ${badgeColor};
         color: white;
         font-size: 8px;
         padding: 1px 4px;
         border-radius: 2px;
         white-space: nowrap;
-      ">LIVE</div>
+      ">${badgeText}</div>
     `;
     
     // Add pulse animation if not already added
@@ -1495,24 +1540,35 @@ function createPopupHTML(vessel) {
   const fonColor = perf.freedomOfNavigation ? getScoreColor(perf.freedomOfNavigation) : 'var(--text-muted)';
   const hpColor = perf.currentHullPerformance ? getScoreColor(perf.currentHullPerformance) : 'var(--text-muted)';
   const pos = vessel._mapPos || {};
-  const isLive = pos.source === 'ais_live';
+  const isLive = pos.source === 'ais_live' || pos.source === 'marinesia_live';
+  const isMarinesia = pos.source === 'marinesia_live';
   const locationName = pos.locationName || 'Unknown';
   const hasMMSI = vessel.mmsi && vessel.mmsi.length === 9;
+  const marinesiaData = vessel.marinesia;
   
   // Determine tracking status message
   let locationHtml = '';
   if (isLive) {
-    // Live AIS tracking
+    // Live tracking (AIS or Marinesia)
+    const trackingColor = isMarinesia ? '#f59e0b' : '#22c55e';
+    const trackingBg = isMarinesia ? 'rgba(245, 158, 11, 0.15)' : 'rgba(34, 197, 94, 0.15)';
+    const trackingLabel = isMarinesia ? 'Live Marinesia Tracking' : 'Live AIS Tracking';
+    
     locationHtml = `
-      <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: rgba(34, 197, 94, 0.15); border-radius: 4px; border-left: 3px solid #22c55e;">
-        <div style="display: flex; align-items: center; gap: 4px; color: #22c55e; font-weight: 500;">
+      <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: ${trackingBg}; border-radius: 4px; border-left: 3px solid ${trackingColor};">
+        <div style="display: flex; align-items: center; gap: 4px; color: ${trackingColor}; font-weight: 500;">
           <span style="font-size: 8px;">●</span>
-          <span>Live AIS Tracking</span>
+          <span>${trackingLabel}</span>
         </div>
         <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
           ${pos.speed !== undefined ? `Speed: ${pos.speed?.toFixed(1) || 0} kn` : ''}
           ${pos.course !== undefined ? ` • Course: ${Math.round(pos.course || 0)}°` : ''}
         </div>
+        ${pos.destination ? `
+          <div style="color: var(--text-muted); margin-top: 2px; font-size: 10px;">
+            📍 Destination: ${escapeHtml(pos.destination)}${pos.eta ? ` (ETA: ${pos.eta})` : ''}
+          </div>
+        ` : ''}
       </div>
     `;
   } else if (hasMMSI) {

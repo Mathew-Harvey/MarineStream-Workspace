@@ -4,7 +4,7 @@
  * Complements AISstream real-time data with rich static info
  */
 
-const MARINESIA_BASE_URL = 'https://api.marinesia.io/api/v1';
+const MARINESIA_BASE_URL = 'https://api.marinesia.com/api/v1';
 
 // In-memory cache with TTL
 const cache = {
