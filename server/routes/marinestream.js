@@ -1122,7 +1122,36 @@ router.get('/fleet', async (req, res) => {
     }
     
     // =========================================================
-    // FALLBACK: Use static positions for vessels without live data
+    // FALLBACK 1: Use last known positions from database
+    // =========================================================
+    const mapRoutes = require('./map');
+    const lastKnownPositions = await mapRoutes.getAllLastKnownPositions();
+    let lastKnownCount = 0;
+    
+    for (const [vesselId, vessel] of vesselMap) {
+      if (!vessel.livePosition && vessel.mmsi && lastKnownPositions[vessel.mmsi]) {
+        const lastPos = lastKnownPositions[vessel.mmsi];
+        vessel.livePosition = {
+          lat: lastPos.lat,
+          lng: lastPos.lng,
+          speed: lastPos.speed,
+          course: lastPos.course,
+          heading: lastPos.heading,
+          source: 'last_known',
+          timestamp: lastPos.timestamp,
+          isStale: true
+        };
+        vessel.hasLivePosition = true;
+        lastKnownCount++;
+      }
+    }
+    
+    if (lastKnownCount > 0) {
+      console.log(`📍 Last known: Loaded ${lastKnownCount} cached positions from database`);
+    }
+    
+    // =========================================================
+    // FALLBACK 2: Use static positions for vessels without live data
     // =========================================================
     if (staticPositions) {
       let staticFallbackCount = 0;

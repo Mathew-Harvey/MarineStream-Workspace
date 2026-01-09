@@ -310,6 +310,7 @@ router.get('/bounds', optionalAuth, async (req, res) => {
 
 /**
  * Update vessel position (called from AIS WebSocket handler in server/index.js)
+ * Also persists to database for last known position retrieval
  * @param {string} mmsi - Maritime Mobile Service Identity
  * @param {object} data - AIS position data
  */
@@ -317,7 +318,7 @@ function updateVesselPosition(mmsi, data) {
   // Merge with existing data to preserve static info
   const existing = vesselPositions.get(mmsi) || {};
   
-  vesselPositions.set(mmsi, {
+  const newPosition = {
     ...existing,
     lat: data.Latitude ?? existing.lat,
     lon: data.Longitude ?? existing.lon,
@@ -328,7 +329,104 @@ function updateVesselPosition(mmsi, data) {
     shipName: data.ShipName || existing.shipName,
     timestamp: new Date().toISOString(),
     rawTimestamp: data.Timestamp || null
-  });
+  };
+  
+  vesselPositions.set(mmsi, newPosition);
+  
+  // Persist to database (async, non-blocking)
+  if (newPosition.lat && newPosition.lon) {
+    savePositionToDb(mmsi, newPosition).catch(err => {
+      // Log but don't fail - DB persistence is best-effort
+      if (!err.message.includes('ECONNRESET')) {
+        console.error(`Failed to persist position for ${mmsi}:`, err.message);
+      }
+    });
+  }
+}
+
+/**
+ * Save position to database for persistence
+ */
+async function savePositionToDb(mmsi, position) {
+  await db.query(`
+    INSERT INTO vessel_positions (mmsi, lat, lng, speed, course, heading, ship_name, source, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, 'ais', NOW())
+    ON CONFLICT (mmsi) DO UPDATE SET
+      lat = EXCLUDED.lat,
+      lng = EXCLUDED.lng,
+      speed = EXCLUDED.speed,
+      course = EXCLUDED.course,
+      heading = EXCLUDED.heading,
+      ship_name = COALESCE(EXCLUDED.ship_name, vessel_positions.ship_name),
+      source = 'ais',
+      updated_at = NOW()
+  `, [
+    mmsi,
+    position.lat,
+    position.lon,
+    position.speed || null,
+    position.course || null,
+    position.heading || null,
+    position.shipName || null
+  ]);
+}
+
+/**
+ * Get last known position from database for a specific MMSI
+ */
+async function getLastKnownPosition(mmsi) {
+  try {
+    const result = await db.query(
+      'SELECT * FROM vessel_positions WHERE mmsi = $1',
+      [mmsi]
+    );
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      return {
+        lat: parseFloat(row.lat),
+        lng: parseFloat(row.lng),
+        speed: row.speed ? parseFloat(row.speed) : null,
+        course: row.course ? parseFloat(row.course) : null,
+        heading: row.heading,
+        shipName: row.ship_name,
+        source: 'last_known',
+        timestamp: row.updated_at,
+        isStale: true // Mark as potentially outdated
+      };
+    }
+  } catch (err) {
+    console.error(`Error fetching last known position for ${mmsi}:`, err.message);
+  }
+  return null;
+}
+
+/**
+ * Get all last known positions from database
+ */
+async function getAllLastKnownPositions() {
+  try {
+    const result = await db.query(
+      'SELECT * FROM vessel_positions ORDER BY updated_at DESC'
+    );
+    const positions = {};
+    for (const row of result.rows) {
+      positions[row.mmsi] = {
+        lat: parseFloat(row.lat),
+        lng: parseFloat(row.lng),
+        speed: row.speed ? parseFloat(row.speed) : null,
+        course: row.course ? parseFloat(row.course) : null,
+        heading: row.heading,
+        shipName: row.ship_name,
+        source: 'last_known',
+        timestamp: row.updated_at,
+        isStale: true
+      };
+    }
+    return positions;
+  } catch (err) {
+    console.error('Error fetching all last known positions:', err.message);
+    return {};
+  }
 }
 
 /**
@@ -376,6 +474,8 @@ setInterval(cleanStalePositions, 10 * 60 * 1000);
 router.updateVesselPosition = updateVesselPosition;
 router.getPosition = getPosition;
 router.getAllPositions = getAllPositions;
+router.getLastKnownPosition = getLastKnownPosition;
+router.getAllLastKnownPositions = getAllLastKnownPositions;
 router.vesselPositions = vesselPositions;
 
 module.exports = router;

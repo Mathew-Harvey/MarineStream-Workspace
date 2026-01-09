@@ -51,7 +51,7 @@ const state = {
   
   // Map state
   map: null,
-  markers: [],
+  markers: new Map(), // vessel.id -> Mapbox Marker
   
   // AIS real-time tracking
   aisWebSocket: null,
@@ -795,23 +795,7 @@ function updateGauge(element, value) {
 function renderVesselList() {
   if (!elements.vesselList) return;
   
-  let vessels = state.fleet;
-  
-  // Apply fleet filter first
-  if (state.selectedFleetId) {
-    const selectedFleet = state.fleets.find(f => f.id === state.selectedFleetId);
-    if (selectedFleet && selectedFleet.vessel_ids) {
-      const fleetVesselIds = Array.isArray(selectedFleet.vessel_ids) ? selectedFleet.vessel_ids : [];
-      vessels = vessels.filter(v => fleetVesselIds.includes(v.id));
-    }
-  }
-  
-  // Apply type filter
-  if (state.filter === 'ran') {
-    vessels = vessels.filter(v => v.typeCategory === 'military');
-  } else if (state.filter === 'commercial') {
-    vessels = vessels.filter(v => v.typeCategory === 'commercial');
-  }
+  const vessels = getVisibleVessels();
   
   if (vessels.length === 0) {
     const message = state.selectedFleetId 
@@ -827,12 +811,15 @@ function renderVesselList() {
     const typeClass = vessel.typeCategory === 'military' ? 'ran' : 
                       vessel.typeCategory === 'commercial' ? 'commercial' : 'other';
     
+    const hasPosition = isValidPosition(vessel._mapPos);
+    const positionStatus = getPositionStatusText(vessel._mapPos);
+    
     return `
-      <div class="vessel-item" data-vessel-id="${vessel.id}">
+      <div class="vessel-item ${!hasPosition ? 'no-position' : ''}" data-vessel-id="${vessel.id}">
         <div class="vessel-indicator ${typeClass}"></div>
         <div class="vessel-info">
           <div class="vessel-name">${escapeHtml(vessel.name)}</div>
-          <div class="vessel-class">${escapeHtml(vessel.class || vessel.typeLabel || 'Vessel')}</div>
+          <div class="vessel-class">${escapeHtml(vessel.class || vessel.typeLabel || 'Vessel')} <span class="vessel-position-status">${positionStatus}</span></div>
         </div>
         <div class="vessel-score">
           <span class="vessel-score-value ${scoreClass}">${fon !== null ? fon : '--'}</span>
@@ -850,6 +837,21 @@ function renderVesselList() {
       if (vessel) openVesselDetail(vessel);
     });
   });
+}
+
+/**
+ * Get human-readable position status text
+ */
+function getPositionStatusText(pos) {
+  if (!isValidPosition(pos)) return '⏳ Awaiting AIS';
+  
+  switch (pos.source) {
+    case 'ais_live': return '📍 Live';
+    case 'marinesia_live': return '📍 Marinesia';
+    case 'last_known': return '📍 Last Known';
+    case 'static': return '⚓ Port';
+    default: return '📍';
+  }
 }
 
 function filterVesselList(searchTerm) {
@@ -1198,26 +1200,15 @@ function handleAISMessage(data) {
  * Update a specific vessel marker with new AIS position
  */
 function updateVesselMarkerPosition(mmsi) {
-  // Find the vessel in our fleet with this MMSI
-  const vesselIndex = state.fleet.findIndex(v => v.mmsi === mmsi);
-  if (vesselIndex === -1) return;
-  
-  const vessel = state.fleet[vesselIndex];
-  const marker = state.markers[vesselIndex];
-  if (!marker) return;
+  const vessel = state.fleet.find(v => v.mmsi === mmsi);
+  if (!vessel) return;
   
   const aisPos = state.aisPositions.get(mmsi);
   if (!aisPos || !aisPos.lat || !aisPos.lng) return;
   
-  // Only log the first time we get live position for this vessel
-  if (vessel._mapPos?.source !== 'ais_live') {
-    console.log(`📍 LIVE: ${vessel.name} now tracking at ${aisPos.lat.toFixed(4)}, ${aisPos.lng.toFixed(4)}`);
-  }
+  const wasNotLive = vessel._mapPos?.source !== 'ais_live';
   
-  // Update the marker position
-  marker.setLngLat([aisPos.lng, aisPos.lat]);
-  
-  // Update vessel's stored position
+  // Update vessel's position data
   vessel._mapPos = { 
     lat: aisPos.lat, 
     lng: aisPos.lng, 
@@ -1228,18 +1219,20 @@ function updateVesselMarkerPosition(mmsi) {
     heading: aisPos.heading
   };
   
-  // Recreate marker element to show LIVE indicator
-  const newEl = createMarkerElement(vessel);
-  const oldEl = marker.getElement();
-  if (oldEl && oldEl.parentNode) {
-    oldEl.parentNode.replaceChild(newEl, oldEl);
+  if (wasNotLive) {
+    const action = state.markers.has(vessel.id) ? 'LIVE' : 'NEW';
+    console.log(`📍 ${action}: ${vessel.name} at ${aisPos.lat.toFixed(4)}, ${aisPos.lng.toFixed(4)}`);
   }
   
-  // Update popup content
-  marker.setPopup(
-    new mapboxgl.Popup({ offset: 25, closeButton: false })
-      .setHTML(createPopupHTML(vessel))
-  );
+  // Create or update marker
+  createOrUpdateMarker(vessel);
+  
+  // Update visibility based on current filter
+  const marker = state.markers.get(vessel.id);
+  if (marker) {
+    const isVisible = isVesselVisible(vessel);
+    marker.getElement().style.display = isVisible ? 'block' : 'none';
+  }
 }
 
 /**
@@ -1382,6 +1375,22 @@ function getVesselPosition(vessel) {
       };
     }
     
+    // Handle last known positions (from database cache)
+    if (pos.source === 'last_known') {
+      const ageMs = pos.timestamp ? Date.now() - new Date(pos.timestamp).getTime() : 0;
+      const ageHours = Math.round(ageMs / (1000 * 60 * 60));
+      const ageStr = ageHours > 24 ? `${Math.round(ageHours/24)}d ago` : ageHours > 0 ? `${ageHours}h ago` : 'recent';
+      return { 
+        lat: pos.lat, 
+        lng: pos.lng, 
+        name: `Last Known (${ageStr})`,
+        source: 'last_known',
+        speed: pos.speed,
+        course: pos.course,
+        isStale: true
+      };
+    }
+    
     // Handle marinesia or AIS live positions
     const sourceName = pos.source === 'marinesia' ? 'Marinesia' : 'AIS';
     return { 
@@ -1425,42 +1434,50 @@ function getVesselPosition(vessel) {
   }
   
   // 2. Try to match vessel name to a home port
-  const vesselName = (vessel.name || '').toLowerCase();
+  const vesselNameLower = (vessel.name || '').toLowerCase();
   
   // Perth-based vessels (WA fleet)
-  if (vesselName.includes('stalwart') || vesselName.includes('stirling') || 
-      vesselName.includes('collins') || vesselName.includes('farncomb') ||
-      vesselName.includes('rankin') || vesselName.includes('sheean') ||
-      vesselName.includes('waller') || vesselName.includes('dechaineux')) {
+  if (vesselNameLower.includes('stalwart') || vesselNameLower.includes('stirling') || 
+      vesselNameLower.includes('collins') || vesselNameLower.includes('farncomb') ||
+      vesselNameLower.includes('rankin') || vesselNameLower.includes('sheean') ||
+      vesselNameLower.includes('waller') || vesselNameLower.includes('dechaineux')) {
     return { ...KNOWN_LOCATIONS['fleet base west'], source: 'home_port' };
   }
   
   // Sydney-based vessels
-  if (vesselName.includes('hobart') || vesselName.includes('brisbane') || 
-      vesselName.includes('sydney') || vesselName.includes('adelaide') ||
-      vesselName.includes('supply') || vesselName.includes('choules') ||
-      vesselName.includes('canberra')) {
+  if (vesselNameLower.includes('hobart') || vesselNameLower.includes('brisbane') || 
+      vesselNameLower.includes('sydney') || vesselNameLower.includes('adelaide') ||
+      vesselNameLower.includes('supply') || vesselNameLower.includes('choules') ||
+      vesselNameLower.includes('canberra')) {
     return { ...KNOWN_LOCATIONS['fleet base east'], source: 'home_port' };
   }
   
   // Darwin-based vessels
-  if (vesselName.includes('armidale') || vesselName.includes('patrol')) {
+  if (vesselNameLower.includes('armidale') || vesselNameLower.includes('patrol')) {
     return { ...KNOWN_LOCATIONS['darwin'], source: 'home_port' };
   }
   
   // Svitzer tugs - various ports
-  if (vesselName.includes('svitzer')) {
-    if (vesselName.includes('redhead')) return { ...KNOWN_LOCATIONS['newcastle'], source: 'home_port' };
-    if (vesselName.includes('abrolhos')) return { ...KNOWN_LOCATIONS['fremantle'], source: 'home_port' };
+  if (vesselNameLower.includes('svitzer')) {
+    if (vesselNameLower.includes('redhead')) return { ...KNOWN_LOCATIONS['newcastle'], source: 'home_port' };
+    if (vesselNameLower.includes('abrolhos')) return { ...KNOWN_LOCATIONS['fremantle'], source: 'home_port' };
     return { ...KNOWN_LOCATIONS['brisbane'], source: 'home_port' };
   }
   
   // Cape class - various
-  if (vesselName.includes('cape')) {
+  if (vesselNameLower.includes('cape')) {
     return { ...KNOWN_LOCATIONS['darwin'], source: 'home_port' };
   }
   
-  // 3. Use deterministic position based on vessel ID (not random!)
+  // 3. Check for vessels that should NOT get fallback positions
+  // (e.g., international vessels that we know aren't in Australia)
+  if (vesselNameLower.includes('saam') || 
+      (vessel.mmsi && vessel.mmsi.startsWith('316'))) { // Canadian MMSI prefix
+    // SAAM/Canadian vessels should only appear with real AIS data
+    return { lat: null, lng: null, name: 'Awaiting AIS', source: 'no_position' };
+  }
+  
+  // 4. Use deterministic position based on vessel ID (not random!)
   // This ensures same vessel always appears at same location
   const hash = (vessel.id || vessel.name || 'unknown').split('')
     .reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -1489,137 +1506,209 @@ function updateMapMarkers() {
   if (!state.map) return;
   
   // Clear existing markers
-  state.markers.forEach(m => m.remove());
-  state.markers = [];
+  state.markers.forEach(marker => marker.remove());
+  state.markers.clear();
   
-  // Add markers for each vessel
+  // Add markers for each vessel with valid position
   state.fleet.forEach(vessel => {
-    // Get proper position (not random!)
     const pos = getVesselPosition(vessel);
+    vessel._mapPos = pos;
     
-    vessel._mapPos = { lat: pos.lat, lng: pos.lng, locationName: pos.name, source: pos.source };
+    if (!isValidPosition(pos)) return;
     
-    // Create marker element
-    const el = createMarkerElement(vessel);
-    
-    // Create popup
-    const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-      .setHTML(createPopupHTML(vessel));
-    
-    // Add marker
-    const marker = new mapboxgl.Marker(el)
-      .setLngLat([pos.lng, pos.lat])
-      .setPopup(popup)
-      .addTo(state.map);
-    
-    state.markers.push(marker);
+    createOrUpdateMarker(vessel);
   });
+  
+  updateMapMarkersVisibility();
 }
 
-function createMarkerElement(vessel) {
-  const el = document.createElement('div');
-  el.className = 'vessel-marker';
+/**
+ * Check if a position object has valid coordinates
+ */
+function isValidPosition(pos) {
+  return pos && 
+         pos.source !== 'no_position' && 
+         typeof pos.lat === 'number' && 
+         typeof pos.lng === 'number' &&
+         !isNaN(pos.lat) && 
+         !isNaN(pos.lng);
+}
+
+/**
+ * Create or update a marker for a vessel
+ */
+function createOrUpdateMarker(vessel) {
+  if (!state.map || !isValidPosition(vessel._mapPos)) return null;
   
-  // Check position source
-  const posSource = vessel.livePosition?.source || 
-                    (vessel.mmsi && state.aisPositions.has(vessel.mmsi) ? 'ais' : null);
+  const existingMarker = state.markers.get(vessel.id);
   
-  // Check if this vessel has live position (from API or WebSocket) - not static
-  const hasLivePosition = (vessel.hasLivePosition || vessel.livePosition || 
-                          (vessel.mmsi && state.aisPositions.has(vessel.mmsi) && 
-                           !state.aisPositions.get(vessel.mmsi).isStale)) &&
-                           posSource !== 'static';
+  if (existingMarker) {
+    // Update existing marker position
+    existingMarker.setLngLat([vessel._mapPos.lng, vessel._mapPos.lat]);
+    
+    // Update popup content
+    existingMarker.setPopup(
+      new mapboxgl.Popup({ offset: 25, closeButton: false })
+        .setHTML(createPopupHTML(vessel))
+    );
+    
+    // Update marker element styling (without replacing the element)
+    updateMarkerElementStyle(existingMarker.getElement(), vessel);
+    
+    return existingMarker;
+  }
   
-  // Check if static position (homeport estimate)
-  const hasStaticPosition = posSource === 'static';
+  // Create new marker
+  const el = createMarkerElement(vessel);
+  const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
+    .setHTML(createPopupHTML(vessel));
   
+  const marker = new mapboxgl.Marker(el)
+    .setLngLat([vessel._mapPos.lng, vessel._mapPos.lat])
+    .setPopup(popup)
+    .addTo(state.map);
+  
+  state.markers.set(vessel.id, marker);
+  return marker;
+}
+
+/**
+ * Get marker style info based on position source
+ */
+function getMarkerStyle(vessel) {
+  const pos = vessel._mapPos || {};
+  const source = pos.source || 'fallback';
   const color = vessel.typeCategory === 'military' ? '#3b82f6' : '#10b981';
+  const rotation = pos.heading || pos.course || 0;
   
-  // Different marker style for live vs static vs estimated positions
-  if (hasLivePosition) {
-    // Live marker with pulsing effect and rotation for heading
-    const aisPos = state.aisPositions.get(vessel.mmsi) || vessel.livePosition;
-    const rotation = aisPos?.heading || aisPos?.course || 0;
-    const badgeColor = posSource === 'marinesia' ? '#f59e0b' : '#22c55e';
-    const badgeText = posSource === 'marinesia' ? 'MARINESIA' : 'LIVE';
-    
-    el.innerHTML = `
-      <div class="marker-pulse" style="
-        position: absolute;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: ${color};
-        opacity: 0.3;
-        animation: pulse 2s infinite;
-        top: -4px;
-        left: -4px;
-      "></div>
-      <svg viewBox="0 0 32 32" fill="none" style="transform: rotate(${rotation}deg);">
-        <path d="M16 2L4 16h4v12h16V16h4L16 2z" fill="${color}" stroke="#fff" stroke-width="2"/>
-        <circle cx="16" cy="14" r="3" fill="#fff"/>
-      </svg>
-      <div style="
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: ${badgeColor};
-        color: white;
-        font-size: 8px;
-        padding: 1px 4px;
-        border-radius: 2px;
-        white-space: nowrap;
-      ">${badgeText}</div>
-    `;
-    
-    // Add pulse animation if not already added
-    if (!document.getElementById('marker-pulse-style')) {
-      const style = document.createElement('style');
-      style.id = 'marker-pulse-style';
-      style.textContent = `
-        @keyframes pulse {
-          0% { transform: scale(0.8); opacity: 0.3; }
-          50% { transform: scale(1.2); opacity: 0.1; }
-          100% { transform: scale(0.8); opacity: 0.3; }
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  } else if (hasStaticPosition) {
-    // Static position marker (homeport estimate) - subtle anchor icon
-    el.innerHTML = `
+  if (source === 'ais_live') {
+    return { type: 'live', color, rotation, badgeColor: '#22c55e', badgeText: 'LIVE', pulse: true };
+  } else if (source === 'marinesia_live') {
+    return { type: 'live', color, rotation, badgeColor: '#f59e0b', badgeText: 'MARINESIA', pulse: true };
+  } else if (source === 'last_known') {
+    return { type: 'last_known', color, rotation, badgeColor: '#f59e0b', badgeText: 'LAST KNOWN', pulse: false };
+  } else if (source === 'static') {
+    return { type: 'static', color, rotation, badgeColor: '#6b7280', badgeText: 'AT PORT', pulse: false };
+  } else {
+    return { type: 'estimated', color, rotation, badgeColor: null, badgeText: null, pulse: false };
+  }
+}
+
+/**
+ * Generate marker HTML based on style
+ */
+function getMarkerHTML(style) {
+  const { type, color, rotation, badgeColor, badgeText, pulse } = style;
+  
+  const pulseDiv = pulse ? `
+    <div class="marker-pulse" style="
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: ${color};
+      opacity: 0.3;
+      animation: pulse 2s infinite;
+      top: -4px;
+      left: -4px;
+    "></div>` : '';
+  
+  const badgeDiv = badgeText ? `
+    <div class="marker-badge" style="
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${badgeColor};
+      color: white;
+      font-size: ${type === 'static' ? '7px' : '8px'};
+      font-weight: ${type === 'last_known' ? '600' : '400'};
+      padding: ${type === 'static' ? '1px 3px' : '2px 4px'};
+      border-radius: ${type === 'last_known' ? '3px' : '2px'};
+      white-space: nowrap;
+      ${type === 'last_known' ? 'text-shadow: 0 1px 1px rgba(0,0,0,0.3);' : ''}
+    ">${badgeText}</div>` : '';
+  
+  if (type === 'static') {
+    return `
       <svg viewBox="0 0 32 32" fill="none">
         <circle cx="16" cy="10" r="4" fill="${color}" stroke="#fff" stroke-width="2"/>
         <path d="M16 14L16 28M8 22L16 28L24 22" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
         <path d="M8 22L16 28L24 22" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
       </svg>
-      <div style="
-        position: absolute;
-        bottom: -8px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #6b7280;
-        color: white;
-        font-size: 7px;
-        padding: 1px 3px;
-        border-radius: 2px;
-        white-space: nowrap;
-      ">AT PORT</div>
-    `;
-  } else {
-    // Standard marker for estimated positions
-    el.innerHTML = `
+      ${badgeDiv}`;
+  } else if (type === 'estimated') {
+    return `
       <svg viewBox="0 0 32 32" fill="none">
         <path d="M16 2L4 16h4v12h16V16h4L16 2z" fill="${color}" stroke="#fff" stroke-width="2" opacity="0.7"/>
         <rect x="10" y="18" width="12" height="6" fill="#fff" opacity="0.2"/>
+      </svg>`;
+  } else {
+    const opacity = type === 'last_known' ? 'opacity: 0.7;' : '';
+    return `
+      ${pulseDiv}
+      <svg viewBox="0 0 32 32" fill="none" style="transform: rotate(${rotation}deg); ${opacity}">
+        <path d="M16 2L4 16h4v12h16V16h4L16 2z" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <circle cx="16" cy="14" r="3" fill="#fff"/>
       </svg>
-    `;
+      ${badgeDiv}`;
   }
+}
+
+/**
+ * Create a new marker element for a vessel
+ */
+function createMarkerElement(vessel) {
+  const el = document.createElement('div');
+  el.className = 'vessel-marker';
+  el.dataset.vesselId = vessel.id;
   
-  el.addEventListener('click', () => openVesselDetail(vessel));
+  const style = getMarkerStyle(vessel);
+  el.innerHTML = getMarkerHTML(style);
+  
+  // Ensure pulse animation exists
+  ensurePulseAnimation();
+  
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openVesselDetail(vessel);
+  });
   
   return el;
+}
+
+/**
+ * Update an existing marker element's style without replacing it
+ */
+function updateMarkerElementStyle(el, vessel) {
+  if (!el) return;
+  
+  const style = getMarkerStyle(vessel);
+  el.innerHTML = getMarkerHTML(style);
+  
+  // Re-attach click handler since innerHTML was replaced
+  el.onclick = (e) => {
+    e.stopPropagation();
+    openVesselDetail(vessel);
+  };
+}
+
+/**
+ * Add pulse animation CSS if not already present
+ */
+function ensurePulseAnimation() {
+  if (document.getElementById('marker-pulse-style')) return;
+  
+  const style = document.createElement('style');
+  style.id = 'marker-pulse-style';
+  style.textContent = `
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 0.3; }
+      50% { transform: scale(1.2); opacity: 0.1; }
+      100% { transform: scale(0.8); opacity: 0.3; }
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 function createPopupHTML(vessel) {
@@ -1747,7 +1836,13 @@ window.openVesselFromMap = function(vesselId) {
 };
 
 function flyToVessel(vessel) {
-  if (!state.map || !vessel._mapPos) return;
+  if (!state.map) return;
+  
+  // Only fly if vessel has valid coordinates
+  if (!isValidPosition(vessel._mapPos)) {
+    console.warn(`Cannot fly to ${vessel.name}: no valid position`);
+    return;
+  }
   
   state.map.flyTo({
     center: [vessel._mapPos.lng, vessel._mapPos.lat],
@@ -1759,13 +1854,11 @@ function flyToVessel(vessel) {
 function fitMapToVessels() {
   if (!state.map || state.fleet.length === 0) return;
   
-  // Use filtered vessels if a filter is active
-  const filteredIds = getFilteredVesselIds();
   const bounds = new mapboxgl.LngLatBounds();
   let hasValidBounds = false;
   
   state.fleet.forEach(vessel => {
-    if (filteredIds.has(vessel.id) && vessel._mapPos) {
+    if (isVesselVisible(vessel) && isValidPosition(vessel._mapPos)) {
       bounds.extend([vessel._mapPos.lng, vessel._mapPos.lat]);
       hasValidBounds = true;
     }
@@ -1777,8 +1870,40 @@ function fitMapToVessels() {
 }
 
 // ============================================
-// Filtering
+// Filtering (Single source of truth)
 // ============================================
+
+/**
+ * Check if a vessel matches the current filter
+ * This is THE ONLY function that determines vessel visibility
+ */
+function isVesselVisible(vessel) {
+  // Check custom fleet filter
+  if (state.selectedFleetId) {
+    const selectedFleet = state.fleets.find(f => f.id === state.selectedFleetId);
+    if (selectedFleet && selectedFleet.vessel_ids) {
+      const fleetVesselIds = Array.isArray(selectedFleet.vessel_ids) ? selectedFleet.vessel_ids : [];
+      if (!fleetVesselIds.includes(vessel.id)) return false;
+    }
+  }
+  
+  // Check type filter
+  if (state.filter === 'ran') {
+    return vessel.typeCategory === 'military';
+  } else if (state.filter === 'commercial') {
+    return vessel.typeCategory === 'commercial';
+  }
+  
+  return true;
+}
+
+/**
+ * Get all vessels that match the current filter
+ */
+function getVisibleVessels() {
+  return state.fleet.filter(isVesselVisible);
+}
+
 function setFilter(filter) {
   state.filter = filter;
   
@@ -1787,7 +1912,7 @@ function setFilter(filter) {
     state.selectedFleetId = null;
   }
   
-  // Update all filter pills (including dynamic fleet pills)
+  // Update all filter pills
   document.querySelectorAll('.filter-pill').forEach(pill => {
     pill.classList.toggle('active', pill.dataset.filter === filter);
   });
@@ -1810,8 +1935,6 @@ function setFleetFilter(fleetId) {
   
   renderVesselList();
   updateMapMarkersVisibility();
-  
-  // Fit map to fleet vessels
   fitMapToFilteredVessels();
 }
 
@@ -1819,60 +1942,31 @@ function setFleetFilter(fleetId) {
  * Update map marker visibility based on current filter
  */
 function updateMapMarkersVisibility() {
-  if (!state.map || state.markers.length === 0) return;
+  if (!state.map || state.markers.size === 0) return;
   
-  const filteredVesselIds = getFilteredVesselIds();
-  
-  state.fleet.forEach((vessel, index) => {
-    const marker = state.markers[index];
+  state.fleet.forEach(vessel => {
+    const marker = state.markers.get(vessel.id);
     if (!marker) return;
     
     const markerEl = marker.getElement();
     if (!markerEl) return;
     
-    const isVisible = filteredVesselIds.has(vessel.id);
-    markerEl.style.display = isVisible ? 'block' : 'none';
-    markerEl.style.opacity = isVisible ? '1' : '0';
+    const visible = isVesselVisible(vessel);
+    markerEl.style.display = visible ? 'block' : 'none';
   });
 }
 
 /**
- * Get set of vessel IDs that match the current filter
- */
-function getFilteredVesselIds() {
-  let vessels = state.fleet;
-  
-  // Apply fleet filter first
-  if (state.selectedFleetId) {
-    const selectedFleet = state.fleets.find(f => f.id === state.selectedFleetId);
-    if (selectedFleet && selectedFleet.vessel_ids) {
-      const fleetVesselIds = Array.isArray(selectedFleet.vessel_ids) ? selectedFleet.vessel_ids : [];
-      vessels = vessels.filter(v => fleetVesselIds.includes(v.id));
-    }
-  }
-  
-  // Apply type filter
-  if (state.filter === 'ran') {
-    vessels = vessels.filter(v => v.typeCategory === 'military');
-  } else if (state.filter === 'commercial') {
-    vessels = vessels.filter(v => v.typeCategory !== 'military');
-  }
-  
-  return new Set(vessels.map(v => v.id));
-}
-
-/**
- * Fit map to currently filtered vessels
+ * Fit map to currently filtered vessels with valid positions
  */
 function fitMapToFilteredVessels() {
   if (!state.map) return;
   
-  const filteredIds = getFilteredVesselIds();
   const bounds = new mapboxgl.LngLatBounds();
   let hasValidBounds = false;
   
   state.fleet.forEach(vessel => {
-    if (filteredIds.has(vessel.id) && vessel._mapPos) {
+    if (isVesselVisible(vessel) && isValidPosition(vessel._mapPos)) {
       bounds.extend([vessel._mapPos.lng, vessel._mapPos.lat]);
       hasValidBounds = true;
     }

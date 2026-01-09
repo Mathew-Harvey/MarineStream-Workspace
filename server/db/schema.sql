@@ -139,8 +139,25 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 -- ============================================
+-- Vessel Position Cache (Last Known Positions)
+-- ============================================
+CREATE TABLE IF NOT EXISTS vessel_positions (
+    mmsi VARCHAR(20) PRIMARY KEY,
+    lat DECIMAL(10, 6) NOT NULL,
+    lng DECIMAL(11, 6) NOT NULL,
+    speed DECIMAL(5, 1),
+    course DECIMAL(5, 1),
+    heading INTEGER,
+    ship_name VARCHAR(255),
+    destination VARCHAR(255),
+    source VARCHAR(50) DEFAULT 'ais', -- 'ais', 'marinesia', 'manual'
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- Indexes
 -- ============================================
+CREATE INDEX IF NOT EXISTS idx_vessel_positions_updated ON vessel_positions(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_clerk ON users(clerk_id);
 CREATE INDEX IF NOT EXISTS idx_users_org ON users(organization_id);
 CREATE INDEX IF NOT EXISTS idx_vessels_org ON vessels(organization_id);

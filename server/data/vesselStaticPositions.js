@@ -96,9 +96,8 @@ const STATIC_POSITIONS = {
     'svitzer arm': { lat: -34.7850, lng: 138.4904, port: 'Adelaide', note: 'Tug' },
     'svitzer eve': { lat: -34.7850, lng: 138.4904, port: 'Adelaide', note: 'Tug' },
     
-    // SAAM Towage - North America (Canada) - Different ports
-    'saam james point': { lat: -32.0350, lng: 115.7400, port: 'Fremantle', note: 'SAAM Tug - WA Operations' },
-    'saam saba': { lat: 49.2900, lng: -123.1100, port: 'Vancouver', note: 'SAAM Tug - Canada' },
+    // SAAM Towage - No static positions, use AIS only
+    // These vessels are tracked via AIS (MMSI: 316033100, 316026200)
     
     // International Fleet
     'hms queen elizabeth': { lat: 50.8020, lng: -1.1039, port: 'Portsmouth', note: 'Royal Navy CVF' },

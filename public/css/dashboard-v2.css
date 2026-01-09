@@ -1285,6 +1285,27 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vessel-position-status {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vessel-item.no-position {
+  opacity: 0.6;
+}
+
+.vessel-item.no-position .vessel-position-status {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
 }
 
 .vessel-score {
