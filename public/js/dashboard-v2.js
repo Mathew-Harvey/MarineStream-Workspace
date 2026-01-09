@@ -1759,15 +1759,21 @@ function flyToVessel(vessel) {
 function fitMapToVessels() {
   if (!state.map || state.fleet.length === 0) return;
   
+  // Use filtered vessels if a filter is active
+  const filteredIds = getFilteredVesselIds();
   const bounds = new mapboxgl.LngLatBounds();
+  let hasValidBounds = false;
   
   state.fleet.forEach(vessel => {
-    if (vessel._mapPos) {
+    if (filteredIds.has(vessel.id) && vessel._mapPos) {
       bounds.extend([vessel._mapPos.lng, vessel._mapPos.lat]);
+      hasValidBounds = true;
     }
   });
   
-  state.map.fitBounds(bounds, { padding: 100, duration: 1500 });
+  if (hasValidBounds) {
+    state.map.fitBounds(bounds, { padding: 100, duration: 1500 });
+  }
 }
 
 // ============================================
@@ -1776,11 +1782,137 @@ function fitMapToVessels() {
 function setFilter(filter) {
   state.filter = filter;
   
-  elements.filterPills.forEach(pill => {
+  // Clear fleet selection when using type filters
+  if (filter === 'all' || filter === 'ran' || filter === 'commercial') {
+    state.selectedFleetId = null;
+  }
+  
+  // Update all filter pills (including dynamic fleet pills)
+  document.querySelectorAll('.filter-pill').forEach(pill => {
     pill.classList.toggle('active', pill.dataset.filter === filter);
   });
   
   renderVesselList();
+  updateMapMarkersVisibility();
+}
+
+/**
+ * Set filter to a specific custom fleet
+ */
+function setFleetFilter(fleetId) {
+  state.selectedFleetId = fleetId;
+  state.filter = `fleet-${fleetId}`;
+  
+  // Update all filter pills
+  document.querySelectorAll('.filter-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.filter === `fleet-${fleetId}`);
+  });
+  
+  renderVesselList();
+  updateMapMarkersVisibility();
+  
+  // Fit map to fleet vessels
+  fitMapToFilteredVessels();
+}
+
+/**
+ * Update map marker visibility based on current filter
+ */
+function updateMapMarkersVisibility() {
+  if (!state.map || state.markers.length === 0) return;
+  
+  const filteredVesselIds = getFilteredVesselIds();
+  
+  state.fleet.forEach((vessel, index) => {
+    const marker = state.markers[index];
+    if (!marker) return;
+    
+    const markerEl = marker.getElement();
+    if (!markerEl) return;
+    
+    const isVisible = filteredVesselIds.has(vessel.id);
+    markerEl.style.display = isVisible ? 'block' : 'none';
+    markerEl.style.opacity = isVisible ? '1' : '0';
+  });
+}
+
+/**
+ * Get set of vessel IDs that match the current filter
+ */
+function getFilteredVesselIds() {
+  let vessels = state.fleet;
+  
+  // Apply fleet filter first
+  if (state.selectedFleetId) {
+    const selectedFleet = state.fleets.find(f => f.id === state.selectedFleetId);
+    if (selectedFleet && selectedFleet.vessel_ids) {
+      const fleetVesselIds = Array.isArray(selectedFleet.vessel_ids) ? selectedFleet.vessel_ids : [];
+      vessels = vessels.filter(v => fleetVesselIds.includes(v.id));
+    }
+  }
+  
+  // Apply type filter
+  if (state.filter === 'ran') {
+    vessels = vessels.filter(v => v.typeCategory === 'military');
+  } else if (state.filter === 'commercial') {
+    vessels = vessels.filter(v => v.typeCategory !== 'military');
+  }
+  
+  return new Set(vessels.map(v => v.id));
+}
+
+/**
+ * Fit map to currently filtered vessels
+ */
+function fitMapToFilteredVessels() {
+  if (!state.map) return;
+  
+  const filteredIds = getFilteredVesselIds();
+  const bounds = new mapboxgl.LngLatBounds();
+  let hasValidBounds = false;
+  
+  state.fleet.forEach(vessel => {
+    if (filteredIds.has(vessel.id) && vessel._mapPos) {
+      bounds.extend([vessel._mapPos.lng, vessel._mapPos.lat]);
+      hasValidBounds = true;
+    }
+  });
+  
+  if (hasValidBounds) {
+    state.map.fitBounds(bounds, { padding: 100, duration: 1500 });
+  }
+}
+
+/**
+ * Render fleet pills in the header filter area
+ */
+function renderHeaderFleetPills() {
+  const filterPillsContainer = document.querySelector('.filter-pills');
+  if (!filterPillsContainer) return;
+  
+  // Remove existing fleet pills (keep the base All/RAN/Commercial)
+  filterPillsContainer.querySelectorAll('.filter-pill[data-fleet-pill]').forEach(el => el.remove());
+  
+  // Add custom fleet pills
+  state.fleets.forEach(fleet => {
+    const iconMap = {
+      'anchor': '⚓', 'ship': '🚢', 'radar': '📡',
+      'flag': '🚩', 'star': '⭐', 'shield': '🛡️'
+    };
+    const icon = iconMap[fleet.icon] || '📁';
+    
+    const pill = document.createElement('button');
+    pill.className = `filter-pill${state.filter === `fleet-${fleet.id}` ? ' active' : ''}`;
+    pill.dataset.filter = `fleet-${fleet.id}`;
+    pill.dataset.fleetPill = 'true';
+    pill.innerHTML = `
+      <span class="filter-dot" style="background: ${fleet.color || '#3b82f6'}"></span>
+      ${icon} ${escapeHtml(fleet.name)}
+    `;
+    pill.addEventListener('click', () => setFleetFilter(fleet.id));
+    
+    filterPillsContainer.appendChild(pill);
+  });
 }
 
 // ============================================
@@ -1931,7 +2063,12 @@ async function loadFleets() {
     const data = await response.json();
     state.fleets = data.data || [];
     
+    // Render fleet pills in header (main filter location)
+    renderHeaderFleetPills();
+    
+    // Also render sidebar tabs (for quick access)
     renderFleetTabs();
+    
     console.log(`✅ Loaded ${state.fleets.length} fleets`);
   } catch (err) {
     console.warn('Could not load fleets:', err.message);

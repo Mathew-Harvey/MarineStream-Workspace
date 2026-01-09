@@ -975,6 +975,83 @@ router.get('/fleet', async (req, res) => {
     console.log(`📊 Enhanced ${mmsiEnhanced} vessels with MMSI from asset registries`);
     
     // =========================================================
+    // ADD: Include vessels from registries with NO work history
+    // This ensures all registered vessels appear on the map
+    // =========================================================
+    let addedFromRegistries = 0;
+    const existingVesselNames = new Set(
+      Array.from(vesselMap.values()).map(v => (v.name || '').toLowerCase().trim())
+    );
+    
+    // First try API registry data
+    for (const [assetName, assetData] of assetMMSILookup) {
+      if (!existingVesselNames.has(assetName)) {
+        const newVesselId = assetData.assetId || `registry-${assetName.replace(/\s+/g, '-')}`;
+        
+        vesselMap.set(newVesselId, {
+          id: newVesselId,
+          name: assetName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          mmsi: assetData.mmsi,
+          imo: assetData.imo,
+          assetRegistry: assetData.registry,
+          category: assetData.registry.includes('ran') ? 'RAN' : 
+                   assetData.registry.includes('royal') ? 'Royal Navy' :
+                   assetData.registry.includes('usn') ? 'USN' :
+                   assetData.registry.includes('rnzn') ? 'RNZN' : 'Commercial',
+          jobs: [],
+          totalJobs: 0,
+          latestAssessment: null,
+          performance: { freedomOfNavigation: null, currentHullPerformance: null, ytdHullPerformance: null, assessmentDate: null },
+          hasWorkHistory: false,
+          registrySource: assetData.registry
+        });
+        existingVesselNames.add(assetName);
+        addedFromRegistries++;
+      }
+    }
+    
+    // FALLBACK: Use local MMSI registry if API returned nothing
+    if (mmsiRegistry && assetMMSILookup.size === 0) {
+      console.log('📦 Using local MMSI registry as fallback for vessel data...');
+      const localRegistry = mmsiRegistry.VESSEL_MMSI_REGISTRY || {};
+      
+      for (const [vesselName, vesselData] of Object.entries(localRegistry)) {
+        if (!existingVesselNames.has(vesselName) && vesselData.mmsi) {
+          const newVesselId = `local-registry-${vesselName.replace(/\s+/g, '-')}`;
+          
+          // Determine category from vessel type/name
+          let category = 'Commercial';
+          if (vesselName.includes('hmas') || vesselName.includes('hma ')) category = 'RAN';
+          else if (vesselName.includes('hms ')) category = 'Royal Navy';
+          else if (vesselName.includes('uss ')) category = 'USN';
+          else if (vesselName.includes('hmnzs')) category = 'RNZN';
+          
+          vesselMap.set(newVesselId, {
+            id: newVesselId,
+            name: vesselName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+            mmsi: vesselData.mmsi,
+            imo: vesselData.imo || null,
+            class: vesselData.class || null,
+            type: vesselData.type || null,
+            category: category,
+            jobs: [],
+            totalJobs: 0,
+            latestAssessment: null,
+            performance: { freedomOfNavigation: null, currentHullPerformance: null, ytdHullPerformance: null, assessmentDate: null },
+            hasWorkHistory: false,
+            registrySource: 'local-mmsi-registry'
+          });
+          existingVesselNames.add(vesselName);
+          addedFromRegistries++;
+        }
+      }
+    }
+    
+    if (addedFromRegistries > 0) {
+      console.log(`📦 Added ${addedFromRegistries} vessels from registries (no work history yet)`);
+    }
+    
+    // =========================================================
     // ENHANCE: Use Marinesia to find vessels and get positions
     // =========================================================
     const marinesiaStatus = marinesia?.getApiStatus ? marinesia.getApiStatus() : { configured: false, restricted: true };

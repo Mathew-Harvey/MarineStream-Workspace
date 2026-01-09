@@ -112,11 +112,13 @@ CREATE TABLE IF NOT EXISTS fleets (
 
 -- ============================================
 -- Fleet Vessels (many-to-many relationship)
+-- Note: vessel_id is NOT a foreign key to vessels table
+-- because vessels may come from external systems (IWC work data)
 -- ============================================
 CREATE TABLE IF NOT EXISTS fleet_vessels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     fleet_id UUID REFERENCES fleets(id) ON DELETE CASCADE,
-    vessel_id UUID REFERENCES vessels(id) ON DELETE CASCADE,
+    vessel_id UUID NOT NULL, -- External vessel ID (no FK constraint)
     added_at TIMESTAMPTZ DEFAULT NOW(),
     added_by UUID REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE(fleet_id, vessel_id)

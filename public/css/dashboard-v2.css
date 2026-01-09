@@ -709,11 +709,11 @@ body {
   height: 18px;
 }
 
-/* Map Controls */
+/* Map Controls - Positioned below style buttons on left */
 .map-controls {
   position: absolute;
-  bottom: var(--space-lg);
-  right: var(--space-lg);
+  top: 140px; /* Below the style buttons */
+  left: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -805,13 +805,20 @@ body {
   border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
   backdrop-filter: blur(12px);
+  max-width: 600px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+
+.filter-pills::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 .filter-pill {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 8px 14px;
   background: transparent;
   border: none;
   border-radius: var(--radius-full);
@@ -820,21 +827,30 @@ body {
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filter-pill:hover {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .filter-pill.active {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--accent-primary);
+  color: white;
+}
+
+.filter-pill.active .filter-dot {
+  border: 2px solid white;
+  box-sizing: border-box;
 }
 
 .filter-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .filter-dot.ran { background: var(--color-ran); }
