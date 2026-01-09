@@ -1,6 +1,6 @@
 /**
  * MarineStream Dashboard - Light Theme
- * Clean, professional light mode design
+ * Based on MarineStream™ Style Guide v1.0
  */
 
 /* ============================================
@@ -9,30 +9,30 @@
 :root {
   /* Colors - Light Theme */
   --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
+  --bg-secondary: #F9F9F9;
+  --bg-tertiary: #F0F0F0;
   --bg-card: #ffffff;
-  --bg-hover: #f1f5f9;
-  --bg-sidebar: #1e293b;
+  --bg-hover: #F0F0F0;
+  --bg-sidebar: #111111;
   
-  /* Accent Colors */
-  --accent-primary: #f59e0b;
-  --accent-secondary: #3b82f6;
-  --accent-warning: #f59e0b;
+  /* Accent Colors - MarineStream Brand Orange */
+  --accent-primary: #FF6600;
+  --accent-secondary: #1e40af;
+  --accent-warning: #FF6600;
   --accent-danger: #ef4444;
   --accent-success: #22c55e;
   
   /* Text Colors */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #64748b;
+  --text-primary: #050505;
+  --text-secondary: #333333;
+  --text-tertiary: #666666;
   --text-muted: #94a3b8;
   --text-inverse: #ffffff;
   
   /* Ship/Vessel Colors */
-  --ship-hull: #f59e0b;
-  --ship-deck: #d97706;
-  --ship-superstructure: #1e293b;
+  --ship-hull: #FF6600;
+  --ship-deck: #E05A00;
+  --ship-superstructure: #111111;
   
   /* Borders */
   --border-default: #e2e8f0;

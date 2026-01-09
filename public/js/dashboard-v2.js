@@ -1,8 +1,30 @@
 /**
  * MarineStream Fleet Command - Dashboard v2
  * Map-first design with real-time metrics overlay
- * NOW WITH SSO LOGIN - Automatic token refresh!
+ * Based on MarineStream™ Style Guide v1.0
  */
+
+// ============================================
+// Humorous Loading Messages
+// ============================================
+const loadingMessages = [
+  "Scrubbing barnacles off the server...",
+  "Dredging the ocean floor for pixels...",
+  "Diving deeper for higher resolution...",
+  "Calibrating propellers for optimal streaming...",
+  "Adjusting ballast for smooth video playback...",
+  "Checking hull integrity before departure...",
+  "Training ROVs to capture your attention...",
+  "Herding digital sea creatures into formation...",
+  "Untangling oceanic fiber cables...",
+  "Waking up the underwater cameraman...",
+  "Applying digital antifouling coating...",
+  "Negotiating with digital mermaids for screen time...",
+  "Polishing pixels to maritime standards...",
+  "Waiting for digital high tide...",
+  "Captain is reviewing the video manifest...",
+  "Calculating nautical load times..."
+];
 
 // ============================================
 // State Management
@@ -36,8 +58,60 @@ const state = {
   mapStyle: 'dark',
   
   // Token refresh interval
-  refreshInterval: null
+  refreshInterval: null,
+  
+  // Loading state
+  messageIndex: 0,
+  messageInterval: null
 };
+
+// ============================================
+// Loading Screen Functions
+// ============================================
+function startLoadingMessages() {
+  const loadingMessage = document.querySelector('.loading-message');
+  if (!loadingMessage) return;
+  
+  loadingMessage.textContent = loadingMessages[0];
+  
+  state.messageInterval = setInterval(() => {
+    state.messageIndex = (state.messageIndex + 1) % loadingMessages.length;
+    loadingMessage.style.opacity = 0;
+    
+    setTimeout(() => {
+      if (loadingMessage) {
+        loadingMessage.textContent = loadingMessages[state.messageIndex];
+        loadingMessage.style.opacity = 1;
+      }
+    }, 300);
+  }, 3000);
+}
+
+function updateProgressBar(progress) {
+  const progressBar = document.querySelector('.progress-bar');
+  if (progressBar) {
+    progressBar.style.width = `${Math.min(progress, 100)}%`;
+  }
+}
+
+function hideLoadingScreen() {
+  if (state.messageInterval) {
+    clearInterval(state.messageInterval);
+  }
+  
+  const loadingScreen = document.getElementById('loading-screen');
+  if (!loadingScreen) {
+    document.body.classList.remove('is-loading');
+    return;
+  }
+  
+  loadingScreen.classList.add('loading-complete');
+  
+  setTimeout(() => {
+    loadingScreen.style.display = 'none';
+    document.body.classList.remove('is-loading');
+  }, 800);
+}
 
 // ============================================
 // DOM Elements
@@ -102,9 +176,14 @@ function initElements() {
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
+  // Start loading screen animations
+  startLoadingMessages();
+  updateProgressBar(10);
+  
   initElements();
   setupEventListeners();
   setupAuthEventListeners();
+  updateProgressBar(20);
   
   // Check for token in URL (from bookmarklet)
   const urlParams = new URLSearchParams(window.location.search);
@@ -124,6 +203,7 @@ async function init() {
     // Clear URL params
     window.history.replaceState({}, document.title, window.location.pathname);
   }
+  updateProgressBar(30);
   
   // Check for stored token
   const storedToken = localStorage.getItem('marinestream_pat');
@@ -145,13 +225,22 @@ async function init() {
         }
       } catch (e) {}
       
+      updateProgressBar(50);
+      
       // Show app and load data
       elements.authModal?.classList.remove('active');
       elements.app?.classList.remove('hidden');
       updateUserBadge();
       startTokenStatusUpdate();
+      
+      updateProgressBar(70);
       await loadAllData();
+      
+      updateProgressBar(90);
       initMap();
+      
+      updateProgressBar(100);
+      setTimeout(hideLoadingScreen, 500);
       return;
     }
   }
@@ -162,10 +251,14 @@ async function init() {
     state.authMethod = 'pat';
     state.token = legacyPat;
     await tryConnectWithToken();
+    updateProgressBar(100);
+    setTimeout(hideLoadingScreen, 500);
     return;
   }
   
   // No auth - show login modal
+  updateProgressBar(100);
+  hideLoadingScreen();
   showAuthModal();
 }
 

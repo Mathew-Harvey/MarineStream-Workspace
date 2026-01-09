@@ -1,13 +1,16 @@
 /**
  * MarineStream Workspace - Map Module
- * AIS vessel tracking with Mapbox GL JS
+ * AIS vessel tracking with Mapbox GL JS + Marinesia enrichment
  */
 
 let map = null;
 let markers = new Map();
+let portMarkers = new Map();
 let vesselData = new Map();
+let vesselProfiles = new Map(); // Marinesia profile cache
 let websocket = null;
 let callbacks = {};
+let marinesiaEnabled = false;
 
 // Map configuration
 const config = {
@@ -78,14 +81,32 @@ export async function initMap(containerId, options = {}) {
     // Connect to WebSocket for real-time updates
     connectWebSocket();
     
-    console.log('🗺️ Map initialized');
+    // Load ports when map moves (debounced)
+    let portLoadTimeout = null;
+    map.on('moveend', () => {
+      if (portLoadTimeout) clearTimeout(portLoadTimeout);
+      portLoadTimeout = setTimeout(() => {
+        if (map.getZoom() >= 6) { // Only load ports when zoomed in enough
+          loadNearbyPorts();
+        } else {
+          // Clear port markers when zoomed out
+          portMarkers.forEach(marker => marker.remove());
+          portMarkers.clear();
+        }
+      }, 500);
+    });
+    
+    console.log('🗺️ Map initialized' + (marinesiaEnabled ? ' with Marinesia enrichment' : ''));
     
     return {
       instance: map,
       zoomIn,
       zoomOut,
       fitBounds: fitAllVessels,
-      getVessels: () => Array.from(vesselData.values())
+      getVessels: () => Array.from(vesselData.values()),
+      discoverVessels: discoverVesselsInArea,
+      loadPorts: loadNearbyPorts,
+      getVesselProfile: fetchVesselProfile,
     };
   } catch (error) {
     console.error('Map initialization error:', error);
@@ -108,12 +129,21 @@ export async function initMap(containerId, options = {}) {
  */
 async function loadVessels() {
   try {
-    const response = await fetch('/api/map/vessels');
+    // Load with Marinesia enrichment
+    const response = await fetch('/api/map/vessels?enrich=true');
     const data = await response.json();
     
     if (data.success && data.data) {
+      marinesiaEnabled = data.meta?.marinesiaEnabled || false;
+      
       data.data.forEach(vessel => {
         vesselData.set(vessel.mmsi, vessel);
+        
+        // Store Marinesia profile if present
+        if (vessel.marinesia) {
+          vesselProfiles.set(vessel.mmsi, vessel.marinesia);
+        }
+        
         if (vessel.position) {
           updateMarker(vessel);
         }
@@ -130,6 +160,157 @@ async function loadVessels() {
   } catch (error) {
     console.error('Failed to load vessels:', error);
   }
+}
+
+/**
+ * Fetch vessel profile from Marinesia API
+ */
+async function fetchVesselProfile(mmsi) {
+  // Check cache first
+  if (vesselProfiles.has(mmsi)) {
+    return vesselProfiles.get(mmsi);
+  }
+  
+  try {
+    const response = await fetch(`/api/marinesia/vessel/${mmsi}/full`);
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      const profile = {
+        ...data.data.profile,
+        image: data.data.image,
+        location: data.data.location,
+      };
+      vesselProfiles.set(mmsi, profile);
+      return profile;
+    }
+  } catch (error) {
+    console.error(`Failed to fetch profile for ${mmsi}:`, error);
+  }
+  
+  return null;
+}
+
+/**
+ * Load nearby ports for current map view
+ */
+async function loadNearbyPorts() {
+  if (!map || !marinesiaEnabled) return;
+  
+  const bounds = map.getBounds();
+  
+  try {
+    const params = new URLSearchParams({
+      lat_min: bounds.getSouth(),
+      lat_max: bounds.getNorth(),
+      long_min: bounds.getWest(),
+      long_max: bounds.getEast(),
+    });
+    
+    const response = await fetch(`/api/map/ports?${params}`);
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      // Clear old port markers
+      portMarkers.forEach(marker => marker.remove());
+      portMarkers.clear();
+      
+      // Add new port markers
+      data.data.forEach(port => {
+        addPortMarker(port);
+      });
+      
+      console.log(`⚓ Loaded ${data.data.length} nearby ports`);
+    }
+  } catch (error) {
+    console.error('Failed to load ports:', error);
+  }
+}
+
+/**
+ * Add a port marker to the map
+ */
+function addPortMarker(port) {
+  if (!map || !port.lat || !port.long) return;
+  
+  const el = document.createElement('div');
+  el.className = 'port-marker';
+  el.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#f59e0b">
+      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+    </svg>
+  `;
+  el.style.cssText = 'cursor: pointer; opacity: 0.8;';
+  el.title = port.name;
+  
+  const popup = new mapboxgl.Popup({ offset: 10, closeButton: false })
+    .setHTML(`
+      <div style="padding: 8px;">
+        <strong style="color: #f59e0b;">⚓ ${port.name}</strong>
+        <div style="font-size: 12px; color: #9E9E98; margin-top: 4px;">
+          ${port.country || ''} ${port.un_locode ? `• ${port.un_locode}` : ''}
+        </div>
+        ${port.berths ? `<div style="font-size: 11px; margin-top: 4px;">${port.berths} berths</div>` : ''}
+      </div>
+    `);
+  
+  const marker = new mapboxgl.Marker({ element: el })
+    .setLngLat([port.long, port.lat])
+    .setPopup(popup)
+    .addTo(map);
+  
+  portMarkers.set(port.port_id, marker);
+}
+
+/**
+ * Discover vessels in a region (Marinesia)
+ */
+async function discoverVesselsInArea(latMin, latMax, longMin, longMax) {
+  try {
+    const params = new URLSearchParams({
+      lat_min: latMin,
+      lat_max: latMax,
+      long_min: longMin,
+      long_max: longMax,
+    });
+    
+    const response = await fetch(`/api/map/discover?${params}`);
+    const data = await response.json();
+    
+    if (data.success && data.data) {
+      // Add discovered vessels to map
+      data.data.forEach(vessel => {
+        const mmsi = String(vessel.mmsi);
+        if (!vesselData.has(mmsi)) {
+          vesselData.set(mmsi, {
+            mmsi,
+            name: vessel.name,
+            vessel_type: vessel.type,
+            flag: vessel.flag,
+            position: {
+              lat: vessel.lat,
+              lng: vessel.lng,
+              speed: vessel.sog,
+              course: vessel.cog,
+              heading: vessel.hdt,
+              status: vessel.status,
+            },
+            isDiscovered: true, // Mark as discovered (not tracked)
+          });
+          updateMarker(vesselData.get(mmsi));
+        }
+      });
+      
+      updateStats();
+      console.log(`🔍 Discovered ${data.data.length} vessels in area`);
+      
+      return data.data;
+    }
+  } catch (error) {
+    console.error('Failed to discover vessels:', error);
+  }
+  
+  return [];
 }
 
 /**
@@ -220,7 +401,11 @@ function handleAISMessage(message) {
 function updateMarker(vessel) {
   if (!map || !vessel.position) return;
   
-  const { lat, lon, course, speed, status } = vessel.position;
+  const pos = vessel.position;
+  const lat = pos.lat;
+  const lon = pos.lng || pos.lon;
+  const course = pos.course;
+  const status = pos.status;
   
   // Check if marker exists
   let marker = markers.get(vessel.mmsi);
@@ -232,7 +417,8 @@ function updateMarker(vessel) {
     // Update rotation
     const el = marker.getElement();
     if (el && course !== undefined) {
-      el.style.transform = `rotate(${course}deg)`;
+      const svg = el.querySelector('svg');
+      if (svg) svg.style.transform = `rotate(${course}deg)`;
     }
   } else {
     // Create new marker
@@ -240,15 +426,15 @@ function updateMarker(vessel) {
     
     marker = new mapboxgl.Marker({
       element: el,
-      rotation: course || 0,
       rotationAlignment: 'map'
     })
       .setLngLat([lon, lat])
       .addTo(map);
     
-    // Add click handler
-    el.addEventListener('click', () => {
-      callbacks.onVesselClick?.(vessel);
+    // Add click handler for vessel detail popup
+    el.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await showVesselPopup(vessel, marker);
     });
     
     markers.set(vessel.mmsi, marker);
@@ -262,26 +448,216 @@ function createMarkerElement(vessel, status) {
   const el = document.createElement('div');
   el.className = 'vessel-marker';
   
-  // Determine color based on status
+  // Determine color based on status and source
   const isUnderway = status === 0 || status === 8;
   const isMoored = status === 1 || status === 5;
-  const color = isMoored ? '#9E9E98' : (isUnderway ? '#2E7D4A' : '#C9A227');
+  const isDiscovered = vessel.isDiscovered;
+  const isLive = vessel.positionSource === 'aisstream' || !vessel.position?.isStale;
+  
+  let color = '#C9A227'; // Default gold
+  if (isMoored) color = '#9E9E98';
+  else if (isUnderway) color = '#2E7D4A';
+  
+  // Discovered vessels (from Marinesia) have different styling
+  if (isDiscovered) {
+    color = '#6366f1'; // Indigo for discovered vessels
+  }
+  
+  const course = vessel.position?.course || 0;
   
   el.innerHTML = `
-    <svg width="24" height="32" viewBox="0 0 24 32" fill="none">
-      <path d="M12 0L20 8V24L12 32L4 24V8L12 0Z" fill="${color}" stroke="#1A1A19" stroke-width="1"/>
-      <circle cx="12" cy="12" r="4" fill="#1A1A19" opacity="0.3"/>
-    </svg>
+    <div style="position: relative;">
+      ${isLive ? `
+        <div style="
+          position: absolute;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: ${color};
+          opacity: 0.2;
+          animation: vesselPulse 2s infinite;
+          top: -4px;
+          left: -4px;
+        "></div>
+      ` : ''}
+      <svg width="24" height="32" viewBox="0 0 24 32" fill="none" style="transform: rotate(${course}deg);">
+        <path d="M12 0L20 8V24L12 32L4 24V8L12 0Z" fill="${color}" stroke="#1A1A19" stroke-width="1"/>
+        <circle cx="12" cy="12" r="4" fill="#1A1A19" opacity="0.3"/>
+      </svg>
+      ${isLive ? `
+        <div style="
+          position: absolute;
+          bottom: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #22c55e;
+          color: white;
+          font-size: 7px;
+          padding: 1px 3px;
+          border-radius: 2px;
+          font-weight: 600;
+        ">LIVE</div>
+      ` : ''}
+      ${isDiscovered ? `
+        <div style="
+          position: absolute;
+          bottom: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #6366f1;
+          color: white;
+          font-size: 7px;
+          padding: 1px 3px;
+          border-radius: 2px;
+          font-weight: 600;
+        ">AIS</div>
+      ` : ''}
+    </div>
   `;
   
   el.style.cssText = `
     cursor: pointer;
-    transition: transform 0.3s ease;
+    transition: transform 0.2s ease;
   `;
   
   el.title = vessel.name || vessel.mmsi;
   
   return el;
+}
+
+/**
+ * Show vessel popup with Marinesia-enriched details
+ */
+async function showVesselPopup(vessel, marker) {
+  // Start with basic popup
+  let popupContent = createBasicPopupContent(vessel);
+  
+  const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '320px' })
+    .setHTML(popupContent);
+  
+  marker.setPopup(popup);
+  marker.togglePopup();
+  
+  // If Marinesia is enabled, try to fetch more details
+  if (marinesiaEnabled && vessel.mmsi) {
+    const profile = await fetchVesselProfile(vessel.mmsi);
+    
+    if (profile) {
+      // Update popup with enriched content
+      const enrichedContent = createEnrichedPopupContent(vessel, profile);
+      popup.setHTML(enrichedContent);
+    }
+  }
+  
+  // Trigger callback
+  callbacks.onVesselClick?.(vessel);
+}
+
+/**
+ * Create basic popup content
+ */
+function createBasicPopupContent(vessel) {
+  const pos = vessel.position || {};
+  const speed = pos.speed !== undefined ? `${pos.speed.toFixed(1)} kn` : '--';
+  const course = pos.course !== undefined ? `${Math.round(pos.course)}°` : '--';
+  
+  return `
+    <div class="vessel-popup">
+      <div class="vessel-popup-header">
+        <h3>${vessel.name || 'Unknown Vessel'}</h3>
+        <span class="vessel-popup-mmsi">MMSI: ${vessel.mmsi}</span>
+      </div>
+      <div class="vessel-popup-body">
+        <div class="vessel-popup-row">
+          <span class="label">Type:</span>
+          <span class="value">${vessel.vessel_type || '--'}</span>
+        </div>
+        <div class="vessel-popup-row">
+          <span class="label">Flag:</span>
+          <span class="value">${vessel.flag || '--'}</span>
+        </div>
+        <div class="vessel-popup-row">
+          <span class="label">Speed:</span>
+          <span class="value">${speed}</span>
+        </div>
+        <div class="vessel-popup-row">
+          <span class="label">Course:</span>
+          <span class="value">${course}</span>
+        </div>
+      </div>
+      <div class="vessel-popup-loading">
+        <span>Loading vessel details...</span>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Create enriched popup content with Marinesia data
+ */
+function createEnrichedPopupContent(vessel, profile) {
+  const pos = vessel.position || {};
+  const speed = pos.speed !== undefined ? `${pos.speed.toFixed(1)} kn` : '--';
+  const course = pos.course !== undefined ? `${Math.round(pos.course)}°` : '--';
+  
+  const imageHtml = profile.image ? `
+    <div class="vessel-popup-image">
+      <img src="${profile.image}" alt="${vessel.name}" onerror="this.parentElement.style.display='none'" />
+    </div>
+  ` : '';
+  
+  const dimensions = profile.length && profile.width 
+    ? `${profile.length}m × ${profile.width}m` 
+    : '--';
+  
+  return `
+    <div class="vessel-popup enriched">
+      ${imageHtml}
+      <div class="vessel-popup-header">
+        <h3>${profile.name || vessel.name || 'Unknown Vessel'}</h3>
+        <span class="vessel-popup-type">${profile.ship_type || profile.shipType || vessel.vessel_type || 'Vessel'}</span>
+      </div>
+      <div class="vessel-popup-body">
+        <div class="vessel-popup-grid">
+          <div class="vessel-popup-item">
+            <span class="label">MMSI</span>
+            <span class="value">${vessel.mmsi}</span>
+          </div>
+          <div class="vessel-popup-item">
+            <span class="label">IMO</span>
+            <span class="value">${profile.imo || '--'}</span>
+          </div>
+          <div class="vessel-popup-item">
+            <span class="label">Callsign</span>
+            <span class="value">${profile.callsign || '--'}</span>
+          </div>
+          <div class="vessel-popup-item">
+            <span class="label">Flag</span>
+            <span class="value">${profile.country || vessel.flag || '--'}</span>
+          </div>
+          <div class="vessel-popup-item">
+            <span class="label">Dimensions</span>
+            <span class="value">${dimensions}</span>
+          </div>
+          <div class="vessel-popup-item">
+            <span class="label">Speed</span>
+            <span class="value">${speed}</span>
+          </div>
+        </div>
+        ${profile.location?.dest ? `
+          <div class="vessel-popup-destination">
+            <span class="label">Destination:</span>
+            <span class="value">${profile.location.dest}</span>
+            ${profile.location.eta ? `<span class="eta">ETA: ${profile.location.eta}</span>` : ''}
+          </div>
+        ` : ''}
+      </div>
+      <div class="vessel-popup-footer">
+        <span class="source-badge">📡 Marinesia</span>
+        ${pos.timestamp ? `<span class="timestamp">Updated: ${new Date(pos.timestamp).toLocaleTimeString()}</span>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -370,3 +746,171 @@ window.addEventListener('beforeunload', () => {
     websocket.close();
   }
 });
+
+/**
+ * Add CSS for vessel popups and markers
+ */
+const markerStyles = document.createElement('style');
+markerStyles.textContent = `
+  @keyframes vesselPulse {
+    0% { transform: scale(0.8); opacity: 0.2; }
+    50% { transform: scale(1.2); opacity: 0.05; }
+    100% { transform: scale(0.8); opacity: 0.2; }
+  }
+  
+  .vessel-popup {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    min-width: 200px;
+  }
+  
+  .vessel-popup.enriched {
+    min-width: 280px;
+  }
+  
+  .vessel-popup-image {
+    margin: -10px -10px 10px -10px;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    max-height: 150px;
+  }
+  
+  .vessel-popup-image img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+  
+  .vessel-popup-header {
+    margin-bottom: 12px;
+  }
+  
+  .vessel-popup-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A1A19;
+  }
+  
+  .vessel-popup-mmsi,
+  .vessel-popup-type {
+    font-size: 12px;
+    color: #9E9E98;
+  }
+  
+  .vessel-popup-body {
+    font-size: 13px;
+  }
+  
+  .vessel-popup-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid #EEEEEC;
+  }
+  
+  .vessel-popup-row:last-child {
+    border-bottom: none;
+  }
+  
+  .vessel-popup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  
+  .vessel-popup-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .vessel-popup-item .label,
+  .vessel-popup-row .label {
+    font-size: 11px;
+    color: #9E9E98;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .vessel-popup-item .value,
+  .vessel-popup-row .value {
+    font-size: 13px;
+    color: #1A1A19;
+    font-weight: 500;
+  }
+  
+  .vessel-popup-destination {
+    margin-top: 12px;
+    padding: 8px;
+    background: #F5F5F3;
+    border-radius: 6px;
+  }
+  
+  .vessel-popup-destination .label {
+    font-size: 11px;
+    color: #9E9E98;
+  }
+  
+  .vessel-popup-destination .value {
+    font-weight: 500;
+    color: #1A1A19;
+  }
+  
+  .vessel-popup-destination .eta {
+    display: block;
+    font-size: 11px;
+    color: #C9A227;
+    margin-top: 2px;
+  }
+  
+  .vessel-popup-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #EEEEEC;
+    font-size: 11px;
+  }
+  
+  .vessel-popup-footer .source-badge {
+    background: #E5C968;
+    color: #1A1A19;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  
+  .vessel-popup-footer .timestamp {
+    color: #9E9E98;
+  }
+  
+  .vessel-popup-loading {
+    text-align: center;
+    padding: 8px;
+    color: #9E9E98;
+    font-size: 12px;
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  
+  .port-marker {
+    transition: transform 0.2s ease;
+  }
+  
+  .port-marker:hover {
+    transform: scale(1.2);
+    opacity: 1 !important;
+  }
+  
+  /* Mapbox popup overrides */
+  .mapboxgl-popup-content {
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+`;
+document.head.appendChild(markerStyles);

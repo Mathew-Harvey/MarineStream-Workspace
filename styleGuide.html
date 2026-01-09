@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarineStream™ Style Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables - MarineStream Design System */
+        :root {
+            /* Brand Colors */
+            --brand-orange: #FF6600;
+            --brand-orange-dark: #E05A00;
+            --brand-orange-light: #FF8533;
+            --brand-blue: #1e40af;
+            --brand-blue-dark: #1e3a8a;
+            --brand-blue-light: #3b82f6;
+            
+            /* Semantic Colors */
+            --accent-color: var(--brand-orange);
+            --accent-dark: var(--brand-orange-dark);
+            --accent-light: var(--brand-orange-light);
+            --primary-color: var(--brand-blue);
+            --primary-dark: var(--brand-blue-dark);
+            --primary-light: var(--brand-blue-light);
+            
+            /* Text Colors */
+            --text-primary: #050505;
+            --text-secondary: #333333;
+            --text-tertiary: #666666;
+            --text-on-dark: #FFFFFF;
+            --text-on-accent: #FFFFFF;
+            
+            /* Background Colors */
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9F9F9;
+            --bg-tertiary: #F0F0F0;
+            --bg-dark: #111111;
+            
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            
+            /* Shadows */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 5px 10px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.1);
+            
+            /* Border Radius */
+            --radius-sm: 0.3rem;
+            --radius-md: 0.6rem;
+            --radius-lg: 1rem;
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+         /* Header */
+         .header {
+             background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+             color: white;
+             padding: 3rem 0;
+             text-align: center;
+             margin-bottom: 3rem;
+         }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Section Styles */
+        .section {
+            margin-bottom: 4rem;
+            padding: 2rem;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2rem;
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 1rem;
+        }
+
+        .subsection-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 2rem 0 1rem 0;
+        }
+
+        /* Color Palette */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .color-item {
+            background: white;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #e5e7eb;
+        }
+
+        .color-swatch {
+            height: 120px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .color-info {
+            padding: 1rem;
+        }
+
+        .color-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .color-hex {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            display: inline-block;
+        }
+
+        /* Typography */
+        .typography-sample {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .typography-label {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .header-1 {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--text-primary);
+        }
+
+        .header-2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            line-height: 1.25;
+            color: var(--text-primary);
+        }
+
+        .header-3 {
+            font-size: 2rem;
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+
+        .header-4 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .header-5 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .body-text {
+            font-size: 1rem;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .body-small {
+            font-size: 0.875rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--text-tertiary);
+        }
+
+        /* Button Styles */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .button-sample {
+            text-align: center;
+            padding: 1.5rem;
+            background: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #e5e7eb;
+        }
+
+        .button-label {
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+            font-weight: 500;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Base Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            min-height: 48px;
+            padding: 1rem 2rem;
+            border-radius: var(--radius-md);
+            font-family: var(--font-primary);
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+            text-decoration: none;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1.5px solid transparent;
+            user-select: none;
+            outline: none;
+        }
+
+        .btn:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        /* Primary Button */
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+
+         /* Secondary Button - Dark variant */
+         .btn-secondary {
+             background-color: var(--text-primary);
+             color: white;
+             border-color: var(--text-primary);
+             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+         }
+
+         .btn-secondary:hover {
+             background-color: var(--text-secondary);
+             border-color: var(--text-secondary);
+             transform: translateY(-2px);
+             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15), 0 3px 6px rgba(0, 0, 0, 0.1);
+         }
+
+        /* Outline Button */
+        .btn-outline {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1.5px solid var(--accent-color);
+            backdrop-filter: blur(8px);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Ghost Button */
+        .btn-ghost {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1.5px solid transparent;
+        }
+
+        .btn-ghost:hover {
+            background-color: var(--bg-secondary);
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        /* Usage Examples */
+        .usage-section {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+        }
+
+        .usage-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .usage-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .usage-list li {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .usage-list li::before {
+            content: "•";
+            color: var(--accent-color);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .color-grid,
+            .button-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>MarineStream™ Style Guide</h1>
+            <p>Brand guidelines for consistent visual communication across all marketing materials and social media content</p>
+        </div>
+    </div>
+
+    <div class="container">
+         <!-- Color Palette Section -->
+         <section class="section">
+             <h2 class="section-title">Color Palette</h2>
+             
+             <h3 class="subsection-title">Primary Brand Colors</h3>
+             <div class="color-grid">
+                 <div class="color-item">
+                     <div class="color-swatch" style="background-color: #FF6600;">CANDY APPLE</div>
+                     <div class="color-info">
+                         <div class="color-name">Candy Apple (Primary Brand)</div>
+                         <div class="color-hex">#FF6600</div>
+                     </div>
+                 </div>
+                 
+                 <div class="color-item">
+                     <div class="color-swatch" style="background-color: #E05A00;">CRIMSON</div>
+                     <div class="color-info">
+                         <div class="color-name">Crimson (Orange Dark)</div>
+                         <div class="color-hex">#E05A00</div>
+                     </div>
+                 </div>
+                 
+                 <div class="color-item">
+                     <div class="color-swatch" style="background-color: #FF8533;">ORANGE LIGHT</div>
+                     <div class="color-info">
+                         <div class="color-name">Orange Light (Accent)</div>
+                         <div class="color-hex">#FF8533</div>
+                     </div>
+                 </div>
+             </div>
+
+            <h3 class="subsection-title">Supporting Colors</h3>
+            <div class="color-grid">
+                <div class="color-item">
+                    <div class="color-swatch" style="background-color: #666666; color: white;">GRAVEL</div>
+                    <div class="color-info">
+                        <div class="color-name">Gravel (Text Tertiary)</div>
+                        <div class="color-hex">#666666</div>
+                    </div>
+                </div>
+                
+                <div class="color-item">
+                    <div class="color-swatch" style="background-color: #333333; color: white;">WET CEMENT</div>
+                    <div class="color-info">
+                        <div class="color-name">Wet Cement (Text Secondary)</div>
+                        <div class="color-hex">#333333</div>
+                    </div>
+                </div>
+                
+                <div class="color-item">
+                    <div class="color-swatch" style="background-color: #F9F9F9; color: #333;">CLOUDY</div>
+                    <div class="color-info">
+                        <div class="color-name">Cloudy (Background Secondary)</div>
+                        <div class="color-hex">#F9F9F9</div>
+                    </div>
+                </div>
+                
+                <div class="color-item">
+                    <div class="color-swatch" style="background-color: #FFFFFF; color: #333; border: 1px solid #e5e7eb;">SNOW</div>
+                    <div class="color-info">
+                        <div class="color-name">Snow (Background Primary)</div>
+                        <div class="color-hex">#FFFFFF</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography Section -->
+        <section class="section">
+            <h2 class="section-title">Typography</h2>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Header 1 • Font: Inter Bold • Color: #050505</div>
+                <div class="header-1">Streamlining Biofouling & Asset Management</div>
+            </div>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Header 2 • Font: Inter SemiBold • Color: #050505</div>
+                <div class="header-2">Featured Solutions</div>
+            </div>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Header 3 • Font: Inter SemiBold • Color: #050505</div>
+                <div class="header-3">ROV Systems</div>
+            </div>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Header 4 • Font: Inter SemiBold • Color: #333333</div>
+                <div class="header-4">Technology-Enabled Capability</div>
+            </div>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Header 5 • Font: Inter SemiBold • Color: #333333</div>
+                <div class="header-5">Global Underwater Sustainment</div>
+            </div>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Body Text • Font: Inter Regular • Color: #333333</div>
+                <div class="body-text">MarineStream™ offers integrated biofouling and underwater asset management with AI-powered software and sustainable in-water cleaning hardware for vessels worldwide. Our revolutionary approach combines cutting-edge technology with environmental responsibility.</div>
+            </div>
+            
+            <div class="typography-sample">
+                <div class="typography-label">Body Small • Font: Inter Regular • Color: #666666</div>
+                <div class="body-small">This is small body text used for captions, footnotes, and supplementary information. It maintains readability while providing hierarchical distinction from main body text.</div>
+            </div>
+
+            <div class="usage-section">
+                <div class="usage-title">Typography Usage Guidelines</div>
+                <ul class="usage-list">
+                    <li><strong>Primary Font:</strong> Inter (Google Fonts) - Modern, clean, and highly readable</li>
+                    <li><strong>Font Weights:</strong> Regular (400), Medium (500), SemiBold (600), Bold (700)</li>
+                    <li><strong>Line Height:</strong> 1.2 for headers, 1.6 for body text</li>
+                    <li><strong>Letter Spacing:</strong> Slightly increased (0.02em) for buttons and uppercase text</li>
+                    <li><strong>Hierarchy:</strong> Use color and weight to establish clear information hierarchy</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Buttons Section -->
+        <section class="section">
+            <h2 class="section-title">Buttons</h2>
+            
+            <div class="button-grid">
+                <div class="button-sample">
+                    <div class="button-label">Primary Button</div>
+                    <button class="btn btn-primary">Explore Solutions</button>
+                </div>
+                
+                <div class="button-sample">
+                    <div class="button-label">Secondary Button</div>
+                    <button class="btn btn-secondary">Learn More</button>
+                </div>
+                
+                <div class="button-sample">
+                    <div class="button-label">Outline Button</div>
+                    <button class="btn btn-outline">Contact Us</button>
+                </div>
+                
+                <div class="button-sample">
+                    <div class="button-label">Ghost Button</div>
+                    <button class="btn btn-ghost">View Details</button>
+                </div>
+            </div>
+
+             <div class="usage-section">
+                 <div class="usage-title">Button Usage Guidelines</div>
+                 <ul class="usage-list">
+                     <li><strong>Primary Button:</strong> Main call-to-action, uses brand orange (#FF6600)</li>
+                     <li><strong>Secondary Button:</strong> Alternative actions, uses dark gray (#050505)</li>
+                     <li><strong>Outline Button:</strong> Less prominent actions, transparent with orange border</li>
+                     <li><strong>Ghost Button:</strong> Subtle actions, minimal styling with hover effects</li>
+                     <li><strong>Accessibility:</strong> Minimum 48px height, focus states, semantic HTML</li>
+                     <li><strong>Hover Effects:</strong> Subtle lift animation (-2px transform) with enhanced shadows</li>
+                     <li><strong>Typography:</strong> Uppercase, 600 font weight, 0.02em letter spacing</li>
+                 </ul>
+             </div>
+        </section>
+
+        <!-- Brand Guidelines Section -->
+        <section class="section">
+            <h2 class="section-title">Brand Guidelines</h2>
+            
+            <div class="usage-section">
+                <div class="usage-title">Logo Usage</div>
+                <ul class="usage-list">
+                    <li>MarineStream™ logo available in white, color, blue, and black variants</li>
+                    <li>Maintain clear space around logo equal to the height of the "M" in MarineStream</li>
+                    <li>Never stretch, skew, or alter the logo proportions</li>
+                    <li>Use appropriate contrast - white logo on dark backgrounds, dark logo on light backgrounds</li>
+                </ul>
+            </div>
+
+             <div class="usage-section">
+                 <div class="usage-title">Color Application</div>
+                 <ul class="usage-list">
+                     <li><strong>Primary Orange (#FF6600):</strong> Call-to-action buttons, highlights, brand accents, links</li>
+                     <li><strong>Orange Dark (#E05A00):</strong> Hover states, emphasis, section dividers</li>
+                     <li><strong>Text Colors:</strong> #050505 for headers, #333333 for body text, #666666 for supporting text</li>
+                     <li><strong>Backgrounds:</strong> White (#FFFFFF) primary, Light Gray (#F9F9F9) secondary</li>
+                 </ul>
+             </div>
+
+            <div class="usage-section">
+                <div class="usage-title">Voice & Tone</div>
+                <ul class="usage-list">
+                    <li><strong>Professional:</strong> Technical expertise with clear, authoritative communication</li>
+                    <li><strong>Innovative:</strong> Cutting-edge technology and forward-thinking solutions</li>
+                    <li><strong>Trustworthy:</strong> Reliable, compliant, and environmentally responsible</li>
+                    <li><strong>Accessible:</strong> Complex concepts explained in understandable terms</li>
+                </ul>
+            </div>
+
+            <div class="usage-section">
+                <div class="usage-title">Design Principles</div>
+                <ul class="usage-list">
+                    <li><strong>Clean & Modern:</strong> Minimalist design with plenty of white space</li>
+                    <li><strong>Consistent:</strong> Unified design system across all touchpoints</li>
+                    <li><strong>Accessible:</strong> WCAG compliant with proper contrast and focus states</li>
+                    <li><strong>Responsive:</strong> Optimized for all devices and screen sizes</li>
+                    <li><strong>Performance:</strong> Fast loading with optimized assets</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer style="text-align: center; margin-top: 4rem; padding: 2rem; border-top: 1px solid #e5e7eb; color: var(--text-tertiary);">
+            <p>© 2025 MarineStream™ | A Franmarine Company | Style Guide v1.0</p>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">For questions about brand guidelines, contact the MarineStream marketing team.</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -20,6 +20,7 @@ const mapRoutes = require('./routes/map');
 const configRoutes = require('./routes/config');
 const marinestreamRoutes = require('./routes/marinestream');
 const oauthRoutes = require('./routes/oauth');
+const marinesiaRoutes = require('./routes/marinesia');
 
 // AIS position cache (shared between routes and WebSocket handler)
 const aisPositionCache = mapRoutes.vesselPositions;
@@ -65,6 +66,7 @@ app.use('/api/vessels', vesselsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/marinestream', marinestreamRoutes);
+app.use('/api/marinesia', marinesiaRoutes);
 
 // Auth callback page
 app.get('/auth/callback', (req, res) => {

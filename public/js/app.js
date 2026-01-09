@@ -8,6 +8,26 @@ import { initAuth } from './auth.js';
 import { initMap } from './map.js';
 import { loadApps, filterApps } from './apps.js';
 
+// Humorous loading messages (Discord-inspired)
+const loadingMessages = [
+  "Scrubbing barnacles off the server...",
+  "Dredging the ocean floor for pixels...",
+  "Diving deeper for higher resolution...",
+  "Calibrating propellers for optimal streaming...",
+  "Adjusting ballast for smooth video playback...",
+  "Checking hull integrity before departure...",
+  "Training ROVs to capture your attention...",
+  "Herding digital sea creatures into formation...",
+  "Untangling oceanic fiber cables...",
+  "Waking up the underwater cameraman...",
+  "Applying digital antifouling coating...",
+  "Negotiating with digital mermaids for screen time...",
+  "Polishing pixels to maritime standards...",
+  "Waiting for digital high tide...",
+  "Captain is reviewing the video manifest...",
+  "Calculating nautical load times..."
+];
+
 // Global state
 const state = {
   user: null,
@@ -15,12 +35,16 @@ const state = {
   vessels: [],
   map: null,
   isAuthenticated: false,
-  config: null
+  config: null,
+  messageInterval: null,
+  messageIndex: 0
 };
 
 // DOM Elements
 const elements = {
   loadingScreen: document.getElementById('loading-screen'),
+  loadingMessage: document.querySelector('.loading-message'),
+  progressBar: document.querySelector('.progress-bar'),
   app: document.getElementById('app'),
   menuToggle: document.getElementById('menu-toggle'),
   globalSearch: document.getElementById('global-search'),
@@ -41,14 +65,73 @@ const elements = {
 };
 
 /**
+ * Start cycling through loading messages
+ */
+function startMessageCycle() {
+  if (!elements.loadingMessage) return;
+  
+  // Set initial message
+  elements.loadingMessage.textContent = loadingMessages[0];
+  
+  // Cycle through messages every 3 seconds
+  state.messageInterval = setInterval(() => {
+    state.messageIndex = (state.messageIndex + 1) % loadingMessages.length;
+    
+    // Fade out
+    elements.loadingMessage.style.opacity = 0;
+    
+    setTimeout(() => {
+      if (elements.loadingMessage) {
+        elements.loadingMessage.textContent = loadingMessages[state.messageIndex];
+        elements.loadingMessage.style.opacity = 1;
+      }
+    }, 300);
+  }, 3000);
+}
+
+/**
+ * Update the progress bar
+ */
+function updateProgressBar(progress) {
+  if (elements.progressBar) {
+    elements.progressBar.style.width = `${Math.min(progress, 100)}%`;
+  }
+}
+
+/**
+ * Simulate progress while loading
+ */
+function simulateProgress() {
+  if (!elements.progressBar) return;
+  
+  let fakeProgress = 0;
+  const progressInterval = setInterval(() => {
+    if (fakeProgress < 75) {
+      fakeProgress += Math.random() * 8;
+      if (fakeProgress > 75) fakeProgress = 75;
+      updateProgressBar(fakeProgress);
+    } else {
+      clearInterval(progressInterval);
+    }
+  }, 300);
+  
+  return progressInterval;
+}
+
+/**
  * Initialize the application
  */
 async function init() {
   console.log('🚢 MarineStream Workspace initializing...');
   
+  // Start loading animations
+  startMessageCycle();
+  const progressInterval = simulateProgress();
+  
   try {
     // Load configuration from server first
     state.config = await loadConfig();
+    updateProgressBar(40);
     
     // Set Mapbox access token if available
     const mapboxToken = getMapboxToken();
@@ -73,27 +156,36 @@ async function init() {
       state.user = null;
       state.isAuthenticated = false;
     }
+    updateProgressBar(60);
     
     // Update UI based on auth state
     updateAuthUI();
     
     // Load applications
     await loadApps(elements.appsGrid);
+    updateProgressBar(80);
     
     // Initialize map
     state.map = await initMap('map', {
       onVesselClick: handleVesselClick
     });
+    updateProgressBar(95);
     
     // Setup event listeners
     setupEventListeners();
     
-    // Hide loading screen
-    hideLoadingScreen();
+    // Complete loading
+    updateProgressBar(100);
+    
+    // Hide loading screen after a brief moment
+    setTimeout(() => {
+      hideLoadingScreen();
+    }, 500);
     
     console.log('✅ MarineStream Workspace ready');
   } catch (error) {
     console.error('Failed to initialize:', error);
+    updateProgressBar(100);
     hideLoadingScreen();
     showError('Failed to load the workspace. Please refresh the page.');
   }
@@ -103,12 +195,27 @@ async function init() {
  * Hide loading screen with animation
  */
 function hideLoadingScreen() {
-  elements.loadingScreen.classList.add('fade-out');
-  elements.app.classList.remove('hidden');
+  // Stop message cycling
+  if (state.messageInterval) {
+    clearInterval(state.messageInterval);
+  }
   
+  if (!elements.loadingScreen) {
+    document.body.classList.remove('is-loading');
+    return;
+  }
+  
+  // Add completion class for fade animation
+  elements.loadingScreen.classList.add('loading-complete');
+  
+  // Wait for animation and then hide
   setTimeout(() => {
     elements.loadingScreen.style.display = 'none';
-  }, 400);
+    document.body.classList.remove('is-loading');
+    if (elements.app) {
+      elements.app.classList.remove('hidden');
+    }
+  }, 800);
 }
 
 /**

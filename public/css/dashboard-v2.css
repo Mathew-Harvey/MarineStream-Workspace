@@ -1,6 +1,6 @@
 /**
  * MarineStream Fleet Command - Dashboard v2
- * Modern map-first design with overlay panels
+ * Based on MarineStream™ Style Guide v1.0
  */
 
 /* ========================================
@@ -9,23 +9,23 @@
 :root {
   /* Colors - Dark Maritime Theme */
   --bg-primary: #0a0f1a;
-  --bg-secondary: #111827;
-  --bg-panel: rgba(17, 24, 39, 0.92);
+  --bg-secondary: #111111;
+  --bg-panel: rgba(17, 17, 17, 0.92);
   --bg-card: rgba(30, 41, 59, 0.8);
   --bg-hover: rgba(51, 65, 85, 0.6);
   
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-muted: #666666;
   
   --border-color: rgba(148, 163, 184, 0.15);
-  --border-focus: rgba(59, 130, 246, 0.5);
+  --border-focus: rgba(255, 102, 0, 0.5);
   
-  /* Accent Colors */
-  --accent-primary: #3b82f6;
-  --accent-primary-rgb: 59, 130, 246;
-  --accent-secondary: #f59e0b;
-  --accent-secondary-rgb: 245, 158, 11;
+  /* Accent Colors - MarineStream Brand Orange */
+  --accent-primary: #FF6600;
+  --accent-primary-rgb: 255, 102, 0;
+  --accent-secondary: #1e40af;
+  --accent-secondary-rgb: 30, 64, 175;
   
   /* Status Colors */
   --color-excellent: #22c55e;

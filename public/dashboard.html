@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FF6600">
   <title>MarineStream Fleet Command</title>
   <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
   
-  <!-- Fonts -->
+  <!-- Fonts - Inter (MarineStream Brand Font) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Mapbox -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
@@ -19,8 +20,97 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <link rel="stylesheet" href="/css/dashboard-v2.css">
+  
+  <style>
+    /* Loading Screen Styles */
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #111111;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      transition: opacity 0.5s ease-out;
+    }
+    .loading-content {
+      text-align: center;
+      max-width: 80%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+    .loading-logo {
+      width: 180px;
+      margin-bottom: 30px;
+      opacity: 0.9;
+    }
+    .loading-spinner {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 20px;
+      border: 6px solid rgba(255, 102, 0, 0.3);
+      border-top: 6px solid #FF6600;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-message {
+      color: #ffffff;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      min-height: 30px;
+      transition: opacity 0.3s ease;
+    }
+    .loading-progress {
+      width: 300px;
+      height: 8px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: #FF6600;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .loading-complete {
+      animation: fadeOut 0.8s forwards;
+    }
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+    body.is-loading {
+      overflow: hidden;
+    }
+  </style>
 </head>
-<body>
+<body class="is-loading">
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <img src="/assets/marinestream_logo_white.png" alt="MarineStream" class="loading-logo">
+      <div class="loading-spinner"></div>
+      <div class="loading-message">Scrubbing barnacles off the server...</div>
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
+      </div>
+    </div>
+  </div>
   <!-- Auth Modal -->
   <div id="auth-modal" class="modal active">
     <div class="modal-backdrop"></div>

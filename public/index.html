@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="MarineStream Workspace - Unified maritime biofouling management portal">
-  <meta name="theme-color" content="#C9A227">
+  <meta name="theme-color" content="#FF6600">
   
   <title>MarineStream Workspace</title>
   
-  <!-- Fonts -->
+  <!-- Fonts - Inter (MarineStream Brand Font) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Mapbox GL JS -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
@@ -26,20 +26,15 @@
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 </head>
-<body>
-  <!-- Loading Screen -->
-  <div id="loading-screen" class="loading-screen">
+<body class="is-loading">
+  <!-- Loading Screen with Humorous Messages -->
+  <div id="loading-screen">
     <div class="loading-content">
-      <div class="loading-logo">
-        <svg viewBox="0 0 48 48" class="logo-icon">
-          <path d="M24 4L4 14v20l20 10 20-10V14L24 4z" fill="none" stroke="currentColor" stroke-width="2"/>
-          <path d="M24 14l-10 5v10l10 5 10-5V19l-10-5z" fill="currentColor" opacity="0.3"/>
-          <path d="M24 24v10M14 19l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/>
-        </svg>
-      </div>
-      <div class="loading-text">MarineStream</div>
-      <div class="loading-bar">
-        <div class="loading-progress"></div>
+      <img src="/assets/marinestream_logo_white.png" alt="MarineStream" class="loading-logo">
+      <div class="loading-spinner"></div>
+      <div class="loading-message">Scrubbing barnacles off the server...</div>
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
       </div>
     </div>
   </div>
