@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarineStream Fleet Command</title>
+  <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Mapbox -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <link rel="stylesheet" href="/css/dashboard-v2.css">
+</head>
+<body>
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="modal active">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content auth-modal">
+      <img src="/assets/marinestream_logo_white.png" alt="MarineStream" class="auth-logo">
+      <h1>Fleet Command</h1>
+      <p>Connect to MarineStream Core to access your fleet data</p>
+      
+      <!-- One-Click Setup -->
+      <a href="/setup.html" class="btn-sso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+        <span>Setup One-Click Access</span>
+      </a>
+      <p class="auth-hint sso-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>Recommended for easiest access</span>
+      </p>
+      
+      <div class="auth-divider">
+        <span>or paste your PAT manually</span>
+      </div>
+      
+      <!-- Manual PAT Entry -->
+      <div class="auth-form">
+        <input type="password" id="pat-input" placeholder="Personal Access Token" autocomplete="off">
+        <button id="auth-submit" class="btn-secondary">
+          <span>Connect</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+      <p class="auth-hint">Token expires in ~60 minutes</p>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="app-container hidden">
+    <!-- Full-screen Map -->
+    <div id="map-container" class="map-container">
+      <div id="fleet-map"></div>
+      
+      <!-- Map Style Toggle -->
+      <div class="map-style-toggle">
+        <button class="style-btn active" data-style="dark" title="Dark Mode">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+        </button>
+        <button class="style-btn" data-style="light" title="Light Mode">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 7a5 5 0 100 10 5 5 0 000-10zM12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <button class="style-btn" data-style="satellite" title="Satellite">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+        </button>
+      </div>
+
+      <!-- Map Controls -->
+      <div class="map-controls">
+        <button id="zoom-in" title="Zoom In"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button id="zoom-out" title="Zoom Out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
+        <button id="fit-bounds" title="Fit All Vessels"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+      </div>
+    </div>
+
+    <!-- Header Bar -->
+    <header class="header-bar">
+      <div class="header-left">
+        <a href="/" class="logo-link">
+          <img src="/assets/marinestream_logo_white.png" alt="MarineStream" class="logo">
+        </a>
+        <div class="header-divider"></div>
+        <h1 class="header-title">Fleet Command</h1>
+      </div>
+      
+      <div class="header-center">
+        <div class="filter-pills">
+          <button class="filter-pill active" data-filter="all">All Vessels</button>
+          <button class="filter-pill" data-filter="ran">
+            <span class="filter-dot ran"></span>RAN
+          </button>
+          <button class="filter-pill" data-filter="commercial">
+            <span class="filter-dot commercial"></span>Commercial
+          </button>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <!-- Token Status Indicator -->
+        <div class="token-status" id="token-status" title="Token expires in...">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span id="token-timer">--:--</span>
+        </div>
+        
+        <button class="icon-btn" id="refresh-btn" title="Refresh Data">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="methodology-btn" title="Scoring Methodology">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01"/>
+          </svg>
+        </button>
+        <div class="user-badge" id="user-badge" title="Click to logout">
+          <span id="user-initials">?</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Fleet Summary Panel (top-left overlay) -->
+    <div class="fleet-summary-panel">
+      <div class="summary-card main-stat">
+        <div class="stat-value" id="total-vessels">--</div>
+        <div class="stat-label">Fleet Size</div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-stats">
+        <div class="mini-stat">
+          <span class="mini-value" id="ran-count">--</span>
+          <span class="mini-label">RAN</span>
+        </div>
+        <div class="mini-stat">
+          <span class="mini-value" id="commercial-count">--</span>
+          <span class="mini-label">Commercial</span>
+        </div>
+        <div class="mini-stat warning">
+          <span class="mini-value" id="due-soon">--</span>
+          <span class="mini-label">Due Soon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Panel (top-right overlay) -->
+    <div class="performance-panel">
+      <div class="perf-header">
+        <h3>Fleet Health</h3>
+        <button class="expand-btn" id="toggle-perf-detail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="perf-gauges">
+        <div class="gauge-item">
+          <div class="gauge-ring" data-value="0" id="gauge-fon">
+            <svg viewBox="0 0 36 36">
+              <path class="gauge-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              <path class="gauge-fill" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            </svg>
+            <div class="gauge-value">--</div>
+          </div>
+          <div class="gauge-label">Avg FON</div>
+        </div>
+        <div class="gauge-item">
+          <div class="gauge-ring" data-value="0" id="gauge-hp">
+            <svg viewBox="0 0 36 36">
+              <path class="gauge-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              <path class="gauge-fill" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+            </svg>
+            <div class="gauge-value">--</div>
+          </div>
+          <div class="gauge-label">Avg Hull</div>
+        </div>
+      </div>
+      <div class="perf-detail hidden" id="perf-detail">
+        <div class="perf-chart-container">
+          <canvas id="perf-trend-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vessel List Panel (left side overlay) -->
+    <div class="vessel-list-panel" id="vessel-panel">
+      <div class="panel-header">
+        <h3>Vessels</h3>
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="vessel-search" placeholder="Search...">
+        </div>
+      </div>
+      <div class="vessel-list" id="vessel-list">
+        <!-- Vessel items populated by JS -->
+      </div>
+    </div>
+
+    <!-- Vessel Detail Slide-out Panel -->
+    <div class="vessel-detail-panel hidden" id="vessel-detail">
+      <div class="detail-header">
+        <button class="back-btn" id="close-detail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="detail-title">
+          <h2 id="detail-vessel-name">Vessel Name</h2>
+          <span class="vessel-type-badge" id="detail-vessel-type">RAN</span>
+        </div>
+      </div>
+      
+      <div class="detail-content">
+        <!-- Performance Scores -->
+        <div class="detail-section scores-section">
+          <div class="score-card">
+            <div class="score-value" id="detail-fon">--</div>
+            <div class="score-label">Freedom of Navigation</div>
+            <div class="score-bar"><div class="score-fill" id="detail-fon-bar"></div></div>
+          </div>
+          <div class="score-card">
+            <div class="score-value" id="detail-hp">--</div>
+            <div class="score-label">Hull Performance</div>
+            <div class="score-bar"><div class="score-fill" id="detail-hp-bar"></div></div>
+          </div>
+          <div class="score-card">
+            <div class="score-value" id="detail-ytd">--</div>
+            <div class="score-label">YTD Performance</div>
+            <div class="score-bar"><div class="score-fill" id="detail-ytd-bar"></div></div>
+          </div>
+        </div>
+
+        <!-- Next Clean Countdown -->
+        <div class="detail-section countdown-section">
+          <div class="countdown-display">
+            <div class="countdown-value" id="detail-days">--</div>
+            <div class="countdown-label">days to next clean</div>
+          </div>
+        </div>
+
+        <!-- Vessel Info -->
+        <div class="detail-section info-section">
+          <h4>Vessel Information</h4>
+          <div class="info-grid">
+            <div class="info-item"><span class="info-label">Class</span><span class="info-value" id="detail-class">--</span></div>
+            <div class="info-item"><span class="info-label">Pennant</span><span class="info-value" id="detail-pennant">--</span></div>
+            <div class="info-item"><span class="info-label">IMO</span><span class="info-value" id="detail-imo">--</span></div>
+            <div class="info-item"><span class="info-label">MMSI</span><span class="info-value" id="detail-mmsi">--</span></div>
+            <div class="info-item"><span class="info-label">Flag</span><span class="info-value" id="detail-flag">--</span></div>
+            <div class="info-item"><span class="info-label">Total Jobs</span><span class="info-value" id="detail-jobs">--</span></div>
+          </div>
+        </div>
+
+        <!-- Work History Timeline -->
+        <div class="detail-section history-section">
+          <h4>Work History</h4>
+          <div class="history-timeline" id="detail-history">
+            <!-- Timeline items populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Feed (bottom-right) -->
+    <div class="activity-panel" id="activity-panel">
+      <div class="activity-header">
+        <h3>Recent Activity</h3>
+        <button class="collapse-btn" id="toggle-activity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="activity-feed" id="activity-feed">
+        <!-- Activity items populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Methodology Modal -->
+  <div id="methodology-modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content methodology-modal">
+      <div class="modal-header">
+        <h2>Performance Scoring Methodology</h2>
+        <button class="close-btn" id="close-methodology">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="methodology-section">
+          <h3>
+            <span class="score-icon fon">FON</span>
+            Freedom of Navigation Score
+          </h3>
+          <p>Indicates a vessel's ability to operate freely without biofouling-related restrictions.</p>
+          <div class="formula">
+            <code>FON = 100 - (Σ FR<sub>i</sub> × Coverage<sub>i</sub> × Weight<sub>i</sub>)</code>
+          </div>
+          <ul>
+            <li><strong>FR<sub>i</sub></strong> - Fouling Rating (0-5 scale per IMO guidelines)</li>
+            <li><strong>Coverage<sub>i</sub></strong> - Percentage of area affected</li>
+            <li><strong>Weight<sub>i</sub></strong> - Location weight (hull=1.0, niche=1.5, critical=2.0)</li>
+          </ul>
+        </div>
+        
+        <div class="methodology-section">
+          <h3>
+            <span class="score-icon hp">HP</span>
+            Hull Performance Score
+          </h3>
+          <p>Current hull efficiency based on fouling state and hydrodynamic impact.</p>
+          <div class="formula">
+            <code>HP = BaseEfficiency × (1 - FoulingPenalty)</code>
+          </div>
+          <ul>
+            <li>Each FR level adds ~3-5% drag penalty</li>
+            <li>Macrofouling (FR4-5) has exponential impact</li>
+          </ul>
+        </div>
+
+        <div class="methodology-section">
+          <h3>Score Ranges</h3>
+          <div class="score-ranges">
+            <div class="range excellent"><span>90-100</span> Excellent - No restrictions</div>
+            <div class="range good"><span>80-89</span> Good - Minor maintenance recommended</div>
+            <div class="range warning"><span>70-79</span> Warning - Cleaning due soon</div>
+            <div class="range critical"><span>&lt;70</span> Critical - Immediate attention required</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard App -->
+  <script src="/js/dashboard-v2.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E5C968"/>
+      <stop offset="100%" style="stop-color:#C9A227"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer hexagon -->
+  <path d="M24 4L4 14v20l20 10 20-10V14L24 4z" 
+        fill="none" 
+        stroke="url(#goldGradient)" 
+        stroke-width="2"/>
+  <!-- Inner hexagon -->
+  <path d="M24 14l-10 5v10l10 5 10-5V19l-10-5z" 
+        fill="url(#goldGradient)" 
+        opacity="0.3"/>
+  <!-- Cross lines -->
+  <path d="M24 24v10M14 19l10 5 10-5" 
+        fill="none" 
+        stroke="url(#goldGradient)" 
+        stroke-width="2"/>
+</svg>

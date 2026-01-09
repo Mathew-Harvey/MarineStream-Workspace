@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MarineStream Workspace - Unified maritime biofouling management portal">
+  <meta name="theme-color" content="#C9A227">
+  
+  <title>MarineStream Workspace</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Mapbox GL JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+  
+  <!-- Clerk (loaded dynamically with key from server) -->
+  <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" async></script>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">
+        <svg viewBox="0 0 48 48" class="logo-icon">
+          <path d="M24 4L4 14v20l20 10 20-10V14L24 4z" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M24 14l-10 5v10l10 5 10-5V19l-10-5z" fill="currentColor" opacity="0.3"/>
+          <path d="M24 24v10M14 19l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="loading-text">MarineStream</div>
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div id="app" class="app hidden">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <a href="/" class="logo">
+          <img src="/assets/marinestream_logo_white.png" alt="MarineStream" class="logo-img" style="height: 24px; filter: brightness(0.2);">
+        </a>
+      </div>
+      
+      <div class="header-center">
+        <div class="search-container">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input type="text" class="search-input" placeholder="Search vessels, apps..." id="global-search">
+          <kbd class="search-kbd">⌘K</kbd>
+        </div>
+      </div>
+      
+      <div class="header-right">
+        <button class="icon-btn" id="settings-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <div class="user-menu" id="user-menu">
+          <div class="user-avatar" id="user-avatar">
+            <span>?</span>
+          </div>
+          <div class="user-dropdown hidden" id="user-dropdown">
+            <div class="user-info">
+              <div class="user-name" id="user-name">Guest</div>
+              <div class="user-email" id="user-email">Not signed in</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item" id="profile-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Profile
+            </a>
+            <a href="#" class="dropdown-item" id="preferences-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              Preferences
+            </a>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item dropdown-item--danger" id="signout-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Sign out
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Map Section -->
+      <section class="map-section">
+        <div class="map-container" id="map">
+          <div class="map-loading">
+            <div class="map-loading-spinner"></div>
+            <span>Loading vessel positions...</span>
+          </div>
+        </div>
+        <div class="map-overlay">
+          <div class="map-stats">
+            <div class="stat">
+              <span class="stat-value" id="vessel-count">0</span>
+              <span class="stat-label">Vessels Tracked</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="vessels-in-port">0</span>
+              <span class="stat-label">In Port</span>
+            </div>
+          </div>
+        </div>
+        <div class="map-controls">
+          <button class="map-control-btn" id="zoom-in" aria-label="Zoom in">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <button class="map-control-btn" id="zoom-out" aria-label="Zoom out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <button class="map-control-btn" id="fit-bounds" aria-label="Fit all vessels">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+            </svg>
+          </button>
+          <button class="map-control-btn" id="fullscreen-map" aria-label="Fullscreen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Applications Section -->
+      <section class="apps-section">
+        <div class="section-header">
+          <h2 class="section-title">Applications</h2>
+          <div class="section-actions">
+            <button class="filter-btn active" data-category="all">All</button>
+            <button class="filter-btn" data-category="Operations">Operations</button>
+            <button class="filter-btn" data-category="Planning & Compliance">Planning</button>
+            <button class="filter-btn" data-category="Reference & Analysis">Reference</button>
+          </div>
+        </div>
+        
+        <div class="apps-grid" id="apps-grid">
+          <!-- Apps will be dynamically inserted here -->
+          <div class="app-card app-card--skeleton">
+            <div class="skeleton skeleton-icon"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text short"></div>
+          </div>
+          <div class="app-card app-card--skeleton">
+            <div class="skeleton skeleton-icon"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text short"></div>
+          </div>
+          <div class="app-card app-card--skeleton">
+            <div class="skeleton skeleton-icon"></div>
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text short"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-left">
+        <span>© 2026 Franmarine</span>
+        <span class="footer-dot">·</span>
+        <span>MarineStream Workspace</span>
+      </div>
+      <div class="footer-right">
+        <a href="#" class="footer-link">Help</a>
+        <a href="#" class="footer-link">Privacy</a>
+        <a href="#" class="footer-link">Terms</a>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Auth Modal (for unauthenticated state) -->
+  <div id="auth-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content auth-modal-content">
+      <div class="auth-header">
+        <svg viewBox="0 0 48 48" class="auth-logo">
+          <path d="M24 4L4 14v20l20 10 20-10V14L24 4z" fill="none" stroke="currentColor" stroke-width="2"/>
+          <path d="M24 14l-10 5v10l10 5 10-5V19l-10-5z" fill="currentColor" opacity="0.3"/>
+          <path d="M24 24v10M14 19l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <h2>Welcome to MarineStream</h2>
+        <p>Sign in to access your workspace</p>
+      </div>
+      <div id="clerk-auth"></div>
+    </div>
+  </div>
+
+  <!-- Vessel Details Panel -->
+  <div id="vessel-panel" class="panel hidden">
+    <div class="panel-header">
+      <h3 class="panel-title" id="panel-vessel-name">Vessel Details</h3>
+      <button class="panel-close" id="close-panel" aria-label="Close panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="vessel-info-grid">
+        <div class="vessel-info-item">
+          <span class="vessel-info-label">Type</span>
+          <span class="vessel-info-value" id="panel-vessel-type">—</span>
+        </div>
+        <div class="vessel-info-item">
+          <span class="vessel-info-label">Flag</span>
+          <span class="vessel-info-value" id="panel-vessel-flag">—</span>
+        </div>
+        <div class="vessel-info-item">
+          <span class="vessel-info-label">MMSI</span>
+          <span class="vessel-info-value mono" id="panel-vessel-mmsi">—</span>
+        </div>
+        <div class="vessel-info-item">
+          <span class="vessel-info-label">Speed</span>
+          <span class="vessel-info-value" id="panel-vessel-speed">—</span>
+        </div>
+        <div class="vessel-info-item">
+          <span class="vessel-info-label">Course</span>
+          <span class="vessel-info-value" id="panel-vessel-course">—</span>
+        </div>
+        <div class="vessel-info-item">
+          <span class="vessel-info-label">Status</span>
+          <span class="vessel-info-value" id="panel-vessel-status">—</span>
+        </div>
+      </div>
+      <div class="vessel-info-item full-width">
+        <span class="vessel-info-label">Position</span>
+        <span class="vessel-info-value mono" id="panel-vessel-position">—</span>
+      </div>
+      <div class="panel-actions">
+        <a href="#" class="btn btn-primary" id="panel-view-jobs">
+          View in Job Delivery
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/app.js" type="module"></script>
+</body>
+</html>

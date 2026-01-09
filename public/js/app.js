@@ -1,0 +1,353 @@
+/**
+ * MarineStream Workspace - Main Application
+ * Entry point for the frontend
+ */
+
+import { loadConfig, getClerkKey, getMapboxToken } from './config.js';
+import { initAuth } from './auth.js';
+import { initMap } from './map.js';
+import { loadApps, filterApps } from './apps.js';
+
+// Global state
+const state = {
+  user: null,
+  apps: [],
+  vessels: [],
+  map: null,
+  isAuthenticated: false,
+  config: null
+};
+
+// DOM Elements
+const elements = {
+  loadingScreen: document.getElementById('loading-screen'),
+  app: document.getElementById('app'),
+  menuToggle: document.getElementById('menu-toggle'),
+  globalSearch: document.getElementById('global-search'),
+  userAvatar: document.getElementById('user-avatar'),
+  userDropdown: document.getElementById('user-dropdown'),
+  userName: document.getElementById('user-name'),
+  userEmail: document.getElementById('user-email'),
+  signoutBtn: document.getElementById('signout-btn'),
+  appsGrid: document.getElementById('apps-grid'),
+  filterBtns: document.querySelectorAll('.filter-btn'),
+  vesselPanel: document.getElementById('vessel-panel'),
+  closePanel: document.getElementById('close-panel'),
+  authModal: document.getElementById('auth-modal')
+};
+
+/**
+ * Initialize the application
+ */
+async function init() {
+  console.log('🚢 MarineStream Workspace initializing...');
+  
+  try {
+    // Load configuration from server first
+    state.config = await loadConfig();
+    
+    // Set Mapbox access token if available
+    const mapboxToken = getMapboxToken();
+    if (mapboxToken && typeof mapboxgl !== 'undefined') {
+      mapboxgl.accessToken = mapboxToken;
+      console.log('🗺️ Mapbox token configured');
+    }
+    
+    // Initialize Clerk auth with key from config
+    const clerkKey = getClerkKey();
+    if (clerkKey) {
+      const authResult = await initAuth({
+        publishableKey: clerkKey,
+        onSignIn: handleSignIn,
+        onSignOut: handleSignOut
+      });
+      
+      state.user = authResult.user;
+      state.isAuthenticated = authResult.isAuthenticated;
+    } else {
+      console.warn('⚠️ Clerk publishable key not configured - auth disabled');
+      state.user = null;
+      state.isAuthenticated = false;
+    }
+    
+    // Update UI based on auth state
+    updateAuthUI();
+    
+    // Load applications
+    await loadApps(elements.appsGrid);
+    
+    // Initialize map
+    state.map = await initMap('map', {
+      onVesselClick: handleVesselClick
+    });
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Hide loading screen
+    hideLoadingScreen();
+    
+    console.log('✅ MarineStream Workspace ready');
+  } catch (error) {
+    console.error('Failed to initialize:', error);
+    hideLoadingScreen();
+    showError('Failed to load the workspace. Please refresh the page.');
+  }
+}
+
+/**
+ * Hide loading screen with animation
+ */
+function hideLoadingScreen() {
+  elements.loadingScreen.classList.add('fade-out');
+  elements.app.classList.remove('hidden');
+  
+  setTimeout(() => {
+    elements.loadingScreen.style.display = 'none';
+  }, 400);
+}
+
+/**
+ * Handle successful sign in
+ */
+function handleSignIn(user) {
+  state.user = user;
+  state.isAuthenticated = true;
+  updateAuthUI();
+  
+  // Reload apps with user-specific access
+  loadApps(elements.appsGrid);
+  
+  // Close auth modal if open
+  elements.authModal.classList.remove('show');
+  elements.authModal.classList.add('hidden');
+}
+
+/**
+ * Handle sign out
+ */
+function handleSignOut() {
+  state.user = null;
+  state.isAuthenticated = false;
+  updateAuthUI();
+  
+  // Reload apps for public view
+  loadApps(elements.appsGrid);
+}
+
+/**
+ * Update UI based on authentication state
+ */
+function updateAuthUI() {
+  if (state.user) {
+    // Show user info
+    elements.userName.textContent = state.user.fullName || state.user.email;
+    elements.userEmail.textContent = state.user.email;
+    
+    // Update avatar
+    if (state.user.imageUrl) {
+      elements.userAvatar.innerHTML = `<img src="${state.user.imageUrl}" alt="${state.user.fullName}">`;
+    } else {
+      const initials = getInitials(state.user.fullName || state.user.email);
+      elements.userAvatar.innerHTML = `<span>${initials}</span>`;
+    }
+  } else {
+    elements.userName.textContent = 'Guest';
+    elements.userEmail.textContent = 'Not signed in';
+    elements.userAvatar.innerHTML = '<span>?</span>';
+  }
+}
+
+/**
+ * Get initials from name
+ */
+function getInitials(name) {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/**
+ * Handle vessel marker click
+ */
+function handleVesselClick(vessel) {
+  // Update panel content
+  document.getElementById('panel-vessel-name').textContent = vessel.name || 'Unknown Vessel';
+  document.getElementById('panel-vessel-type').textContent = vessel.vessel_type || '—';
+  document.getElementById('panel-vessel-flag').textContent = vessel.flag || '—';
+  document.getElementById('panel-vessel-mmsi').textContent = vessel.mmsi || '—';
+  
+  if (vessel.position) {
+    document.getElementById('panel-vessel-speed').textContent = 
+      vessel.position.speed ? `${vessel.position.speed.toFixed(1)} kn` : '—';
+    document.getElementById('panel-vessel-course').textContent = 
+      vessel.position.course ? `${vessel.position.course.toFixed(0)}°` : '—';
+    document.getElementById('panel-vessel-status').textContent = 
+      getNavStatus(vessel.position.status);
+    document.getElementById('panel-vessel-position').textContent = 
+      `${vessel.position.lat.toFixed(5)}, ${vessel.position.lon.toFixed(5)}`;
+  }
+  
+  // Update job delivery link
+  const jobsLink = document.getElementById('panel-view-jobs');
+  jobsLink.href = `https://app.marinestream.io/vessels/${vessel.mmsi || ''}`;
+  
+  // Show panel
+  elements.vesselPanel.classList.add('show');
+  elements.vesselPanel.classList.remove('hidden');
+}
+
+/**
+ * Get navigational status text
+ */
+function getNavStatus(code) {
+  const statuses = {
+    0: 'Underway (engine)',
+    1: 'At anchor',
+    2: 'Not under command',
+    3: 'Restricted maneuver',
+    4: 'Constrained by draught',
+    5: 'Moored',
+    6: 'Aground',
+    7: 'Engaged in fishing',
+    8: 'Underway (sailing)',
+    15: 'Undefined'
+  };
+  return statuses[code] || '—';
+}
+
+/**
+ * Setup event listeners
+ */
+function setupEventListeners() {
+  // User dropdown toggle
+  elements.userAvatar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    elements.userDropdown.classList.toggle('show');
+    elements.userDropdown.classList.toggle('hidden');
+  });
+  
+  // Close dropdown on outside click
+  document.addEventListener('click', () => {
+    elements.userDropdown.classList.remove('show');
+    elements.userDropdown.classList.add('hidden');
+  });
+  
+  // Sign out button
+  elements.signoutBtn?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (window.Clerk) {
+      await window.Clerk.signOut();
+    }
+    handleSignOut();
+  });
+  
+  // Filter buttons
+  elements.filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const category = btn.dataset.category;
+      
+      // Update active state
+      elements.filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Filter apps
+      filterApps(elements.appsGrid, category);
+    });
+  });
+  
+  // Close vessel panel
+  elements.closePanel?.addEventListener('click', () => {
+    elements.vesselPanel.classList.remove('show');
+    elements.vesselPanel.classList.add('hidden');
+  });
+  
+  // Global search (keyboard shortcut)
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      elements.globalSearch.focus();
+    }
+    
+    // Close panel on Escape
+    if (e.key === 'Escape') {
+      elements.vesselPanel.classList.remove('show');
+      elements.vesselPanel.classList.add('hidden');
+      elements.userDropdown.classList.remove('show');
+      elements.userDropdown.classList.add('hidden');
+    }
+  });
+  
+  // Search input
+  elements.globalSearch?.addEventListener('input', debounce((e) => {
+    const query = e.target.value.toLowerCase().trim();
+    
+    if (!query) {
+      filterApps(elements.appsGrid, 'all');
+      return;
+    }
+    
+    // Search apps
+    const appCards = elements.appsGrid.querySelectorAll('.app-card:not(.app-card--skeleton)');
+    appCards.forEach(card => {
+      const name = card.querySelector('.app-name')?.textContent.toLowerCase() || '';
+      const desc = card.querySelector('.app-description')?.textContent.toLowerCase() || '';
+      const matches = name.includes(query) || desc.includes(query);
+      card.style.display = matches ? '' : 'none';
+    });
+  }, 200));
+  
+  // Map controls
+  document.getElementById('zoom-in')?.addEventListener('click', () => {
+    state.map?.zoomIn();
+  });
+  
+  document.getElementById('zoom-out')?.addEventListener('click', () => {
+    state.map?.zoomOut();
+  });
+  
+  document.getElementById('fit-bounds')?.addEventListener('click', () => {
+    state.map?.fitBounds();
+  });
+  
+  document.getElementById('fullscreen-map')?.addEventListener('click', () => {
+    const mapSection = document.querySelector('.map-section');
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      mapSection.requestFullscreen();
+    }
+  });
+}
+
+/**
+ * Debounce helper
+ */
+function debounce(fn, delay) {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+  console.error(message);
+  // Could add toast notification here
+}
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// Export for debugging
+window.MarineStream = { state };

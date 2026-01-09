@@ -1,0 +1,3640 @@
+{
+  "exportDate": "2026-01-09T03:40:09.043Z",
+  "workItems": [
+    {
+      "workId": "69cca676-b953-4784-95a6-cefdf60c215d",
+      "workCode": "FUS-2026-001",
+      "displayName": "RAN Biofouling",
+      "flowType": "marinestream/ranvessel/biofouling",
+      "flowOriginId": "c87625d0-74b4-4bef-8ab2-eb2cd65fa833",
+      "status": "Complete",
+      "createdDate": "2026-01-06T02:30:00.201+00:00",
+      "lastModified": "2026-01-09T01:11:00.640+00:00",
+      "vesselName": "HMAS Stalwart",
+      "vesselClass": "Supply Class",
+      "vesselPennant": "A304",
+      "jobType": "Pre-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": "WO-SHORE-00157498",
+      "actualDeliveryDate": {
+        "date": "2026-01-06T06:40:08.955Z",
+        "offset": 480,
+        "ticks": "1767681608955",
+        "timezone": "Australia/Perth"
+      },
+      "location": "Oxley Wharf",
+      "majorContract": null,
+      "vesselId": "94845f40-9137-4964-8f1c-e1fc65283728",
+      "vesselType": "RanVessel"
+    },
+    {
+      "workId": "25fdc097-6fbe-4da9-a60c-347f876f50c6",
+      "workCode": "FUS-2026-002",
+      "displayName": "HMAS Stalwart",
+      "flowType": "marinestream/ranvessel/assets",
+      "flowOriginId": "6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca",
+      "status": "Complete",
+      "createdDate": "2026-01-08T07:38:49.169+00:00",
+      "lastModified": "2026-01-08T07:39:04.085+00:00",
+      "vesselName": null,
+      "vesselClass": "Supply Class",
+      "vesselPennant": "A304",
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    },
+    {
+      "workId": "3240aa21-1a3f-42f5-9e7a-87566b8ab026",
+      "workCode": "FUS-2025-525",
+      "displayName": "RAN Biofouling",
+      "flowType": "marinestream/ranvessel/biofouling",
+      "flowOriginId": "c87625d0-74b4-4bef-8ab2-eb2cd65fa833",
+      "status": "Complete",
+      "createdDate": "2025-12-23T02:54:07.616+00:00",
+      "lastModified": "2026-01-04T21:32:57.224+00:00",
+      "vesselName": "HMAS Choules",
+      "vesselClass": "Bay Class",
+      "vesselPennant": "L100",
+      "jobType": "Post-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": "W-L100-B00000334",
+      "actualDeliveryDate": {
+        "date": "2025-12-19T19:53:05.214Z",
+        "offset": 660,
+        "ticks": "1766173985214",
+        "timezone": "Australia/Sydney"
+      },
+      "location": null,
+      "majorContract": {
+        "id": "e4dfb859-a7cd-5895-8915-163c44c7ee4f",
+        "displayName": "Babcock - MSS",
+        "imageUrl": null,
+        "data": {
+          "id": "e4dfb859-a7cd-5895-8915-163c44c7ee4f",
+          "displayName": "Babcock - MSS",
+          "name": "Babcock - MSS",
+          "companyId": "680b620b-e1de-5848-bbfc-52ab57bd23ee",
+          "resourceId": "28f2e405-9c43-4a0a-a9fe-c0f2335f0651",
+          "thingType": "MarinestreamContract",
+          "entityType": "MarinestreamContract",
+          "ownerDetails": [
+            {
+              "id": "6e2d2581-cc97-500e-bc70-255d77d0d7f7",
+              "email": "tom@franmarine.com.au",
+              "name": "Tom",
+              "displayName": "Tom",
+              "roles": [],
+              "link": null,
+              "companyName": "FRANMARINE",
+              "companyAddress": null,
+              "companyNumber": null,
+              "companyHasFlowOwner": false,
+              "companyId": "680b620b-e1de-5848-bbfc-52ab57bd23ee",
+              "companyUri": "/api/v3/company/680b620b-e1de-5848-bbfc-52ab57bd23ee",
+              "expiry": "9999-12-31T23:59:59.999+00:00",
+              "isGuestUser": false,
+              "imageUrl": null,
+              "signature": null,
+              "emailHash": null,
+              "publicKey": null,
+              "isDelegated": false,
+              "company": {
+                "id": "680b620b-e1de-5848-bbfc-52ab57bd23ee",
+                "displayName": "FRANMARINE",
+                "name": "FRANMARINE",
+                "dianaDataType": 5
+              }
+            }
+          ],
+          "companyDetails": {
+            "id": "680b620b-e1de-5848-bbfc-52ab57bd23ee",
+            "displayName": "FRANMARINE"
+          },
+          "companyEntityId": "e4dfb859-a7cd-5895-8915-163c44c7ee4f"
+        },
+        "dataId": "00000000-0000-0000-0000-000000000000",
+        "revision": 0,
+        "version": 0,
+        "dianaDataType": "CompanyEntity",
+        "attachments": [],
+        "entityType": "MarinestreamContract",
+        "jsonName": "BABCOCK-MSS",
+        "originId": "00000000-0000-0000-0000-000000000000",
+        "companyId": "680b620b-e1de-5848-bbfc-52ab57bd23ee",
+        "company": {
+          "id": "680b620b-e1de-5848-bbfc-52ab57bd23ee",
+          "displayName": null,
+          "imageUrl": null,
+          "data": null,
+          "dataId": "00000000-0000-0000-0000-000000000000",
+          "revision": 0,
+          "version": 0,
+          "dianaDataType": "Unknown",
+          "attachments": null,
+          "entityType": null,
+          "jsonName": null,
+          "originId": "00000000-0000-0000-0000-000000000000",
+          "companyId": "00000000-0000-0000-0000-000000000000",
+          "company": null
+        }
+      },
+      "vesselId": "6fd77310-d03a-4882-9ce0-455745ed975b"
+    },
+    {
+      "workId": "9e376055-6862-4ce1-addd-5ffb81f6f1e7",
+      "workCode": "FUS-2025-524",
+      "displayName": "Biofouling",
+      "flowType": "marinestream/vessel/biofouling",
+      "flowOriginId": "ce374b64-dd61-4892-ae40-fd24e625be79",
+      "status": "Complete",
+      "createdDate": "2025-12-18T06:12:32.265+00:00",
+      "lastModified": "2025-12-20T10:56:55.550+00:00",
+      "vesselName": "Svitzer Redhead",
+      "vesselClass": "RAstar 3200",
+      "vesselPennant": null,
+      "jobType": "Post-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": null,
+      "actualDeliveryDate": {
+        "date": "2025-12-19T06:15:27.691Z",
+        "offset": 480,
+        "ticks": "1766124927691",
+        "timezone": "Australia/Perth"
+      },
+      "location": "J-Berth, Inner Harbour",
+      "majorContract": null,
+      "vesselId": "b833785e-9335-5744-8cec-d841db24d305"
+    },
+    {
+      "workId": "f7d40553-3044-43f7-b18e-def86b95bb01",
+      "workCode": "FUS-2025-516",
+      "displayName": "RAN Biofouling",
+      "flowType": "marinestream/ranvessel/biofouling",
+      "flowOriginId": "c87625d0-74b4-4bef-8ab2-eb2cd65fa833",
+      "status": "Complete",
+      "createdDate": "2025-12-02T02:16:21.309+00:00",
+      "lastModified": "2025-12-17T04:05:27.161+00:00",
+      "vesselName": "Cape Hawke",
+      "vesselClass": "Cape Class",
+      "vesselPennant": "P226",
+      "jobType": "Post-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": "",
+      "actualDeliveryDate": {
+        "date": "2025-12-01T07:16:21.650Z",
+        "offset": 480,
+        "ticks": "1764573381650",
+        "timezone": "Australia/Perth"
+      },
+      "location": "No berth / anchorage location info available",
+      "majorContract": null,
+      "vesselId": "1dfa3a76-b3af-51e6-be07-7faf0ec8fec4"
+    },
+    {
+      "workId": "a29d7415-059a-4205-abf2-5e572faaf206",
+      "workCode": "FUS-2025-513",
+      "displayName": "RAN Biofouling",
+      "flowType": "marinestream/ranvessel/biofouling",
+      "flowOriginId": "c87625d0-74b4-4bef-8ab2-eb2cd65fa833",
+      "status": "Complete",
+      "createdDate": "2025-12-02T00:26:33.077+00:00",
+      "lastModified": "2025-12-17T04:02:41.395+00:00",
+      "vesselName": "HMAS Cape Hawke",
+      "vesselClass": "Cape Class",
+      "vesselPennant": "TBC",
+      "jobType": "Pre-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": "",
+      "actualDeliveryDate": {
+        "date": "2025-11-28T02:10:38.507Z",
+        "offset": 480,
+        "ticks": "1764295838507",
+        "timezone": "Australia/Perth"
+      },
+      "location": "No berth / anchorage location info available",
+      "majorContract": null,
+      "vesselId": "1dfa3a76-b3af-51e6-be07-7faf0ec8fec4",
+      "vesselType": "RanVessel"
+    },
+    {
+      "workId": "ef916e51-d496-4b84-b3c9-ac5370f2637a",
+      "workCode": "RSX-2025-10147",
+      "displayName": "Cape Hawke",
+      "flowType": "marinestream/ranvessel/assets",
+      "flowOriginId": "6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca",
+      "status": "Complete",
+      "createdDate": "2025-12-17T04:00:46.520+00:00",
+      "lastModified": "2025-12-17T04:00:57.905+00:00",
+      "vesselName": null,
+      "vesselClass": "Cape Class",
+      "vesselPennant": "P226",
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    },
+    {
+      "workId": "5d134c36-cf02-42e7-837d-2a9d69264bd4",
+      "workCode": "RSX-2025-10145",
+      "displayName": "RAN Biofouling",
+      "flowType": "marinestream/ranvessel/biofouling",
+      "flowOriginId": "c87625d0-74b4-4bef-8ab2-eb2cd65fa833",
+      "status": "Resourcing",
+      "createdDate": "2025-12-17T03:27:49.657+00:00",
+      "lastModified": "2025-12-17T03:27:54.707+00:00",
+      "vesselName": null,
+      "vesselClass": null,
+      "vesselPennant": null,
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": "No berth / anchorage location info available",
+      "majorContract": null
+    },
+    {
+      "workId": "ae55a6ba-b3ac-44d9-9893-aed254e73339",
+      "workCode": "RSX-2025-10081",
+      "displayName": "RAN Biofouling",
+      "flowType": "marinestream/ranvessel/biofouling",
+      "flowOriginId": "c87625d0-74b4-4bef-8ab2-eb2cd65fa833",
+      "status": "Deleted",
+      "createdDate": "2025-12-12T05:49:38.487+00:00",
+      "lastModified": "2025-12-12T05:58:13.931+00:00",
+      "vesselName": null,
+      "vesselClass": null,
+      "vesselPennant": null,
+      "jobType": "Biofouling Hull Inspection",
+      "inspectionType": "NZ CRMS Biofouling Inspection",
+      "workInstruction": "Test tests tests",
+      "actualDeliveryDate": null,
+      "location": "No berth / anchorage location info available",
+      "majorContract": null
+    },
+    {
+      "workId": "b72e9ce3-0861-41a1-9d54-99dcda56670c",
+      "workCode": "FUS-2025-523",
+      "displayName": "Svitzer Redhead",
+      "flowType": "marinestream/vessel/assets",
+      "flowOriginId": "e7f07ad3-8dda-4f7b-b293-7de922cf3abe",
+      "status": "Complete",
+      "createdDate": "2025-12-10T03:48:42.910+00:00",
+      "lastModified": "2025-12-10T03:48:50.057+00:00",
+      "vesselName": null,
+      "vesselClass": "RAstar 3200",
+      "vesselPennant": null,
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    },
+    {
+      "workId": "aea7256e-e753-43a9-a04e-cc6443ab887e",
+      "workCode": "FUS-2025-522",
+      "displayName": "RAN Engineering",
+      "flowType": "marinestream/ranvessel/inspection",
+      "flowOriginId": "f7ee94cf-b2e7-4321-9a21-2a179b3830ee",
+      "status": "Awaiting Review",
+      "createdDate": "2025-12-09T02:59:01.590+00:00",
+      "lastModified": "2025-12-09T03:56:41.897+00:00",
+      "vesselName": "HMAS Collins",
+      "vesselClass": "Collins Class",
+      "vesselPennant": "S73",
+      "jobType": "Other",
+      "inspectionType": null,
+      "workInstruction": "N/A",
+      "actualDeliveryDate": {
+        "date": "2025-12-05T03:08:22.883Z",
+        "offset": 480,
+        "ticks": "1764904102883",
+        "timezone": "Australia/Perth"
+      },
+      "location": "Diamantina Pier",
+      "majorContract": null,
+      "vesselId": "5700db04-7935-5881-b847-a2a08c17de76"
+    },
+    {
+      "workId": "2ad8567c-089f-467c-ba83-e20e7d6fc34b",
+      "workCode": "FUS-2025-519",
+      "displayName": "Engineering",
+      "flowType": "marinestream/vessel/inspection",
+      "flowOriginId": "7a3ded1b-aa86-476a-95f7-dda9822b9518",
+      "status": "Awaiting Review",
+      "createdDate": "2025-12-07T21:39:16.205+00:00",
+      "lastModified": "2025-12-09T01:39:56.086+00:00",
+      "vesselName": "Svitzer Abrolhos",
+      "vesselClass": "Traktor 2800-Z",
+      "vesselPennant": null,
+      "jobType": "Class Inspection",
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": {
+        "date": "2025-12-02T01:21:37.194Z",
+        "offset": 480,
+        "ticks": "1764638497194",
+        "timezone": "Australia/Perth"
+      },
+      "location": "Tug Pen",
+      "majorContract": null,
+      "vesselId": "e2cf1cf7-07e6-57ff-ad3c-50cf0702c6ba"
+    },
+    {
+      "workId": "ba02eae4-3afc-4060-a904-51d9c46ccc0b",
+      "workCode": "FUS-2025-521",
+      "displayName": "Biofouling",
+      "flowType": "marinestream/vessel/biofouling",
+      "flowOriginId": "ce374b64-dd61-4892-ae40-fd24e625be79",
+      "status": "Complete",
+      "createdDate": "2025-12-08T02:46:59.820+00:00",
+      "lastModified": "2025-12-09T00:44:00.678+00:00",
+      "vesselName": "Svitzer Redhead",
+      "vesselClass": "RAstar 3200",
+      "vesselPennant": null,
+      "jobType": "Post-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": "Box Cooler Clean with Capture.",
+      "actualDeliveryDate": {
+        "date": "2025-12-04T04:19:45.600Z",
+        "offset": 480,
+        "ticks": "1764821985600",
+        "timezone": "Australia/Perth"
+      },
+      "location": "J-Berth, Inner Harbour",
+      "majorContract": null,
+      "vesselId": "b833785e-9335-5744-8cec-d841db24d305"
+    },
+    {
+      "workId": "46fb5b8d-cec1-4aca-9e2b-bb5f99d2da3a",
+      "workCode": "FUS-2025-520",
+      "displayName": "Engineering",
+      "flowType": "marinestream/vessel/inspection",
+      "flowOriginId": "7a3ded1b-aa86-476a-95f7-dda9822b9518",
+      "status": "Complete",
+      "createdDate": "2025-12-08T01:00:17.949+00:00",
+      "lastModified": "2025-12-08T03:14:34.013+00:00",
+      "vesselName": "Svitzer Abrolhos",
+      "vesselClass": "Traktor 2800-Z",
+      "vesselPennant": null,
+      "jobType": "Blanking - OBD & Sea Chests",
+      "inspectionType": null,
+      "workInstruction": "Blank Overboard Discharges for internal valve replacements. ",
+      "actualDeliveryDate": {
+        "date": "2025-12-03T03:14:20.164Z",
+        "offset": 480,
+        "ticks": "1764731660164",
+        "timezone": "Australia/Perth"
+      },
+      "location": "No berth / anchorage location info available",
+      "majorContract": null,
+      "vesselId": "e2cf1cf7-07e6-57ff-ad3c-50cf0702c6ba"
+    },
+    {
+      "workId": "e11046f7-4574-43e4-8865-5570cd1a42a1",
+      "workCode": "FUS-2025-517",
+      "displayName": "Biofouling",
+      "flowType": "marinestream/vessel/biofouling",
+      "flowOriginId": "ce374b64-dd61-4892-ae40-fd24e625be79",
+      "status": "Complete",
+      "createdDate": "2025-12-04T05:32:44.312+00:00",
+      "lastModified": "2025-12-08T01:41:06.946+00:00",
+      "vesselName": "Svitzer Redhead",
+      "vesselClass": "RAstar 3200",
+      "vesselPennant": null,
+      "jobType": "Pre-Clean Biofouling Inspection",
+      "inspectionType": "Australian Biofouling Inspection",
+      "workInstruction": "TBC",
+      "actualDeliveryDate": {
+        "date": "2025-12-05T07:09:34.776Z",
+        "offset": 480,
+        "ticks": "1764918574776",
+        "timezone": "Australia/Perth"
+      },
+      "location": "Berth J",
+      "majorContract": null,
+      "vesselId": "b833785e-9335-5744-8cec-d841db24d305"
+    },
+    {
+      "workId": "9473ef4c-61aa-42f0-a2f7-5dfdd02dfa1c",
+      "workCode": "FUS-2025-506",
+      "displayName": "Engineering",
+      "flowType": "marinestream/vessel/inspection",
+      "flowOriginId": "7a3ded1b-aa86-476a-95f7-dda9822b9518",
+      "status": "Awaiting Review",
+      "createdDate": "2025-11-24T04:48:51.719+00:00",
+      "lastModified": "2025-12-08T01:40:50.960+00:00",
+      "vesselName": "Svitzer Redhead",
+      "vesselClass": "RAstar 3200",
+      "vesselPennant": null,
+      "jobType": "Other",
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": {
+        "date": "2025-11-25T05:37:59.764Z",
+        "offset": 480,
+        "ticks": "1764049079764",
+        "timezone": "Australia/Perth"
+      },
+      "location": "J Berth, Inner Harbour",
+      "majorContract": null,
+      "vesselId": "b833785e-9335-5744-8cec-d841db24d305"
+    },
+    {
+      "workId": "25c458a1-95f4-4185-ab39-fbbc17683cb2",
+      "workCode": "FUS-2025-518",
+      "displayName": "Svitzer North~copy1",
+      "flowType": "marinestream/vessel/assets",
+      "flowOriginId": "e7f07ad3-8dda-4f7b-b293-7de922cf3abe",
+      "status": "Complete",
+      "createdDate": "2025-12-07T21:36:31.597+00:00",
+      "lastModified": "2025-12-07T21:39:04.143+00:00",
+      "vesselName": null,
+      "vesselClass": "Traktor 2800-Z",
+      "vesselPennant": null,
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    },
+    {
+      "workId": "a18ae1ae-392b-4b35-857d-cedd9d88955f",
+      "workCode": "RSX-2025-9898",
+      "displayName": "Cape Hawke",
+      "flowType": "marinestream/ranvessel/assets",
+      "flowOriginId": "6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca",
+      "status": "Complete",
+      "createdDate": "2025-12-03T02:09:25.612+00:00",
+      "lastModified": "2025-12-03T02:09:42.301+00:00",
+      "vesselName": null,
+      "vesselClass": "Cape Class",
+      "vesselPennant": "P226",
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    },
+    {
+      "workId": "e5f89f4e-83f1-47a2-8bf0-236c650a8519",
+      "workCode": "RSX-2025-9883",
+      "displayName": "Cape Hawke",
+      "flowType": "marinestream/ranvessel/assets",
+      "flowOriginId": "6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca",
+      "status": "Complete",
+      "createdDate": "2025-12-02T01:02:09.604+00:00",
+      "lastModified": "2025-12-02T01:02:21.131+00:00",
+      "vesselName": null,
+      "vesselClass": "Cape Class",
+      "vesselPennant": "P226",
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    },
+    {
+      "workId": "919279f9-bd5c-4dcb-a2d6-8913e03c86cc",
+      "workCode": "FUS-2025-515",
+      "displayName": "Cape Spencer (H819)",
+      "flowType": "marinestream/ranvessel/assets",
+      "flowOriginId": "6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca",
+      "status": "Complete",
+      "createdDate": "2025-12-02T01:01:57.332+00:00",
+      "lastModified": "2025-12-02T01:02:05.914+00:00",
+      "vesselName": null,
+      "vesselClass": "Evolved Cape Class",
+      "vesselPennant": "TBC",
+      "jobType": null,
+      "inspectionType": null,
+      "workInstruction": null,
+      "actualDeliveryDate": null,
+      "location": null,
+      "majorContract": null
+    }
+  ],
+  "biofoulingAssessments": [
+    {
+      "workCode": "FUS-2026-001",
+      "vesselName": "HMAS Stalwart",
+      "date": "2026-01-09T01:11:00.640+00:00",
+      "components": [
+        {
+          "componentName": "Transom Plate",
+          "diverComments": "<p>Unable to observe - above waterline</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": null,
+              "coverage": null,
+              "pdrRating": null,
+              "description": "Waterline"
+            },
+            {
+              "type": null,
+              "coverage": null,
+              "pdrRating": null,
+              "description": "Midsection"
+            },
+            {
+              "type": null,
+              "coverage": null,
+              "pdrRating": null,
+              "description": "Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Rudder",
+          "diverComments": null,
+          "expertComments": "<ul><li>Coating delamination attributable to cavitation down leading edge and, possibly, previous cleaning damage above and below hinge recesses</li><li>Light slime across rudder faces and 30 - 50% polish through of top AF coat</li><li>Hard shell fouling, predominantly acorn barnacles, on surfaces inside hinge recesses</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Considerable | 6% to 15% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Top of Rudder"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Considerable | 6% to 15% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Pintle Bearing"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Rudder Hinge"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 40 |  AF paint missing from intact blisters to expose AC paint or an AF coating with visible brush swirl marks exposing the next underlying layer of AF or AC paint.",
+              "description": "Leading Edge"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Rudder Flat Plate"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Considerable | 6% to 15% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Inspection Port - Port"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Considerable | 6% to 15% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Inspection Port - Starboard"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Anodes"
+            }
+          ]
+        },
+        {
+          "componentName": "Propeller",
+          "diverComments": null,
+          "expertComments": "<ul><li>Blade and hub surfaces with light crust of slime and surface deposits across 25 - 50% of surfaces</li><li>Boss 90% covered by mixed assemblage of encrusting algae, algal turf and mud tubes with a few calcareous tubeworms</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "description": "Boss"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "description": "Blade 5"
+            }
+          ]
+        },
+        {
+          "componentName": "Stern Arrangement",
+          "diverComments": null,
+          "expertComments": "<ul><li>Rope guard and eddy cover with extensive cover of blackish, closely adherent slime</li><li>No macrofouling visible through inspection ports</li><li>A-bracket and stern tube surfaces with light golden-brown slime and patchy polish through of top antifouling coat</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 60 | AF/AC paint missing or peeling to expose steel substrate, no corrosion present.",
+              "description": "Rope Guard"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 40 |  AF paint missing from intact blisters to expose AC paint or an AF coating with visible brush swirl marks exposing the next underlying layer of AF or AC paint.",
+              "description": "Eddy Cover"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Stern Tube"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "A Bracket"
+            }
+          ]
+        },
+        {
+          "componentName": "Skeg",
+          "diverComments": null,
+          "expertComments": "<ul><li>Surfaces with cover of light, patchy slime</li><li>Coating system appears sound</li><li>Some scattered barnacles and small encrusting bryozoans on under surface, possibly on dock block marks</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Starboard Side"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plate - Aft",
+          "diverComments": null,
+          "expertComments": "<ul><li>Band of filamentous green algae covering 100% of surface below waterline</li><li>Vertical sides below algal band with cover of light, patchy, golden-brown slime</li><li>Scattered reddish-brown encrusting bryozoans on lower sides, chine and hull bottom; more abundant along weld lines</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "comments": "Unable to view AF condition due to extensive fouling skirting the vessel.",
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Vertical Side"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Chine"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Flat Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plate - Midships",
+          "diverComments": null,
+          "expertComments": "<ul><li>Band of filamentous green algae covering 100% of surface just below waterline then ~40% cover to depth of ~1m</li><li>Vertical sides below algal band with cover of light, patchy, golden-brown slime</li><li>Irregular, horizontally aligned patches of stripped top coat on vertical sides</li><li>Scattered reddish-brown encrusting bryozoans on lower sides, chine and hull bottom; more abundant along weld lines</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": "",
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Vertical Side"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Chine"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Flat Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plate - Forward",
+          "diverComments": null,
+          "expertComments": "<ul><li>Vertical sides with cover of light, patchy, golden-brown slime and interspersed filamentous green algae</li><li>Irregular patches of stripped top coat</li><li>Scattered reddish-brown encrusting bryozoans on lower sides, chine and hull bottom; more abundant along weld lines</li><li>Dock block mark on underside with mixed assemblage of calcareous tubeworms and encrusting bryozoans</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Vertical Side"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Chine"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Flat Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Bow Plate",
+          "diverComments": null,
+          "expertComments": "<ul><li>Narrow band of filamentous green just below waterline</li><li>Surfaces below algal band with cover of light, patchy, greenish/golden-brown slime</li><li>Anchor chain scour marks down bow and across sides</li><li>Scattered reddish-brown encrusting bryozoans on underside</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 90 |  Area corrosion of steel substrate with no AF/AC paint cover due to peeling or abrasion damage.",
+              "comments": "Anchor drag marks present",
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 90 |  Area corrosion of steel substrate with no AF/AC paint cover due to peeling or abrasion damage.",
+              "comments": "Anchor drag marks present",
+              "description": "Starboard Side"
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks",
+          "diverComments": null,
+          "expertComments": "<ul><li>White marking paint lost from most marks</li><li>Numbers mostly covered by brownish slime or shell growth with some scarcely visible</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Aft Starboard"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Aft Port"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Midship Starboard"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Midship Port"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Forward Starboard"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Forward Port"
+            }
+          ]
+        },
+        {
+          "componentName": "Dock Block Marks",
+          "diverComments": null,
+          "expertComments": "<ul><li>Most with light cover of patchy brown slime</li><li>Footprints of previously removed shell growth across some marks</li><li>Some with sparsely scattered encrusting bryozoans around edges of marks</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 60 | - HARD - Combination of tubeworms and barnacles, less than 1/4 inch (6.4 mm) in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Overboard Discharges",
+          "diverComments": null,
+          "expertComments": "<ul><li>Crusts of tubeworm and encrusting bryozoan around perimeter of opening and on inside surfaces</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keels - Starboard",
+          "diverComments": null,
+          "expertComments": "<ul><li>Upper surfaces with cover of light cover of greenish-grey slime</li><li>Some stripping of surface layer across surface and along outer edge to expose unfouled coating</li><li>Undersides with patchy brownish slime and some scattered encrusting bryozoans&nbsp;</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Topside"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keels - Port",
+          "diverComments": null,
+          "expertComments": "<ul><li>Upper surfaces with cover of light cover of greenish-grey slime</li><li>Undersides with patchy brownish slime and some scattered encrusting bryozoans&nbsp;</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Topside"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 1",
+          "diverComments": null,
+          "expertComments": "<ul><li>Some scattered tubeworms and encrusting bryozoans on grate bars</li><li>Calcareous tubeworm residues covering margins of grates around grate bars</li><li>Encrusting bryozoans covering up to 50% of paint surface of hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 2",
+          "diverComments": null,
+          "expertComments": "<ul><li>Sparsely scattered, small, acorn barnacles along edges of grate bars</li><li>Calcareous tubeworm residues covering margins of grates around grate bars</li><li>Encrusting bryozoans covering up to 50% of paint surface on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 3",
+          "diverComments": null,
+          "expertComments": "<ul><li>Some scattered &nbsp;encrusting bryozoans on grate bars</li><li>Assemblage of encrusting bryozoans and calcareous tubeworms covering up to 50% of paint surface on perimeter of grates and on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 4",
+          "diverComments": null,
+          "expertComments": "<ul><li>Light to moderate brown slime across grate surfaces&nbsp;</li><li>Encrusting bryozoans on lower grates covering up to 50% of paint surface on perimeter of grates and on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 5",
+          "diverComments": null,
+          "expertComments": "<ul><li>Upper grates with only light cover of brown slime across grate surfaces&nbsp;</li><li>Encrusting bryozoans on lower grates covering up to 50% of paint surface on perimeter of grates and on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 6",
+          "diverComments": "<p>Unable to locate with ROV - poor visibility on flat bottom.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": null,
+              "coverage": null,
+              "pdrRating": null,
+              "description": "External"
+            },
+            {
+              "type": null,
+              "coverage": null,
+              "pdrRating": null,
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 7",
+          "diverComments": null,
+          "expertComments": "<ul><li>Moderately heavy cover of brown slime across grate surfaces&nbsp;</li><li>Scattered encrusting bryozoans on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 8",
+          "diverComments": null,
+          "expertComments": "<ul><li>Light cover of brown slime across grate surfaces; tubeworm residues on grate borders&nbsp;</li><li>Encrusting bryozoans &nbsp;on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 9",
+          "diverComments": null,
+          "expertComments": "<ul><li>Central grate areas with entrained weed</li><li>Encrusting bryozoans &nbsp;and tubeworm residues around grate margins and on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 10",
+          "diverComments": null,
+          "expertComments": "<ul><li>Light cover of brown slime across grate surfaces&nbsp;</li><li>Encrusting bryozoans &nbsp;and tubeworm residues on grate margins and on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 11",
+          "diverComments": null,
+          "expertComments": "<ul><li>Light cover of brown slime across grate surfaces&nbsp;</li><li>Encrusting bryozoans on hull around and between grates</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "External"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Bow Thruster - Forward",
+          "diverComments": "<p>Divers noted a didemnid-like colonial ascidian on the thruster and a tunnel anode but observed it to be clearly the wrong colour for <i>Didemnum vexillum</i></p>",
+          "expertComments": "<ul><li>Grate bars with crust of calcareous biofouling</li><li>Thruster boss and gearbox with mixed assemblage of tubeworms, barnacles, bryozoans and mud tubes covering entire surface&nbsp;</li><li>Blades with low crust of mixed species</li><li>Patches of greyish-white compound ascidian on gearbox and an anode on the tunnel wall</li><li>Tunnel walls with heavy slime and scattered encrusting bryozoans and calcareous tubeworms</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Starboard Grate"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 50 |  AF blisters ruptured to expose intact AC paint.",
+              "description": "Port Grate"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "description": "Tunnel"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "",
+              "description": "Boss"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "",
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "",
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "",
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "",
+              "description": "Blade 4"
+            }
+          ]
+        },
+        {
+          "componentName": "Speed Log",
+          "diverComments": null,
+          "expertComments": "<ul><li>Surface with patchy cover of thin brown slime</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sonar Dome",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Echo Sounder",
+          "diverComments": null,
+          "expertComments": "<ul><li>Tubeworms and bryozoans covering sensor windows</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sacrificial Anodes",
+          "diverComments": null,
+          "expertComments": "<ul><li>Surfaces of rudder anodes eroded with no visible macrofouling</li><li>Anodes in thruster tunnel covered in growth with no exposed metal</li><li>One anode with a patch of whitish ascidian resembling a didemnid (P1060030, P1060031)</li></ul>",
+          "ratings": [
+            {
+              "type": "FR 50 | - HARD - Calcareous fouling in the form of barnacles less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "comments": "Anode degredation ranges from 15-40%",
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Other Niche",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        }
+      ]
+    },
+    {
+      "workCode": "FUS-2025-525",
+      "vesselName": "HMAS Choules",
+      "date": "2026-01-04T21:32:57.224+00:00",
+      "components": [
+        {
+          "componentName": "Transom Plate",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Waterline"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Midsection"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Azipod Propeller - Port Side",
+          "diverComments": null,
+          "expertComments": "<p>Minor calcification around fixings and boss present.&nbsp;</p>",
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Boss"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "Inspection Ports"
+            }
+          ]
+        },
+        {
+          "componentName": "Azipod Propeller - Starboard Side",
+          "diverComments": null,
+          "expertComments": "<p>Minor calcification around fixings and boss present.</p>",
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Boss"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "Inspection Ports"
+            }
+          ]
+        },
+        {
+          "componentName": "Skeg",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Port Side"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Starboard Side"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plate - Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Waterline"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Vertical Side"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Chine"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Flat Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plate - Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Waterline"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Vertical Side"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Chine"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Flat Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plate - Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Waterline"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Vertical Side"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Chine"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "description": "Flat Bottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Bow Plate",
+          "diverComments": null,
+          "expertComments": "<p>Loss of paint due to anchor chain scaring will create habitable surfaces for early recruitment algal species.&nbsp;</p>",
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Starboard Side"
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Aft Starboard"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Aft Port"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Midship Starboard"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Midship Port"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Forward Starboard"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Forward Port"
+            }
+          ]
+        },
+        {
+          "componentName": "Dock Block Marks",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "DBM"
+            }
+          ]
+        },
+        {
+          "componentName": "Overboard Discharges",
+          "diverComments": null,
+          "expertComments": "<p>All clear from obstruction and growth.</p>",
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "OBDs"
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keels - Starboard",
+          "diverComments": "<p>Free from deflections or major damage.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keels - Port",
+          "diverComments": "<p>Free from deflections or major damage.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Topside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 1",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "External"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 2",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "External"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 3",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "External"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 4",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "External"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 5",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "External "
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 6",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "External "
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 7",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "External "
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 8 - Emergency ",
+          "diverComments": "<p>Clean.</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "External "
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Internal"
+            }
+          ]
+        },
+        {
+          "componentName": "Bow Thruster",
+          "diverComments": null,
+          "expertComments": "<p>Anodes at 10% wear.&nbsp;</p>",
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Starboard Grate"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Port Grate"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Tunnel"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Boss"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "description": "Blade 4"
+            }
+          ]
+        },
+        {
+          "componentName": "Log Probe",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": "",
+              "comments": null,
+              "description": "Log"
+            }
+          ]
+        },
+        {
+          "componentName": "Sonar Dome",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Echo Sounder - Transducer",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Echo Sounder"
+            }
+          ]
+        },
+        {
+          "componentName": "Sacrificial Anodes",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Other Niche",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "ICCPs"
+            },
+            {
+              "type": "",
+              "coverage": "",
+              "pdrRating": null,
+              "comments": null,
+              "description": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "workCode": "FUS-2025-516",
+      "vesselName": "Cape Hawke",
+      "date": "2025-12-17T04:05:27.161+00:00",
+      "components": [
+        {
+          "componentName": "Transom",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Transom"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 20 | AF paint missing from edges, corners, seams, welds, rivet or bolt heads to expose anti corrosion (AC) paint. (undercoat).",
+              "comments": null,
+              "description": "Trim Tabs"
+            }
+          ]
+        },
+        {
+          "componentName": "Rudder - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Leading Edge"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Trailing Edge"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Starboard Side"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Bearing"
+            }
+          ]
+        },
+        {
+          "componentName": "Rudder - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Leading Edge"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Trailing Edge"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Starboard Side"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Bearing"
+            }
+          ]
+        },
+        {
+          "componentName": "Propeller - Starboard",
+          "diverComments": "<p>No signs of pitting or impact damage observed.</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Boss Cap"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 5"
+            }
+          ]
+        },
+        {
+          "componentName": "Propeller - Port",
+          "diverComments": "<p>No signs of pitting or impact damage observed.</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Boss Cap"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Blade 5"
+            }
+          ]
+        },
+        {
+          "componentName": "Stern Arrangement - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "comments": null,
+              "description": "A-Bracket"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Rope Guard"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Stern Tube"
+            }
+          ]
+        },
+        {
+          "componentName": "Stern Arrangement - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "comments": null,
+              "description": "A-Bracket"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Rope Guard"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Stern Tube"
+            }
+          ]
+        },
+        {
+          "componentName": "Skeg",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Stabiliser Fin - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Stabiliser Fin - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keel - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keel - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 1",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 2",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 3",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 4",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chest 5",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chest 6",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Other Niche Areas",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Anodes"
+            }
+          ]
+        },
+        {
+          "componentName": "Overboard Discharges - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Overboard Discharges - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Transducers",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Starboard Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Port Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Starboard Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Draft Marks - Port Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Draft Marks - Starboard Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Port Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Chine"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Flatbottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Midship",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Chine"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Flatbottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Chine"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Flatbottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Starboard Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Flat Bottom Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Port Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Starboard Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Flat Bottom Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Port Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Bow Thruster",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Boss Cap"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "External Grating"
+            }
+          ]
+        },
+        {
+          "componentName": "Bow",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 0 | - SOFT - A clean, foul-free surface; red and/or black AF paint or a bare metal surface.",
+              "coverage": "Absent | 0%.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "workCode": "FUS-2025-513",
+      "vesselName": "HMAS Cape Hawke",
+      "date": "2025-12-17T04:02:41.395+00:00",
+      "components": [
+        {
+          "componentName": "Transom",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Transom"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Trim Tabs"
+            }
+          ]
+        },
+        {
+          "componentName": "Rudder - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Leading Edge"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Trailing Edge"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Starboard Side"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            },
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Bearing"
+            }
+          ]
+        },
+        {
+          "componentName": "Rudder - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Leading Edge"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Trailing Edge"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Starboard Side"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Port Side"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            },
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Bearing"
+            }
+          ]
+        },
+        {
+          "componentName": "Propeller - Starboard",
+          "diverComments": "<p>Starboard propeller was observed to be covered in protective wrapping to prevent marine growth penetration. This wrapping was removed by divers prior to beginning the hull cleaning process.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Boss Cap"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 5"
+            }
+          ]
+        },
+        {
+          "componentName": "Propeller - Port",
+          "diverComments": "<p>Port propeller was observed to be covered in protective wrapping to prevent marine growth penetration. This wrapping was removed by divers prior to beginning the hull cleaning process.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Boss Cap"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 5"
+            }
+          ]
+        },
+        {
+          "componentName": "Stern Arrangement - Starboard",
+          "diverComments": "<p>Starboard side stern arrangement was observed to be covered in protective wrapping to prevent marine growth penetration. This wrapping was removed by divers prior to beginning the hull cleaning process.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "A-Bracket"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Rope Guard"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Stern Tube"
+            }
+          ]
+        },
+        {
+          "componentName": "Stern Arrangement - Port",
+          "diverComments": "<p>Port side stern arrangement was observed to be covered in protective wrapping to prevent marine growth penetration. This wrapping was removed by divers prior to beginning the hull cleaning process.&nbsp;</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "A-bracket"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Rope Guard"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Stern Tube"
+            }
+          ]
+        },
+        {
+          "componentName": "Skeg",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Stabiliser Fin - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Stabiliser Fin - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keel - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Bilge Keel - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Topside"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Underside"
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 1",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Considerable | 6% to 15% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 2",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Light | 1% to 5% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Sea Chest 3",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chest 4",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chest 5",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chest 6",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Other Niche Areas",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": null,
+              "comments": null,
+              "description": "Anodes"
+            }
+          ]
+        },
+        {
+          "componentName": "Overboard Discharges - Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Overboard Discharges - Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Transducers",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Draft Marks - Starboard Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Port Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Starboard Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Draft Marks - Port Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Draft Marks - Starboard Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Draft Marks - Port Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "comments": null,
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "comments": null,
+              "description": "Chine"
+            },
+            {
+              "type": "FR 10 | - SOFT - Light shades of red and green (incipient slime). Bare metal and painted surfaces are visible beneath the fouling.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 30 | AF paint missing from slightly curved or flat areas to expose underlying AC paint; An AF paint with visible brush swirl marks within the outermost layer – not extending into underlying layers of paint.",
+              "comments": null,
+              "description": "Flatbottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Midship",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Waterline"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Chine"
+            },
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Flatbottom"
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 20 | - SOFT - Slime as dark green patches with yellow or brown colored areas (advanced slime). Bare metal and painted surfaces may by obscured by the fouling.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Starboard Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Flat Bottom Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Port Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Starboard Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Flat Bottom Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Port Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Bow Thruster",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Boss Cap"
+            },
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 1"
+            },
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 2"
+            },
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 3"
+            },
+            {
+              "type": "FR 40 | - HARD - Calcareous fouling in the form of tubeworms less than 1/4 inch in diameter or height.",
+              "coverage": "Very heavy | 41% to 100% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "Blade 4"
+            },
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Considerable | 6% to 15% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": "External Grating"
+            }
+          ]
+        },
+        {
+          "componentName": "Bow",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": "FR 30 | - SOFT - Grass as filaments up to 3 inches (76 mm) in length, projections up to 1/4 inch (6.4 mm) in height; or a flat network of filaments, green, yellow, or brown in color; or soft non calcareous fouling such as sea cucumbers, sea grapes, or sea squirts projecting up to 1/4 inch (6.4 mm) in height. The fouling cannot be easily wiped off by hand.",
+              "coverage": "Extensive | 16% to 40% of the visible submerged surface.",
+              "pdrRating": "PDR: 10 | Anti-Foul (AF) Paint intact.",
+              "comments": null,
+              "description": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "workCode": "FUS-2025-522",
+      "vesselName": "HMAS Collins",
+      "date": "2025-12-09T03:56:41.897+00:00",
+      "components": [
+        {
+          "componentName": "Stern Plate",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Rudder",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Propeller",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Rudder Fin Bottom",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hydroplane Aft Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hydroplane Aft Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Rope Guard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Aft Bottom Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Aft Top Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Aft Bottom Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Rudder Fin Top",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Aft Top Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chests Aft",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Midship Top Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Midship Bottom Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Midship Top Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Midship Bottom Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hatches Midship",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chests Midship",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Conning Tower Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Conning Tower Top",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Conning Tower Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Conning Tower Mast Array",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Conning Tower Hydroplane Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Conning Tower Hydroplane Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Forward Top Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Forward Bottom Port",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Forward Top Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Forward Bottom Starboard",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hatches Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Sea Chests Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating Bow",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hatches Bow",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Starboard Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Flat Bottom Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Port Midships",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Starboard Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Hull Plating - Flat Bottom Forward",
+          "diverComments": "<p>Anchor and Anchor Cable on seabed</p>",
+          "expertComments": null,
+          "ratings": [
+            {
+              "type": null,
+              "coverage": null,
+              "pdrRating": null,
+              "comments": null,
+              "description": null
+            }
+          ]
+        },
+        {
+          "componentName": "Hull Plating - Port Forward",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        },
+        {
+          "componentName": "Bulbous Bow",
+          "diverComments": null,
+          "expertComments": null,
+          "ratings": []
+        }
+      ]
+    }
+  ],
+  "vessels": [
+    {
+      "id": "94845f40-9137-4964-8f1c-e1fc65283728",
+      "name": "HMAS Stalwart",
+      "type": "RanVessel",
+      "class": "Supply Class",
+      "pennant": "A304"
+    },
+    {
+      "id": "6fd77310-d03a-4882-9ce0-455745ed975b",
+      "name": "HMAS Choules",
+      "class": "Bay Class",
+      "pennant": "L100"
+    },
+    {
+      "id": "b833785e-9335-5744-8cec-d841db24d305",
+      "name": "Svitzer Redhead",
+      "class": "RAstar 3200",
+      "pennant": null
+    },
+    {
+      "id": "1dfa3a76-b3af-51e6-be07-7faf0ec8fec4",
+      "name": "Cape Hawke",
+      "class": "Cape Class",
+      "pennant": "P226"
+    },
+    {
+      "id": "5700db04-7935-5881-b847-a2a08c17de76",
+      "name": "HMAS Collins",
+      "class": "Collins Class",
+      "pennant": "S73"
+    },
+    {
+      "id": "e2cf1cf7-07e6-57ff-ad3c-50cf0702c6ba",
+      "name": "Svitzer Abrolhos",
+      "class": "Traktor 2800-Z",
+      "pennant": null
+    }
+  ],
+  "statistics": {
+    "totalWorks": 50,
+    "worksByFlowType": {
+      "marinestream/ranvessel/biofouling": 6,
+      "marinestream/ranvessel/assets": 5,
+      "marinestream/vessel/biofouling": 3,
+      "marinestream/vessel/assets": 2,
+      "marinestream/ranvessel/inspection": 1,
+      "marinestream/vessel/inspection": 3
+    },
+    "worksByStatus": {
+      "Complete": 15,
+      "Resourcing": 1,
+      "Deleted": 1,
+      "Awaiting Review": 3
+    },
+    "worksByVessel": {
+      "HMAS Stalwart": 1,
+      "unknown": 9,
+      "HMAS Choules": 1,
+      "Svitzer Redhead": 4,
+      "Cape Hawke": 1,
+      "HMAS Cape Hawke": 1,
+      "HMAS Collins": 1,
+      "Svitzer Abrolhos": 2
+    }
+  }
+}

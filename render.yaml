@@ -1,0 +1,36 @@
+# Render Blueprint for MarineStream Workspace
+# Deploy with: render blueprint launch
+
+services:
+  - type: web
+    name: marinestream-workspace
+    env: node
+    region: singapore  # Closest to Australia
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: marinestream-db
+          property: connectionString
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false
+      - key: AISSTREAM_API_KEY
+        sync: false
+      - key: MAPBOX_ACCESS_TOKEN
+        sync: false
+
+databases:
+  - name: marinestream-db
+    databaseName: marinestream_workspace
+    region: singapore
+    plan: starter
+    postgresMajorVersion: 16
