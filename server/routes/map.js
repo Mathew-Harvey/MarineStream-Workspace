@@ -110,10 +110,11 @@ router.get('/positions', optionalAuth, (req, res) => {
     const age = now - new Date(pos.timestamp).getTime();
     const isStale = age > POSITION_MAX_AGE_MS;
     
+    // Use consistent 'lng' naming (pos.lon is the stored value)
     positions.push({
       mmsi,
       lat: pos.lat,
-      lng: pos.lon,
+      lng: pos.lon ?? pos.lng,
       speed: pos.speed,
       course: pos.course,
       heading: pos.heading,

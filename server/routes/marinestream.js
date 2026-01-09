@@ -1211,13 +1211,14 @@ router.get('/fleet', async (req, res) => {
         vessel.performance.ytdHullPerformance = vessel.performance.currentHullPerformance;
       }
       
-      // If no biofouling assessment data, generate demo values based on vessel name hash
-      if (vessel.performance.freedomOfNavigation === null) {
-        const hash = vessel.name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        vessel.performance.freedomOfNavigation = 75 + (hash % 25); // 75-99
-        vessel.performance.currentHullPerformance = 70 + (hash % 30); // 70-99
-        vessel.performance.ytdHullPerformance = 72 + (hash % 28); // 72-99
-      }
+      // Track if this vessel has real biofouling data from the API
+      const hasRealFoulingData = vessel.performance.freedomOfNavigation !== null;
+      const hasRealCleaningData = daysToNextClean !== null;
+      
+      // If no biofouling assessment data, leave as null (don't generate placeholders)
+      // The frontend will display "No data available" for vessels without real data
+      vessel.performance.hasRealData = hasRealFoulingData;
+      vessel.performance.hasRealCleaningData = hasRealCleaningData;
       
       return {
         id: vessel.id,
@@ -1232,6 +1233,7 @@ router.get('/fleet', async (req, res) => {
         mmsi: vessel.mmsi,
         flag: vessel.flag,
         daysToNextClean,
+        hasRealCleaningData,
         totalJobs: vessel.jobs.length,
         completedJobs: vessel.jobs.filter(j => j.status === 'Complete').length,
         activeJobs: vessel.jobs.filter(j => !['Complete', 'Deleted', 'Cancelled'].includes(j.status)).length,

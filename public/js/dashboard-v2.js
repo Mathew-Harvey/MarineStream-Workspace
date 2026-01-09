@@ -4,6 +4,16 @@
  * Based on MarineStream™ Style Guide v1.0
  */
 
+// Import shared map utilities
+import { 
+  getLng, 
+  getLat, 
+  isValidPosition, 
+  normalizePosition, 
+  debounce,
+  escapeHtml 
+} from './map-utils.js';
+
 // ============================================
 // Humorous Loading Messages
 // ============================================
@@ -448,37 +458,7 @@ function showAuthModal(message = null) {
   }
 }
 
-/**
- * Handle logout
- */
-function handleLogout() {
-  if (confirm('Are you sure you want to logout?')) {
-    // Clear auth state
-    state.token = null;
-    state.user = null;
-    state.authMethod = null;
-    
-    // Clear stored tokens
-    if (window.MarineStreamAuth) {
-      MarineStreamAuth.clearTokens();
-    } else {
-      localStorage.removeItem('marinestream_pat');
-    }
-    
-    // Stop token status updates
-    if (tokenStatusInterval) {
-      clearInterval(tokenStatusInterval);
-      tokenStatusInterval = null;
-    }
-    
-    // Show login modal
-    showAuthModal();
-    
-    // Reset the token status display
-    const timerEl = document.getElementById('token-timer');
-    if (timerEl) timerEl.textContent = '--:--';
-  }
-}
+// Note: handleLogout is defined below after showAuthModal
 
 /**
  * Update user badge with name/initials
@@ -663,9 +643,13 @@ async function tryConnectWithToken() {
 }
 
 /**
- * Handle logout
+ * Handle logout - clears all auth state and shows login modal
  */
 async function handleLogout() {
+  if (!confirm('Are you sure you want to logout?')) {
+    return;
+  }
+  
   // Clear state
   state.token = null;
   state.tokenExpiresAt = null;
@@ -680,8 +664,20 @@ async function handleLogout() {
     state.refreshInterval = null;
   }
   
-  // Clear storage
-  localStorage.removeItem('marinestream_pat');
+  // Stop token status updates
+  if (tokenStatusInterval) {
+    clearInterval(tokenStatusInterval);
+    tokenStatusInterval = null;
+  }
+  
+  // Clear stored tokens
+  if (window.MarineStreamAuth) {
+    MarineStreamAuth.clearTokens();
+  } else {
+    localStorage.removeItem('marinestream_pat');
+  }
+  localStorage.removeItem('marinestream_token_expiry');
+  localStorage.removeItem('marinestream_user_info');
   
   // Clear SSO session
   try {
@@ -690,6 +686,10 @@ async function handleLogout() {
       credentials: 'include'
     });
   } catch (e) {}
+  
+  // Reset the token status display
+  const timerEl = document.getElementById('token-timer');
+  if (timerEl) timerEl.textContent = '--:--';
   
   // Show login modal
   showAuthModal();
@@ -767,9 +767,115 @@ function updateSummary() {
   if (elements.commercialCount) elements.commercialCount.textContent = s.commercialVessels || 0;
   if (elements.dueSoon) elements.dueSoon.textContent = s.vesselsDueSoon || 0;
   
+  // Update gauges based on filtered vessels
+  updateFleetHealth();
+}
+
+/**
+ * Calculate and update fleet health based on currently visible/filtered vessels
+ * This recalculates when fleet filter changes
+ */
+function updateFleetHealth() {
+  const visibleVessels = getVisibleVessels();
+  
+  // Only count vessels with REAL data from the API (not placeholders)
+  const vesselsWithRealFON = visibleVessels.filter(v => 
+    v.performance?.hasRealData && v.performance?.freedomOfNavigation != null
+  );
+  const vesselsWithRealHP = visibleVessels.filter(v => 
+    v.performance?.hasRealData && v.performance?.currentHullPerformance != null
+  );
+  
+  const avgFON = vesselsWithRealFON.length > 0 
+    ? Math.round(vesselsWithRealFON.reduce((sum, v) => sum + v.performance.freedomOfNavigation, 0) / vesselsWithRealFON.length)
+    : null;
+  const avgHP = vesselsWithRealHP.length > 0
+    ? Math.round(vesselsWithRealHP.reduce((sum, v) => sum + v.performance.currentHullPerformance, 0) / vesselsWithRealHP.length)
+    : null;
+  
   // Update gauges
-  updateGauge(elements.gaugeFon, s.avgFON);
-  updateGauge(elements.gaugeHp, s.avgHullPerformance);
+  updateGauge(elements.gaugeFon, avgFON);
+  updateGauge(elements.gaugeHp, avgHP);
+  
+  // Update vessel health breakdown list
+  renderVesselHealthList(visibleVessels);
+}
+
+/**
+ * Render the vessel health breakdown list in the expanded Fleet Health panel
+ */
+function renderVesselHealthList(vessels) {
+  const listEl = document.getElementById('vessel-health-list');
+  if (!listEl) return;
+  
+  if (vessels.length === 0) {
+    listEl.innerHTML = '<div class="health-empty">No vessels in selected fleet</div>';
+    return;
+  }
+  
+  // Sort vessels: those with real data first, then by FON score
+  const sortedVessels = [...vessels].sort((a, b) => {
+    const aHasData = a.performance?.hasRealData;
+    const bHasData = b.performance?.hasRealData;
+    if (aHasData && !bHasData) return -1;
+    if (!aHasData && bHasData) return 1;
+    
+    const aFON = a.performance?.freedomOfNavigation || 0;
+    const bFON = b.performance?.freedomOfNavigation || 0;
+    return bFON - aFON;
+  });
+  
+  listEl.innerHTML = sortedVessels.map(vessel => {
+    const perf = vessel.performance || {};
+    const hasRealData = perf.hasRealData;
+    const hasRealCleaningData = vessel.hasRealCleaningData;
+    const fon = hasRealData ? perf.freedomOfNavigation : null;
+    const hp = hasRealData ? perf.currentHullPerformance : null;
+    const days = hasRealCleaningData ? vessel.daysToNextClean : null;
+    
+    const fonDisplay = fon !== null ? fon : '<span class="no-data">No data</span>';
+    const hpDisplay = hp !== null ? hp : '<span class="no-data">No data</span>';
+    const daysDisplay = days !== null 
+      ? `<span class="${days <= 30 ? 'critical' : days <= 60 ? 'warning' : ''}">${days}d</span>` 
+      : '<span class="no-data">No data</span>';
+    
+    const fonClass = fon !== null ? getScoreClass(fon) : 'unknown';
+    const hpClass = hp !== null ? getScoreClass(hp) : 'unknown';
+    const typeClass = vessel.typeCategory === 'military' ? 'ran' : 
+                      vessel.typeCategory === 'commercial' ? 'commercial' : 'other';
+    
+    return `
+      <div class="health-item" data-vessel-id="${vessel.id}">
+        <div class="health-vessel">
+          <div class="health-indicator ${typeClass}"></div>
+          <div class="health-name">${escapeHtml(vessel.name)}</div>
+        </div>
+        <div class="health-metrics">
+          <div class="health-metric">
+            <span class="health-value ${fonClass}">${fonDisplay}</span>
+            <span class="health-label">FON</span>
+          </div>
+          <div class="health-metric">
+            <span class="health-value ${hpClass}">${hpDisplay}</span>
+            <span class="health-label">Hull</span>
+          </div>
+          <div class="health-metric">
+            <span class="health-value">${daysDisplay}</span>
+            <span class="health-label">Clean</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  // Add click handlers
+  listEl.querySelectorAll('.health-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const vesselId = item.dataset.vesselId;
+      const vessel = state.fleet.find(v => v.id === vesselId);
+      if (vessel) openVesselDetail(vessel);
+    });
+  });
 }
 
 function updateGauge(element, value) {
@@ -806,13 +912,17 @@ function renderVesselList() {
   }
   
   elements.vesselList.innerHTML = vessels.map(vessel => {
-    const fon = vessel.performance?.freedomOfNavigation;
-    const scoreClass = fon ? getScoreClass(fon) : 'unknown';
+    const hasRealData = vessel.performance?.hasRealData;
+    const fon = hasRealData ? vessel.performance?.freedomOfNavigation : null;
+    const scoreClass = fon !== null ? getScoreClass(fon) : 'unknown';
     const typeClass = vessel.typeCategory === 'military' ? 'ran' : 
                       vessel.typeCategory === 'commercial' ? 'commercial' : 'other';
     
     const hasPosition = isValidPosition(vessel._mapPos);
     const positionStatus = getPositionStatusText(vessel._mapPos);
+    
+    // Display FON score or "No data" if no real data available
+    const fonDisplay = fon !== null ? fon : '<span class="no-data-label">No data</span>';
     
     return `
       <div class="vessel-item ${!hasPosition ? 'no-position' : ''}" data-vessel-id="${vessel.id}">
@@ -822,7 +932,7 @@ function renderVesselList() {
           <div class="vessel-class">${escapeHtml(vessel.class || vessel.typeLabel || 'Vessel')} <span class="vessel-position-status">${positionStatus}</span></div>
         </div>
         <div class="vessel-score">
-          <span class="vessel-score-value ${scoreClass}">${fon !== null ? fon : '--'}</span>
+          <span class="vessel-score-value ${scoreClass}">${fonDisplay}</span>
           <span class="vessel-score-label">FON</span>
         </div>
       </div>
@@ -912,25 +1022,39 @@ function openVesselDetail(vessel) {
   
   // Update detail panel
   const perf = vessel.performance || {};
+  const hasRealData = perf.hasRealData;
+  const hasRealCleaningData = vessel.hasRealCleaningData;
   const typeClass = vessel.typeCategory === 'military' ? '' : 'commercial';
   
   document.getElementById('detail-vessel-name').textContent = vessel.name;
   document.getElementById('detail-vessel-type').textContent = vessel.typeLabel;
   document.getElementById('detail-vessel-type').className = `vessel-type-badge ${typeClass}`;
   
-  // Scores
-  updateDetailScore('detail-fon', 'detail-fon-bar', perf.freedomOfNavigation);
-  updateDetailScore('detail-hp', 'detail-hp-bar', perf.currentHullPerformance);
-  updateDetailScore('detail-ytd', 'detail-ytd-bar', perf.ytdHullPerformance);
+  // Scores - only show real data, otherwise show "No data available"
+  if (hasRealData) {
+    updateDetailScore('detail-fon', 'detail-fon-bar', perf.freedomOfNavigation);
+    updateDetailScore('detail-hp', 'detail-hp-bar', perf.currentHullPerformance);
+    updateDetailScore('detail-ytd', 'detail-ytd-bar', perf.ytdHullPerformance);
+  } else {
+    updateDetailScoreNoData('detail-fon', 'detail-fon-bar');
+    updateDetailScoreNoData('detail-hp', 'detail-hp-bar');
+    updateDetailScoreNoData('detail-ytd', 'detail-ytd-bar');
+  }
   
-  // Countdown
+  // Countdown - only show if real cleaning data available
   const daysEl = document.getElementById('detail-days');
   if (daysEl) {
-    const days = vessel.daysToNextClean;
-    daysEl.textContent = days !== null ? days : '--';
-    daysEl.className = 'countdown-value' + 
-      (days !== null && days <= 30 ? ' critical' : '') +
-      (days !== null && days > 30 && days <= 60 ? ' warning' : '');
+    if (hasRealCleaningData && vessel.daysToNextClean !== null) {
+      const days = vessel.daysToNextClean;
+      daysEl.textContent = days;
+      daysEl.className = 'countdown-value' + 
+        (days <= 30 ? ' critical' : '') +
+        (days > 30 && days <= 60 ? ' warning' : '');
+    } else {
+      daysEl.textContent = 'No data';
+      daysEl.className = 'countdown-value no-data';
+      daysEl.style.fontSize = '14px';
+    }
   }
   
   // Info
@@ -958,11 +1082,28 @@ function updateDetailScore(valueId, barId, value) {
   if (valueEl) {
     valueEl.textContent = value !== null ? value : '--';
     valueEl.style.color = value !== null ? getScoreColor(value) : '';
+    valueEl.style.fontSize = '';
   }
   
   if (barEl) {
     barEl.style.width = value !== null ? `${value}%` : '0%';
     barEl.style.background = value !== null ? getScoreColor(value) : '';
+  }
+}
+
+function updateDetailScoreNoData(valueId, barId) {
+  const valueEl = document.getElementById(valueId);
+  const barEl = document.getElementById(barId);
+  
+  if (valueEl) {
+    valueEl.textContent = 'No data';
+    valueEl.style.color = 'var(--text-muted)';
+    valueEl.style.fontSize = '12px';
+  }
+  
+  if (barEl) {
+    barEl.style.width = '0%';
+    barEl.style.background = 'var(--text-muted)';
   }
 }
 
@@ -1120,10 +1261,9 @@ function connectAISStream() {
     console.error('Failed to connect to AIS stream:', err);
   }
   
-  // Periodically update markers to pick up AIS positions
-  setInterval(() => {
+  // Debounced marker update function to prevent rapid consecutive updates
+  const debouncedMarkerUpdate = debounce(() => {
     if (state.aisPositions.size > 0 && state.fleet.length > 0) {
-      // Check if any fleet vessels now have AIS data and update markers
       let updatedCount = 0;
       state.fleet.forEach(vessel => {
         if (vessel.mmsi && state.aisPositions.has(vessel.mmsi)) {
@@ -1138,6 +1278,11 @@ function connectAISStream() {
         console.log(`🔄 Updated ${updatedCount} vessel markers with AIS positions`);
       }
     }
+  }, 1000); // Debounce for 1 second
+  
+  // Periodically update markers to pick up AIS positions
+  setInterval(() => {
+    debouncedMarkerUpdate();
     // Update the AIS status
     updateAISStatus('connected');
   }, 5000); // Check every 5 seconds
@@ -1522,54 +1667,62 @@ function updateMapMarkers() {
   updateMapMarkersVisibility();
 }
 
-/**
- * Check if a position object has valid coordinates
- */
-function isValidPosition(pos) {
-  return pos && 
-         pos.source !== 'no_position' && 
-         typeof pos.lat === 'number' && 
-         typeof pos.lng === 'number' &&
-         !isNaN(pos.lat) && 
-         !isNaN(pos.lng);
-}
+// Note: getLng, getLat, isValidPosition are imported from map-utils.js
 
 /**
  * Create or update a marker for a vessel
+ * Uses a lock to prevent race conditions with AIS updates
  */
+const markerUpdateLocks = new Map();
+
 function createOrUpdateMarker(vessel) {
   if (!state.map || !isValidPosition(vessel._mapPos)) return null;
   
-  const existingMarker = state.markers.get(vessel.id);
-  
-  if (existingMarker) {
-    // Update existing marker position
-    existingMarker.setLngLat([vessel._mapPos.lng, vessel._mapPos.lat]);
-    
-    // Update popup content
-    existingMarker.setPopup(
-      new mapboxgl.Popup({ offset: 25, closeButton: false })
-        .setHTML(createPopupHTML(vessel))
-    );
-    
-    // Update marker element styling (without replacing the element)
-    updateMarkerElementStyle(existingMarker.getElement(), vessel);
-    
-    return existingMarker;
+  // Prevent concurrent updates to the same marker
+  if (markerUpdateLocks.get(vessel.id)) {
+    return state.markers.get(vessel.id);
   }
+  markerUpdateLocks.set(vessel.id, true);
   
-  // Create new marker
-  const el = createMarkerElement(vessel);
-  const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-    .setHTML(createPopupHTML(vessel));
-  
-  const marker = new mapboxgl.Marker(el)
-    .setLngLat([vessel._mapPos.lng, vessel._mapPos.lat])
-    .setPopup(popup)
-    .addTo(state.map);
-  
-  state.markers.set(vessel.id, marker);
-  return marker;
+  try {
+    const lat = getLat(vessel._mapPos);
+    const lng = getLng(vessel._mapPos);
+    const existingMarker = state.markers.get(vessel.id);
+    
+    if (existingMarker) {
+      // Update existing marker position smoothly
+      existingMarker.setLngLat([lng, lat]);
+      
+      // Only update popup if it's not currently open
+      const currentPopup = existingMarker.getPopup();
+      if (!currentPopup || !currentPopup.isOpen()) {
+        existingMarker.setPopup(
+          new mapboxgl.Popup({ offset: 25, closeButton: false })
+            .setHTML(createPopupHTML(vessel))
+        );
+      }
+      
+      // Update marker element styling without full replacement
+      updateMarkerElementStyle(existingMarker.getElement(), vessel);
+      
+      return existingMarker;
+    }
+    
+    // Create new marker
+    const el = createMarkerElement(vessel);
+    const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
+      .setHTML(createPopupHTML(vessel));
+    
+    const marker = new mapboxgl.Marker(el)
+      .setLngLat([lng, lat])
+      .setPopup(popup)
+      .addTo(state.map);
+    
+    state.markers.set(vessel.id, marker);
+    return marker;
+  } finally {
+    markerUpdateLocks.delete(vessel.id);
+  }
 }
 
 /**
@@ -1666,31 +1819,59 @@ function createMarkerElement(vessel) {
   const style = getMarkerStyle(vessel);
   el.innerHTML = getMarkerHTML(style);
   
+  // Store current state for efficient updates
+  el.dataset.markerType = style.type;
+  el.dataset.rotation = String(style.rotation);
+  
   // Ensure pulse animation exists
   ensurePulseAnimation();
   
-  el.addEventListener('click', (e) => {
+  // Use onclick for consistency with updateMarkerElementStyle
+  el.onclick = (e) => {
     e.stopPropagation();
+    e.preventDefault();
     openVesselDetail(vessel);
-  });
+  };
   
   return el;
 }
 
 /**
  * Update an existing marker element's style without replacing it
+ * Uses targeted updates to avoid full innerHTML replacement
  */
 function updateMarkerElementStyle(el, vessel) {
   if (!el) return;
   
   const style = getMarkerStyle(vessel);
-  el.innerHTML = getMarkerHTML(style);
+  const currentType = el.dataset.markerType;
+  const currentRotation = el.dataset.rotation;
   
-  // Re-attach click handler since innerHTML was replaced
-  el.onclick = (e) => {
-    e.stopPropagation();
-    openVesselDetail(vessel);
-  };
+  // Only do a full update if the marker type changed
+  const newType = style.type;
+  const newRotation = String(style.rotation);
+  
+  if (currentType !== newType) {
+    // Type changed - need full update
+    el.innerHTML = getMarkerHTML(style);
+    el.dataset.markerType = newType;
+    el.dataset.rotation = newRotation;
+    
+    // Re-attach click handler since innerHTML was replaced
+    el.onclick = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      openVesselDetail(vessel);
+    };
+  } else if (currentRotation !== newRotation) {
+    // Only rotation changed - update just the SVG transform
+    const svg = el.querySelector('svg');
+    if (svg) {
+      svg.style.transform = `rotate(${style.rotation}deg)`;
+      el.dataset.rotation = newRotation;
+    }
+  }
+  // If nothing changed, do nothing - avoids flicker
 }
 
 /**
@@ -1845,7 +2026,7 @@ function flyToVessel(vessel) {
   }
   
   state.map.flyTo({
-    center: [vessel._mapPos.lng, vessel._mapPos.lat],
+    center: [getLng(vessel._mapPos), getLat(vessel._mapPos)],
     zoom: 8,
     duration: 1500
   });
@@ -1859,7 +2040,7 @@ function fitMapToVessels() {
   
   state.fleet.forEach(vessel => {
     if (isVesselVisible(vessel) && isValidPosition(vessel._mapPos)) {
-      bounds.extend([vessel._mapPos.lng, vessel._mapPos.lat]);
+      bounds.extend([getLng(vessel._mapPos), getLat(vessel._mapPos)]);
       hasValidBounds = true;
     }
   });
@@ -1919,6 +2100,9 @@ function setFilter(filter) {
   
   renderVesselList();
   updateMapMarkersVisibility();
+  
+  // Recalculate fleet health for the filtered vessels
+  updateFleetHealth();
 }
 
 /**
@@ -1936,6 +2120,9 @@ function setFleetFilter(fleetId) {
   renderVesselList();
   updateMapMarkersVisibility();
   fitMapToFilteredVessels();
+  
+  // Recalculate fleet health for the selected fleet's vessels
+  updateFleetHealth();
 }
 
 /**
@@ -1967,7 +2154,7 @@ function fitMapToFilteredVessels() {
   
   state.fleet.forEach(vessel => {
     if (isVesselVisible(vessel) && isValidPosition(vessel._mapPos)) {
-      bounds.extend([vessel._mapPos.lng, vessel._mapPos.lat]);
+      bounds.extend([getLng(vessel._mapPos), getLat(vessel._mapPos)]);
       hasValidBounds = true;
     }
   });
@@ -2232,6 +2419,10 @@ async function selectFleet(fleetId) {
   // Re-render vessel list with fleet filter
   renderVesselList();
   
+  // Recalculate fleet health for the selected fleet's vessels
+  updateFleetHealth();
+  updateMapMarkersVisibility();
+  
   // If a fleet is selected, fly to show those vessels on the map
   if (fleetId) {
     const fleet = state.fleets.find(f => f.id === fleetId);
@@ -2244,8 +2435,8 @@ async function selectFleet(fleetId) {
         // Fit map to show fleet vessels
         const bounds = new mapboxgl.LngLatBounds();
         fleetVessels.forEach(v => {
-          if (v._mapPos) {
-            bounds.extend([v._mapPos.lng, v._mapPos.lat]);
+          if (isValidPosition(v._mapPos)) {
+            bounds.extend([getLng(v._mapPos), getLat(v._mapPos)]);
           }
         });
         if (!bounds.isEmpty()) {
@@ -2529,12 +2720,7 @@ function showToast(message) {
 // ============================================
 // Utilities
 // ============================================
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+// Note: escapeHtml is imported from map-utils.js
 
 function getScoreClass(value) {
   if (value >= 90) return 'excellent';

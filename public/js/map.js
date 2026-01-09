@@ -3,6 +3,8 @@
  * AIS vessel tracking with Mapbox GL JS + Marinesia enrichment
  */
 
+import { getLng, getLat, isValidPosition, normalizePosition, escapeHtml, debounce } from './map-utils.js';
+
 let map = null;
 let markers = new Map();
 let portMarkers = new Map();
@@ -11,6 +13,7 @@ let vesselProfiles = new Map(); // Marinesia profile cache
 let websocket = null;
 let callbacks = {};
 let marinesiaEnabled = false;
+let activePopupMmsi = null; // Track which vessel has an open popup
 
 // Map configuration
 const config = {
@@ -381,7 +384,7 @@ function handleAISMessage(message) {
   if (positionReport) {
     vessel.position = {
       lat: positionReport.Latitude,
-      lon: positionReport.Longitude,
+      lng: positionReport.Longitude,
       speed: positionReport.Sog,
       course: positionReport.Cog,
       heading: positionReport.TrueHeading,
@@ -402,8 +405,15 @@ function updateMarker(vessel) {
   if (!map || !vessel.position) return;
   
   const pos = vessel.position;
-  const lat = pos.lat;
-  const lon = pos.lng || pos.lon;
+  const lat = getLat(pos);
+  const lng = getLng(pos);
+  
+  // Validate coordinates
+  if (lat === null || lng === null) {
+    console.warn(`Invalid position for vessel ${vessel.mmsi}:`, pos);
+    return;
+  }
+  
   const course = pos.course;
   const status = pos.status;
   
@@ -412,7 +422,7 @@ function updateMarker(vessel) {
   
   if (marker) {
     // Update position with animation
-    marker.setLngLat([lon, lat]);
+    marker.setLngLat([lng, lat]);
     
     // Update rotation
     const el = marker.getElement();
@@ -428,13 +438,14 @@ function updateMarker(vessel) {
       element: el,
       rotationAlignment: 'map'
     })
-      .setLngLat([lon, lat])
+      .setLngLat([lng, lat])
       .addTo(map);
     
     // Add click handler for vessel detail popup
-    el.addEventListener('click', async (e) => {
+    el.addEventListener('click', (e) => {
       e.stopPropagation();
-      await showVesselPopup(vessel, marker);
+      e.preventDefault();
+      showVesselPopup(vessel, marker);
     });
     
     markers.set(vessel.mmsi, marker);
@@ -529,28 +540,67 @@ function createMarkerElement(vessel, status) {
  * Show vessel popup with Marinesia-enriched details
  */
 async function showVesselPopup(vessel, marker) {
-  // Start with basic popup
-  let popupContent = createBasicPopupContent(vessel);
+  // If clicking the same vessel that has an open popup, toggle it closed
+  if (activePopupMmsi === vessel.mmsi) {
+    closeAllPopups();
+    return;
+  }
   
-  const popup = new mapboxgl.Popup({ offset: 25, closeButton: true, maxWidth: '320px' })
-    .setHTML(popupContent);
+  // Close any existing popups first
+  closeAllPopups();
   
+  // Create and show new popup
+  const popupContent = createBasicPopupContent(vessel);
+  
+  const popup = new mapboxgl.Popup({ 
+    offset: 25, 
+    closeButton: true, 
+    maxWidth: '320px',
+    closeOnClick: false // Prevent map clicks from closing popup unexpectedly
+  })
+    .setHTML(popupContent)
+    .on('close', () => {
+      // Clear active popup tracking when popup is closed
+      if (activePopupMmsi === vessel.mmsi) {
+        activePopupMmsi = null;
+      }
+    });
+  
+  // Set popup and show it
   marker.setPopup(popup);
-  marker.togglePopup();
+  popup.addTo(map);
+  activePopupMmsi = vessel.mmsi;
   
   // If Marinesia is enabled, try to fetch more details
   if (marinesiaEnabled && vessel.mmsi) {
-    const profile = await fetchVesselProfile(vessel.mmsi);
-    
-    if (profile) {
-      // Update popup with enriched content
-      const enrichedContent = createEnrichedPopupContent(vessel, profile);
-      popup.setHTML(enrichedContent);
+    try {
+      const profile = await fetchVesselProfile(vessel.mmsi);
+      
+      // Only update if this popup is still open (user hasn't clicked elsewhere)
+      if (activePopupMmsi === vessel.mmsi && popup.isOpen()) {
+        const enrichedContent = createEnrichedPopupContent(vessel, profile);
+        popup.setHTML(enrichedContent);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch vessel profile:', err);
     }
   }
   
   // Trigger callback
   callbacks.onVesselClick?.(vessel);
+}
+
+/**
+ * Close all open popups on the map
+ */
+function closeAllPopups() {
+  markers.forEach((marker) => {
+    const popup = marker.getPopup();
+    if (popup && popup.isOpen()) {
+      popup.remove();
+    }
+  });
+  activePopupMmsi = null;
 }
 
 /**
@@ -704,8 +754,8 @@ function fitAllVessels() {
   if (!map) return;
   
   const positions = Array.from(vesselData.values())
-    .filter(v => v.position)
-    .map(v => [v.position.lon, v.position.lat]);
+    .filter(v => v.position && isValidPosition(v.position))
+    .map(v => [getLng(v.position), getLat(v.position)]);
   
   if (positions.length === 0) {
     // Default to Australian waters
