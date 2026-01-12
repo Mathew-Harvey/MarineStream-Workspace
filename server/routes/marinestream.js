@@ -1947,80 +1947,27 @@ router.post('/work', async (req, res) => {
     
     console.log(`📝 Creating new work item, input ID: ${inputId}`);
     
-    // Step 1: Fetch all flows to find the correct flowId
-    // The inputId might be a flowOriginId, so we need to look up the actual flowId
-    console.log('🔍 Fetching flows to find correct flowId...');
+    // Step 1: Get flow details directly using the provided ID
+    // The flowOriginId IS the flowId for the startAt endpoint
+    console.log('🔍 Fetching flow details...');
     
-    const flowsResult = await makeApiRequest('/api/v3/flow', token);
+    const flowResult = await makeApiRequest(`/api/v3/flow/${inputId}`, token);
     
-    if (flowsResult.statusCode !== 200) {
-      console.log(`❌ Failed to fetch flows: ${flowsResult.statusCode}`);
-      return res.status(500).json({
-        success: false,
-        error: { message: 'Failed to fetch available flows' }
-      });
-    }
-    
-    const allFlows = JSON.parse(flowsResult.body);
-    console.log(`📋 Found ${allFlows.length} flows`);
-    
-    // Find the flow by matching flowOriginId or id
-    let targetFlow = allFlows.find(f => 
-      f.id === inputId || 
-      f.flowOriginId === inputId ||
-      f.originId === inputId
-    );
-    
-    if (!targetFlow) {
-      console.log(`⚠️ No exact match found, searching by name patterns...`);
-      // Log available flows for debugging
-      console.log('Available flows:');
-      allFlows.slice(0, 10).forEach(f => {
-        console.log(`  - ${f.displayName || f.name}: id=${f.id}, flowOriginId=${f.flowOriginId || 'N/A'}`);
-      });
-      
-      // Try to find by partial match on flowOriginId
-      targetFlow = allFlows.find(f => 
-        (f.flowOriginId && f.flowOriginId.includes(inputId.substring(0, 8))) ||
-        (f.id && f.id.includes(inputId.substring(0, 8)))
-      );
-    }
-    
-    if (!targetFlow) {
-      // Use the first work-type flow as fallback
-      targetFlow = allFlows.find(f => f.entityType === 'work');
-      if (targetFlow) {
-        console.log(`⚠️ Using fallback flow: ${targetFlow.displayName || targetFlow.name}`);
-      }
-    }
-    
-    if (!targetFlow) {
-      console.log('❌ Could not find a suitable flow');
-      return res.status(400).json({
-        success: false,
-        error: { 
-          message: 'Could not find the specified flow. Please check the flowOriginId.',
-          availableFlows: allFlows.slice(0, 5).map(f => ({ id: f.id, name: f.displayName || f.name }))
-        }
-      });
-    }
-    
-    const actualFlowId = targetFlow.id;
-    console.log(`✅ Using flow: ${targetFlow.displayName || targetFlow.name} (flowId: ${actualFlowId})`);
-    
-    // Step 2: Get flow details to find the start step
+    let actualFlowId = inputId;
     let startStepName = stepName;
     
-    if (!startStepName) {
-      console.log('🔍 Fetching flow details to find start step...');
+    if (flowResult.statusCode === 200) {
+      const flowData = JSON.parse(flowResult.body);
+      console.log(`✅ Flow found: ${flowData.displayName || flowData.name}`);
       
-      const flowResult = await makeApiRequest(`/api/v3/flow/${actualFlowId}`, token);
+      // Use the flow's id if different from input
+      if (flowData.id) {
+        actualFlowId = flowData.id;
+        console.log(`📋 Using flowId: ${actualFlowId}`);
+      }
       
-      if (flowResult.statusCode === 200) {
-        const flowData = JSON.parse(flowResult.body);
-        console.log('📋 Flow details:', flowData.displayName || flowData.name);
-        
-        // Try to find the first step/task that allows startAt
+      // Find the first step that allows startAt
+      if (!startStepName) {
         if (flowData.steps && flowData.steps.length > 0) {
           const firstStep = flowData.steps.find(s => s.allowStartAt) || flowData.steps[0];
           startStepName = firstStep.name || firstStep.id;
@@ -2028,12 +1975,11 @@ router.post('/work', async (req, res) => {
         } else if (flowData.firstStepName) {
           startStepName = flowData.firstStepName;
           console.log('📍 Using firstStepName:', startStepName);
-        } else {
-          console.log('⚠️ No steps found in flow, trying without stepName');
         }
-      } else {
-        console.log(`⚠️ Could not fetch flow details: ${flowResult.statusCode}`, flowResult.body);
       }
+    } else {
+      console.log(`⚠️ Could not fetch flow details (${flowResult.statusCode}), using ID directly`);
+      console.log('📋 Response:', flowResult.body?.substring(0, 200));
     }
     
     // Build the API path for startAt
