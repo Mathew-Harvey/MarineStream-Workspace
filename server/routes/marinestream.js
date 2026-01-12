@@ -1015,16 +1015,32 @@ router.get('/fleet', async (req, res) => {
           console.log(`  ⚠ Base /work endpoint: ${err.message}`);
         }
         
-        // Deduplicate by work ID
+        // Deduplicate by work ID and filter out deleted items
         const workMap = new Map();
+        let deletedCount = 0;
         for (const work of allFlowResults) {
           if (work.id && !workMap.has(work.id)) {
+            // Skip deleted work items
+            const isDeleted = work.isDeleted === true || 
+                              work.workState === 'Deleted' ||
+                              work.workStateName === 'Deleted' ||
+                              work.status === 'Deleted' ||
+                              work.currentState === 'Deleted';
+            
+            if (isDeleted) {
+              deletedCount++;
+              continue;
+            }
+            
             workMap.set(work.id, work);
           }
         }
         allWorkItems = Array.from(workMap.values());
         fetchMethod = 'rest-comprehensive';
         
+        if (deletedCount > 0) {
+          console.log(`  🗑️ Filtered out ${deletedCount} deleted work items`);
+        }
         console.log(`  ✓ Total unique work items: ${allWorkItems.length}`);
         
       } catch (restError) {
@@ -1633,6 +1649,16 @@ router.get('/work', async (req, res) => {
     }
 
     let workItems = JSON.parse(result.body);
+    
+    // Filter out deleted work items
+    workItems = workItems.filter(w => {
+      const isDeleted = w.isDeleted === true || 
+                        w.workState === 'Deleted' ||
+                        w.workStateName === 'Deleted' ||
+                        w.status === 'Deleted' ||
+                        w.currentState === 'Deleted';
+      return !isDeleted;
+    });
     
     // Filter by status if provided
     if (status) {
@@ -2546,14 +2572,30 @@ async function deliveriesHandler(req, res) {
       // Silent fail for this optional endpoint
     }
     
-    // Deduplicate by work ID
+    // Deduplicate by work ID and filter out deleted items
     const workMap = new Map();
+    let deletedCount = 0;
     for (const work of allWorkItems) {
       if (work.id && !workMap.has(work.id)) {
+        // Skip deleted work items
+        const isDeleted = work.isDeleted === true || 
+                          work.workState === 'Deleted' ||
+                          work.workStateName === 'Deleted' ||
+                          work.status === 'Deleted' ||
+                          work.currentState === 'Deleted';
+        
+        if (isDeleted) {
+          deletedCount++;
+          continue;
+        }
+        
         workMap.set(work.id, work);
       }
     }
     
+    if (deletedCount > 0) {
+      console.log(`🗑️ Filtered out ${deletedCount} deleted work items`);
+    }
     console.log(`📊 Processing ${workMap.size} unique work items...`);
     
     // For each work item, try to get full details if we don't have delivery dates
