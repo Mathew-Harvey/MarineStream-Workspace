@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS vessel_positions (
     heading INTEGER,
     ship_name VARCHAR(255),
     destination VARCHAR(255),
-    source VARCHAR(50) DEFAULT 'ais', -- 'ais', 'marinesia', 'manual'
+    source VARCHAR(50) DEFAULT 'ais', -- 'ais', 'manual'
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 

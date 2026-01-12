@@ -1143,7 +1143,6 @@ function getPositionStatusText(pos) {
   
   switch (pos.source) {
     case 'ais_live': return '📍 Live';
-    case 'marinesia_live': return '📍 Marinesia';
     case 'last_known': return '📍 Last Known';
     case 'static': return '⚓ Port';
     default: return '📍';
@@ -1567,7 +1566,7 @@ function updateVesselMarkerPosition(mmsi) {
 }
 
 /**
- * Update AIS/Marinesia tracking status indicator
+ * Update AIS tracking status indicator
  */
 function updateAISStatus(status) {
   // Add a small indicator to the UI showing tracking status
@@ -1607,7 +1606,6 @@ function updateAISStatus(status) {
   
   // Count fleet vessels with live positions
   const fleetWithPos = state.fleet.filter(v => v.hasLivePosition || v.livePosition).length;
-  const marinesiaPos = state.fleet.filter(v => v.livePosition?.source === 'marinesia').length;
   const staticPos = state.fleet.filter(v => v.livePosition?.source === 'static').length;
   const aisPos = state.aisPositions.size;
   const liveCount = fleetWithPos - staticPos; // Exclude static from "live" count
@@ -1620,11 +1618,6 @@ function updateAISStatus(status) {
     <span style="opacity: 0.7; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px;">
       📡 ${aisPos} AIS
     </span>
-    ${marinesiaPos > 0 ? `
-      <span style="opacity: 0.7; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px;">
-        🌐 ${marinesiaPos} Marinesia
-      </span>
-    ` : ''}
     ${staticPos > 0 ? `
       <span style="opacity: 0.5; border-left: 1px solid rgba(255,255,255,0.3); padding-left: 8px;">
         ⚓ ${staticPos} at port
@@ -1690,7 +1683,7 @@ const KNOWN_LOCATIONS = {
 };
 
 function getVesselPosition(vessel) {
-  // 0. FIRST: Check for live position from API (Marinesia or AIS)
+  // 0. FIRST: Check for live position from API
   if (vessel.livePosition && vessel.livePosition.lat && vessel.livePosition.lng) {
     const pos = vessel.livePosition;
     const speedText = pos.speed !== undefined ? `${pos.speed?.toFixed(1) || 0} kn` : '';
@@ -1722,13 +1715,12 @@ function getVesselPosition(vessel) {
       };
     }
     
-    // Handle marinesia or AIS live positions
-    const sourceName = pos.source === 'marinesia' ? 'Marinesia' : 'AIS';
+    // Handle AIS live positions
     return { 
       lat: pos.lat, 
       lng: pos.lng, 
-      name: `Live ${sourceName}${speedText ? ` (${speedText})` : ''}`,
-      source: pos.source === 'marinesia' ? 'marinesia_live' : 'ais_live',
+      name: `Live AIS${speedText ? ` (${speedText})` : ''}`,
+      source: 'ais_live',
       speed: pos.speed,
       course: pos.course,
       heading: pos.heading,
@@ -1922,8 +1914,6 @@ function getMarkerStyle(vessel) {
   
   if (source === 'ais_live') {
     return { type: 'live', color, rotation, badgeColor: '#22c55e', badgeText: 'LIVE', pulse: true };
-  } else if (source === 'marinesia_live') {
-    return { type: 'live', color, rotation, badgeColor: '#f59e0b', badgeText: 'MARINESIA', pulse: true };
   } else if (source === 'last_known') {
     return { type: 'last_known', color, rotation, badgeColor: '#f59e0b', badgeText: 'LAST KNOWN', pulse: false };
   } else if (source === 'static') {
@@ -2083,20 +2073,18 @@ function createPopupHTML(vessel) {
   const fonColor = perf.freedomOfNavigation ? getScoreColor(perf.freedomOfNavigation) : 'var(--text-muted)';
   const hpColor = perf.currentHullPerformance ? getScoreColor(perf.currentHullPerformance) : 'var(--text-muted)';
   const pos = vessel._mapPos || {};
-  const isLive = pos.source === 'ais_live' || pos.source === 'marinesia_live';
-  const isMarinesia = pos.source === 'marinesia_live';
+  const isLive = pos.source === 'ais_live';
   const isStatic = pos.source === 'static';
   const locationName = pos.locationName || 'Unknown';
   const hasMMSI = vessel.mmsi && vessel.mmsi.length === 9;
-  const marinesiaData = vessel.marinesia;
   
   // Determine tracking status message
   let locationHtml = '';
   if (isLive) {
-    // Live tracking (AIS or Marinesia)
-    const trackingColor = isMarinesia ? '#f59e0b' : '#22c55e';
-    const trackingBg = isMarinesia ? 'rgba(245, 158, 11, 0.15)' : 'rgba(34, 197, 94, 0.15)';
-    const trackingLabel = isMarinesia ? 'Live Marinesia Tracking' : 'Live AIS Tracking';
+    // Live tracking (AIS)
+    const trackingColor = '#22c55e';
+    const trackingBg = 'rgba(34, 197, 94, 0.15)';
+    const trackingLabel = 'Live AIS Tracking';
     
     locationHtml = `
       <div class="popup-location" style="font-size: 11px; margin: 4px 0; padding: 6px 8px; background: ${trackingBg}; border-radius: 4px; border-left: 3px solid ${trackingColor};">

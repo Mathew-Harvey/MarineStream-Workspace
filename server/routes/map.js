@@ -1,13 +1,12 @@
 /**
  * MarineStream Workspace - Map Routes
- * Vessel positions and map data (with AISStream.io + Marinesia integration)
+ * Vessel positions and map data (with AISStream.io integration)
  */
 
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { optionalAuth } = require('../middleware/auth');
-const marinesia = require('../services/marinesia');
 
 // In-memory cache for vessel positions (updated via AISStream WebSocket)
 // Key: MMSI string, Value: position data with timestamp
@@ -18,12 +17,10 @@ const POSITION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
  * GET /api/map/vessels
- * Get current vessel positions (from AIS cache, with Marinesia fallback)
+ * Get current vessel positions from AIS cache
  */
 router.get('/vessels', optionalAuth, async (req, res) => {
   try {
-    const { enrich } = req.query; // Optional: enrich=true to get Marinesia data
-    
     // Get vessels from database
     const result = await db.query(
       `SELECT id, mmsi, name, vessel_type, flag, organization_id
@@ -34,45 +31,27 @@ router.get('/vessels', optionalAuth, async (req, res) => {
     const now = Date.now();
     
     // Merge with cached AIS positions
-    let vessels = await Promise.all(result.rows.map(async vessel => {
+    let vessels = result.rows.map(vessel => {
       const position = vesselPositions.get(vessel.mmsi);
       const isStale = position ? (now - new Date(position.timestamp).getTime() > POSITION_MAX_AGE_MS) : true;
       
-      // If no AIS position or stale, try Marinesia as fallback
-      let fallbackPosition = null;
-      let positionSource = 'aisstream';
-      
-      if (!position && marinesia.isConfigured()) {
-        fallbackPosition = await marinesia.getFallbackPosition(vessel.mmsi);
-        if (fallbackPosition) {
-          positionSource = 'marinesia';
-        }
-      }
-      
-      const activePosition = position || fallbackPosition;
-      
       return {
         ...vessel,
-        position: activePosition ? {
-          lat: activePosition.lat,
-          lng: activePosition.lng || activePosition.lon,
-          speed: activePosition.speed,
-          course: activePosition.course,
-          heading: activePosition.heading,
-          status: activePosition.status,
-          shipName: activePosition.shipName,
-          isStale: position ? isStale : false
+        position: position ? {
+          lat: position.lat,
+          lng: position.lng || position.lon,
+          speed: position.speed,
+          course: position.course,
+          heading: position.heading,
+          status: position.status,
+          shipName: position.shipName,
+          isStale
         } : null,
-        lastUpdate: activePosition?.timestamp || null,
-        hasLivePosition: (!!position && !isStale) || !!fallbackPosition,
-        positionSource: activePosition ? positionSource : null
+        lastUpdate: position?.timestamp || null,
+        hasLivePosition: !!position && !isStale,
+        positionSource: position ? 'aisstream' : null
       };
-    }));
-
-    // Optionally enrich with Marinesia profile data
-    if (enrich === 'true' && marinesia.isConfigured()) {
-      vessels = await marinesia.enrichVessels(vessels);
-    }
+    });
 
     res.json({
       success: true,
@@ -82,7 +61,6 @@ router.get('/vessels', optionalAuth, async (req, res) => {
         withPosition: vessels.filter(v => v.position).length,
         withLivePosition: vessels.filter(v => v.hasLivePosition).length,
         cacheSize: vesselPositions.size,
-        marinesiaEnabled: marinesia.isConfigured(),
         timestamp: new Date().toISOString()
       }
     });
@@ -135,122 +113,6 @@ router.get('/positions', optionalAuth, (req, res) => {
       timestamp: new Date().toISOString()
     }
   });
-});
-
-/**
- * GET /api/map/discover
- * Discover vessels in a region using Marinesia (for exploration)
- * Query params: lat_min, lat_max, long_min, long_max
- */
-router.get('/discover', optionalAuth, async (req, res) => {
-  try {
-    const { lat_min, lat_max, long_min, long_max } = req.query;
-    
-    if (!marinesia.isConfigured()) {
-      return res.status(503).json({
-        success: false,
-        error: {
-          code: 'NOT_CONFIGURED',
-          message: 'Marinesia API not configured for vessel discovery'
-        }
-      });
-    }
-
-    if (!lat_min || !lat_max || !long_min || !long_max) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PARAMS',
-          message: 'Bounding box required: lat_min, lat_max, long_min, long_max'
-        }
-      });
-    }
-
-    const vessels = await marinesia.getNearbyVessels(
-      parseFloat(lat_min),
-      parseFloat(lat_max),
-      parseFloat(long_min),
-      parseFloat(long_max)
-    );
-
-    res.json({
-      success: true,
-      data: vessels,
-      meta: {
-        source: 'marinesia',
-        count: vessels.length,
-        bounds: { lat_min, lat_max, long_min, long_max },
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (err) {
-    console.error('Error discovering vessels:', err);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FETCH_ERROR',
-        message: 'Failed to discover vessels'
-      }
-    });
-  }
-});
-
-/**
- * GET /api/map/ports
- * Get nearby ports for the current map view
- * Query params: lat_min, lat_max, long_min, long_max
- */
-router.get('/ports', optionalAuth, async (req, res) => {
-  try {
-    const { lat_min, lat_max, long_min, long_max } = req.query;
-    
-    if (!marinesia.isConfigured()) {
-      return res.status(503).json({
-        success: false,
-        error: {
-          code: 'NOT_CONFIGURED',
-          message: 'Marinesia API not configured for port data'
-        }
-      });
-    }
-
-    if (!lat_min || !lat_max || !long_min || !long_max) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PARAMS',
-          message: 'Bounding box required: lat_min, lat_max, long_min, long_max'
-        }
-      });
-    }
-
-    const ports = await marinesia.getNearbyPorts(
-      parseFloat(lat_min),
-      parseFloat(lat_max),
-      parseFloat(long_min),
-      parseFloat(long_max)
-    );
-
-    res.json({
-      success: true,
-      data: ports,
-      meta: {
-        source: 'marinesia',
-        count: ports.length,
-        bounds: { lat_min, lat_max, long_min, long_max },
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (err) {
-    console.error('Error fetching ports:', err);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'FETCH_ERROR',
-        message: 'Failed to fetch ports'
-      }
-    });
-  }
 });
 
 /**

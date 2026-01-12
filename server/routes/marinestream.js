@@ -1305,76 +1305,6 @@ router.get('/fleet', async (req, res) => {
     }
     
     // =========================================================
-    // ENHANCE: Use Marinesia to find vessels and get positions
-    // =========================================================
-    const marinesiaStatus = marinesia?.getApiStatus ? marinesia.getApiStatus() : { configured: false, restricted: true };
-    
-    if (marinesia && marinesia.isConfigured() && !marinesia.isRestricted()) {
-      console.log('🌐 Using Marinesia to discover vessel MMSI and positions...');
-      
-      let marinesiaEnhanced = 0;
-      let positionsFound = 0;
-      
-      for (const [vesselId, vessel] of vesselMap) {
-        // Try to find vessel via Marinesia if no valid MMSI
-        const hasValidMMSI = vessel.mmsi && 
-                            String(vessel.mmsi).length === 9 && 
-                            !/^50300\d{4}$/.test(vessel.mmsi) &&
-                            vessel.mmsi !== '-';
-        
-        if (!hasValidMMSI || !vessel.marinesia) {
-          const marinesiaData = await findVesselViaMarinesia(
-            vessel.name, 
-            vessel.imo, 
-            hasValidMMSI ? vessel.mmsi : null
-          );
-          
-          if (marinesiaData) {
-            if (!hasValidMMSI && marinesiaData.mmsi) {
-              vessel.mmsi = marinesiaData.mmsi;
-              marinesiaEnhanced++;
-            }
-            if (marinesiaData.imo && !vessel.imo) {
-              vessel.imo = marinesiaData.imo;
-            }
-            vessel.marinesia = marinesiaData.marinesia;
-            vessel.marinesiaSource = marinesiaData.source;
-            
-            // Store position from Marinesia
-            if (marinesiaData.position) {
-              vessel.livePosition = {
-                lat: marinesiaData.position.lat,
-                lng: marinesiaData.position.lng,
-                speed: marinesiaData.position.sog,
-                course: marinesiaData.position.cog,
-                heading: marinesiaData.position.hdt,
-                status: marinesiaData.position.status,
-                destination: marinesiaData.position.dest,
-                eta: marinesiaData.position.eta,
-                timestamp: marinesiaData.position.ts,
-                source: 'marinesia'
-              };
-              positionsFound++;
-            }
-          }
-        } else if (hasValidMMSI && !vessel.livePosition) {
-          // If we have MMSI but no position, try to get it from Marinesia
-          const position = await getMarinesiaPosition(vessel.mmsi);
-          if (position) {
-            vessel.livePosition = position;
-            positionsFound++;
-          }
-        }
-      }
-      
-      console.log(`  🔍 Marinesia: Enhanced ${marinesiaEnhanced} vessels with MMSI`);
-      console.log(`  📍 Marinesia: Found ${positionsFound} vessel positions`);
-    } else if (marinesiaStatus.restricted) {
-      console.log('⚠️ Marinesia API is restricted - skipping vessel enrichment');
-      console.log(`   Backoff remaining: ${Math.round(marinesiaStatus.backoffRemaining / 60000)} minutes`);
-    }
-    
-    // =========================================================
     // FALLBACK 1: Use last known positions from database
     // =========================================================
     const mapRoutes = require('./map');
@@ -1516,12 +1446,9 @@ router.get('/fleet', async (req, res) => {
         performance: vessel.performance,
         foulingPrediction,
         recentJobs: vessel.jobs.slice(0, 5),
-        // Live position from Marinesia or AIS
+        // Live position from AIS
         livePosition: vessel.livePosition || null,
         hasLivePosition: !!vessel.livePosition,
-        // Marinesia enrichment
-        marinesia: vessel.marinesia || null,
-        marinesiaSource: vessel.marinesiaSource || null,
         // Vessel configuration for calculations
         vesselConfig: vessel.vesselConfig || null,
         // Include job history summary
@@ -1582,11 +1509,7 @@ router.get('/fleet', async (req, res) => {
 
     // Count vessels with positions
     const vesselsWithLivePosition = vessels.filter(v => v.hasLivePosition).length;
-    const marinesiaPositions = vessels.filter(v => v.livePosition?.source === 'marinesia').length;
     const staticPositionsCount = vessels.filter(v => v.livePosition?.source === 'static').length;
-    
-    // Get Marinesia API status
-    const apiStatus = marinesia?.getApiStatus ? marinesia.getApiStatus() : { configured: false, restricted: false };
     
     res.json({
       success: true,
@@ -1610,11 +1533,7 @@ router.get('/fleet', async (req, res) => {
           vesselsWithMMSI: mmsiList.length,
           // Position tracking stats
           vesselsWithLivePosition,
-          marinesiaPositions,
-          staticPositions: staticPositionsCount,
-          marinesiaEnabled: apiStatus.configured,
-          marinesiaRestricted: apiStatus.restricted,
-          marinesiaBackoffRemaining: apiStatus.backoffRemaining ? Math.round(apiStatus.backoffRemaining / 60000) : 0
+          staticPositions: staticPositionsCount
         }
       }
     });
@@ -2019,11 +1938,17 @@ router.post('/work', async (req, res) => {
     console.log(`📝 Creating new work item from flow origin: ${flowOriginId}`);
     
     // Build the work creation payload
+    // The Diana API expects flowOriginId and optionally data
     const workPayload = {
-      flowOriginId,
-      displayName: displayName || undefined,
-      data: data || {}
+      flowOriginId
     };
+    
+    // Only add data if provided
+    if (data && Object.keys(data).length > 0) {
+      workPayload.data = data;
+    }
+    
+    console.log('📦 Work creation payload:', JSON.stringify(workPayload, null, 2));
     
     // Make POST request to Diana API to create work
     const postData = JSON.stringify(workPayload);
@@ -2038,9 +1963,12 @@ router.post('/work', async (req, res) => {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
+          'Content-Length': Buffer.byteLength(postData),
+          'Environment': 'marinestream'  // Required for Diana API
         }
       };
+      
+      console.log(`🌐 POST https://${options.hostname}${options.path}`);
 
       const req = https.request(options, (response) => {
         let data = '';
@@ -2074,12 +2002,22 @@ router.post('/work', async (req, res) => {
         }
       });
     } else {
-      console.error(`❌ Failed to create work item: ${result.statusCode}`, result.body);
+      // Parse the error response to get more details
+      let errorDetails = result.body;
+      try {
+        errorDetails = JSON.parse(result.body);
+      } catch (e) {
+        // Keep as string if not valid JSON
+      }
+      
+      console.error(`❌ Failed to create work item: ${result.statusCode}`);
+      console.error('📋 Response body:', typeof errorDetails === 'object' ? JSON.stringify(errorDetails, null, 2) : errorDetails);
+      
       res.status(result.statusCode).json({
         success: false,
         error: { 
           message: 'Failed to create work item',
-          details: result.body
+          details: errorDetails
         }
       });
     }

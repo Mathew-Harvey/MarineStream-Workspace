@@ -1,6 +1,6 @@
 /**
  * MarineStream Workspace - Map Module
- * AIS vessel tracking with Mapbox GL JS + Marinesia enrichment
+ * AIS vessel tracking with Mapbox GL JS
  */
 
 import { getLng, getLat, isValidPosition, normalizePosition, escapeHtml, debounce } from './map-utils.js';
@@ -9,10 +9,9 @@ let map = null;
 let markers = new Map();
 let portMarkers = new Map();
 let vesselData = new Map();
-let vesselProfiles = new Map(); // Marinesia profile cache
+let vesselProfiles = new Map(); // Vessel profile cache
 let websocket = null;
 let callbacks = {};
-let marinesiaEnabled = false;
 let activePopupMmsi = null; // Track which vessel has an open popup
 
 // Map configuration
@@ -99,7 +98,7 @@ export async function initMap(containerId, options = {}) {
       }, 500);
     });
     
-    console.log('🗺️ Map initialized' + (marinesiaEnabled ? ' with Marinesia enrichment' : ''));
+    console.log('🗺️ Map initialized');
     
     return {
       instance: map,
@@ -107,9 +106,7 @@ export async function initMap(containerId, options = {}) {
       zoomOut,
       fitBounds: fitAllVessels,
       getVessels: () => Array.from(vesselData.values()),
-      discoverVessels: discoverVesselsInArea,
-      loadPorts: loadNearbyPorts,
-      getVesselProfile: fetchVesselProfile,
+      getVesselProfile: getVesselProfile,
     };
   } catch (error) {
     console.error('Map initialization error:', error);
@@ -132,20 +129,12 @@ export async function initMap(containerId, options = {}) {
  */
 async function loadVessels() {
   try {
-    // Load with Marinesia enrichment
-    const response = await fetch('/api/map/vessels?enrich=true');
+    const response = await fetch('/api/map/vessels');
     const data = await response.json();
     
     if (data.success && data.data) {
-      marinesiaEnabled = data.meta?.marinesiaEnabled || false;
-      
       data.data.forEach(vessel => {
         vesselData.set(vessel.mmsi, vessel);
-        
-        // Store Marinesia profile if present
-        if (vessel.marinesia) {
-          vesselProfiles.set(vessel.mmsi, vessel.marinesia);
-        }
         
         if (vessel.position) {
           updateMarker(vessel);
@@ -166,154 +155,10 @@ async function loadVessels() {
 }
 
 /**
- * Fetch vessel profile from Marinesia API
+ * Get vessel profile from cache
  */
-async function fetchVesselProfile(mmsi) {
-  // Check cache first
-  if (vesselProfiles.has(mmsi)) {
-    return vesselProfiles.get(mmsi);
-  }
-  
-  try {
-    const response = await fetch(`/api/marinesia/vessel/${mmsi}/full`);
-    const data = await response.json();
-    
-    if (data.success && data.data) {
-      const profile = {
-        ...data.data.profile,
-        image: data.data.image,
-        location: data.data.location,
-      };
-      vesselProfiles.set(mmsi, profile);
-      return profile;
-    }
-  } catch (error) {
-    console.error(`Failed to fetch profile for ${mmsi}:`, error);
-  }
-  
-  return null;
-}
-
-/**
- * Load nearby ports for current map view
- */
-async function loadNearbyPorts() {
-  if (!map || !marinesiaEnabled) return;
-  
-  const bounds = map.getBounds();
-  
-  try {
-    const params = new URLSearchParams({
-      lat_min: bounds.getSouth(),
-      lat_max: bounds.getNorth(),
-      long_min: bounds.getWest(),
-      long_max: bounds.getEast(),
-    });
-    
-    const response = await fetch(`/api/map/ports?${params}`);
-    const data = await response.json();
-    
-    if (data.success && data.data) {
-      // Clear old port markers
-      portMarkers.forEach(marker => marker.remove());
-      portMarkers.clear();
-      
-      // Add new port markers
-      data.data.forEach(port => {
-        addPortMarker(port);
-      });
-      
-      console.log(`⚓ Loaded ${data.data.length} nearby ports`);
-    }
-  } catch (error) {
-    console.error('Failed to load ports:', error);
-  }
-}
-
-/**
- * Add a port marker to the map
- */
-function addPortMarker(port) {
-  if (!map || !port.lat || !port.long) return;
-  
-  const el = document.createElement('div');
-  el.className = 'port-marker';
-  el.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#f59e0b">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-    </svg>
-  `;
-  el.style.cssText = 'cursor: pointer; opacity: 0.8;';
-  el.title = port.name;
-  
-  const popup = new mapboxgl.Popup({ offset: 10, closeButton: false })
-    .setHTML(`
-      <div style="padding: 8px;">
-        <strong style="color: #f59e0b;">⚓ ${port.name}</strong>
-        <div style="font-size: 12px; color: #9E9E98; margin-top: 4px;">
-          ${port.country || ''} ${port.un_locode ? `• ${port.un_locode}` : ''}
-        </div>
-        ${port.berths ? `<div style="font-size: 11px; margin-top: 4px;">${port.berths} berths</div>` : ''}
-      </div>
-    `);
-  
-  const marker = new mapboxgl.Marker({ element: el })
-    .setLngLat([port.long, port.lat])
-    .setPopup(popup)
-    .addTo(map);
-  
-  portMarkers.set(port.port_id, marker);
-}
-
-/**
- * Discover vessels in a region (Marinesia)
- */
-async function discoverVesselsInArea(latMin, latMax, longMin, longMax) {
-  try {
-    const params = new URLSearchParams({
-      lat_min: latMin,
-      lat_max: latMax,
-      long_min: longMin,
-      long_max: longMax,
-    });
-    
-    const response = await fetch(`/api/map/discover?${params}`);
-    const data = await response.json();
-    
-    if (data.success && data.data) {
-      // Add discovered vessels to map
-      data.data.forEach(vessel => {
-        const mmsi = String(vessel.mmsi);
-        if (!vesselData.has(mmsi)) {
-          vesselData.set(mmsi, {
-            mmsi,
-            name: vessel.name,
-            vessel_type: vessel.type,
-            flag: vessel.flag,
-            position: {
-              lat: vessel.lat,
-              lng: vessel.lng,
-              speed: vessel.sog,
-              course: vessel.cog,
-              heading: vessel.hdt,
-              status: vessel.status,
-            },
-            isDiscovered: true, // Mark as discovered (not tracked)
-          });
-          updateMarker(vesselData.get(mmsi));
-        }
-      });
-      
-      updateStats();
-      console.log(`🔍 Discovered ${data.data.length} vessels in area`);
-      
-      return data.data;
-    }
-  } catch (error) {
-    console.error('Failed to discover vessels:', error);
-  }
-  
-  return [];
+function getVesselProfile(mmsi) {
+  return vesselProfiles.get(mmsi) || null;
 }
 
 /**
@@ -469,7 +314,7 @@ function createMarkerElement(vessel, status) {
   if (isMoored) color = '#9E9E98';
   else if (isUnderway) color = '#2E7D4A';
   
-  // Discovered vessels (from Marinesia) have different styling
+  // Discovered vessels have different styling
   if (isDiscovered) {
     color = '#6366f1'; // Indigo for discovered vessels
   }
@@ -537,9 +382,9 @@ function createMarkerElement(vessel, status) {
 }
 
 /**
- * Show vessel popup with Marinesia-enriched details
+ * Show vessel popup with details
  */
-async function showVesselPopup(vessel, marker) {
+function showVesselPopup(vessel, marker) {
   // If clicking the same vessel that has an open popup, toggle it closed
   if (activePopupMmsi === vessel.mmsi) {
     closeAllPopups();
@@ -570,21 +415,6 @@ async function showVesselPopup(vessel, marker) {
   marker.setPopup(popup);
   popup.addTo(map);
   activePopupMmsi = vessel.mmsi;
-  
-  // If Marinesia is enabled, try to fetch more details
-  if (marinesiaEnabled && vessel.mmsi) {
-    try {
-      const profile = await fetchVesselProfile(vessel.mmsi);
-      
-      // Only update if this popup is still open (user hasn't clicked elsewhere)
-      if (activePopupMmsi === vessel.mmsi && popup.isOpen()) {
-        const enrichedContent = createEnrichedPopupContent(vessel, profile);
-        popup.setHTML(enrichedContent);
-      }
-    } catch (err) {
-      console.warn('Failed to fetch vessel profile:', err);
-    }
-  }
   
   // Trigger callback
   callbacks.onVesselClick?.(vessel);
@@ -634,77 +464,6 @@ function createBasicPopupContent(vessel) {
           <span class="label">Course:</span>
           <span class="value">${course}</span>
         </div>
-      </div>
-      <div class="vessel-popup-loading">
-        <span>Loading vessel details...</span>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Create enriched popup content with Marinesia data
- */
-function createEnrichedPopupContent(vessel, profile) {
-  const pos = vessel.position || {};
-  const speed = pos.speed !== undefined ? `${pos.speed.toFixed(1)} kn` : '--';
-  const course = pos.course !== undefined ? `${Math.round(pos.course)}°` : '--';
-  
-  const imageHtml = profile.image ? `
-    <div class="vessel-popup-image">
-      <img src="${profile.image}" alt="${vessel.name}" onerror="this.parentElement.style.display='none'" />
-    </div>
-  ` : '';
-  
-  const dimensions = profile.length && profile.width 
-    ? `${profile.length}m × ${profile.width}m` 
-    : '--';
-  
-  return `
-    <div class="vessel-popup enriched">
-      ${imageHtml}
-      <div class="vessel-popup-header">
-        <h3>${profile.name || vessel.name || 'Unknown Vessel'}</h3>
-        <span class="vessel-popup-type">${profile.ship_type || profile.shipType || vessel.vessel_type || 'Vessel'}</span>
-      </div>
-      <div class="vessel-popup-body">
-        <div class="vessel-popup-grid">
-          <div class="vessel-popup-item">
-            <span class="label">MMSI</span>
-            <span class="value">${vessel.mmsi}</span>
-          </div>
-          <div class="vessel-popup-item">
-            <span class="label">IMO</span>
-            <span class="value">${profile.imo || '--'}</span>
-          </div>
-          <div class="vessel-popup-item">
-            <span class="label">Callsign</span>
-            <span class="value">${profile.callsign || '--'}</span>
-          </div>
-          <div class="vessel-popup-item">
-            <span class="label">Flag</span>
-            <span class="value">${profile.country || vessel.flag || '--'}</span>
-          </div>
-          <div class="vessel-popup-item">
-            <span class="label">Dimensions</span>
-            <span class="value">${dimensions}</span>
-          </div>
-          <div class="vessel-popup-item">
-            <span class="label">Speed</span>
-            <span class="value">${speed}</span>
-          </div>
-        </div>
-        ${profile.location?.dest ? `
-          <div class="vessel-popup-destination">
-            <span class="label">Destination:</span>
-            <span class="value">${profile.location.dest}</span>
-            ${profile.location.eta ? `<span class="eta">ETA: ${profile.location.eta}</span>` : ''}
-          </div>
-        ` : ''}
-      </div>
-      <div class="vessel-popup-footer">
-        <span class="source-badge">📡 Marinesia</span>
-        ${pos.timestamp ? `<span class="timestamp">Updated: ${new Date(pos.timestamp).toLocaleTimeString()}</span>` : ''}
       </div>
     </div>
   `;
