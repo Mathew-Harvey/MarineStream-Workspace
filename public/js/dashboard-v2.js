@@ -17,6 +17,10 @@ import {
 // Import fouling calculator module
 import * as FoulingCalculator from './fouling-calculator.js';
 
+// Import widgets
+import { KanbanBoard } from './widgets/kanban.js';
+import { WorkCalendar } from './widgets/calendar.js';
+
 // ============================================
 // Humorous Loading Messages
 // ============================================
@@ -82,7 +86,13 @@ const state = {
   
   // Loading state
   messageIndex: 0,
-  messageInterval: null
+  messageInterval: null,
+  
+  // Work panel widgets
+  workPanelOpen: false,
+  kanbanBoard: null,
+  workCalendar: null,
+  currentWorkView: 'kanban'
 };
 
 // ============================================
@@ -533,6 +543,140 @@ function setupEventListeners() {
   elements.methodologyModal?.querySelector('.modal-backdrop')?.addEventListener('click', () => {
     elements.methodologyModal?.classList.remove('active');
   });
+  
+  // Work Panel event listeners
+  setupWorkPanelListeners();
+}
+
+// ============================================
+// Work Panel (Kanban + Calendar)
+// ============================================
+
+/**
+ * Set up work panel event listeners
+ */
+function setupWorkPanelListeners() {
+  const openBtn = document.getElementById('open-work-panel');
+  const closeBtn = document.getElementById('close-work-panel');
+  const overlay = document.getElementById('work-panel-overlay');
+  const refreshBtn = document.getElementById('refresh-work-panel');
+  const viewTabs = document.querySelectorAll('.work-view-tab');
+  
+  // Open panel
+  openBtn?.addEventListener('click', openWorkPanel);
+  
+  // Close panel
+  closeBtn?.addEventListener('click', closeWorkPanel);
+  
+  // Close on backdrop click
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closeWorkPanel();
+    }
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.workPanelOpen) {
+      closeWorkPanel();
+    }
+  });
+  
+  // Refresh work data
+  refreshBtn?.addEventListener('click', refreshWorkPanel);
+  
+  // View tab switching
+  viewTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const view = tab.dataset.view;
+      switchWorkView(view);
+    });
+  });
+}
+
+/**
+ * Open the work panel
+ */
+async function openWorkPanel() {
+  const overlay = document.getElementById('work-panel-overlay');
+  overlay?.classList.add('active');
+  state.workPanelOpen = true;
+  
+  // Initialize widgets if not already done
+  if (!state.kanbanBoard) {
+    state.kanbanBoard = new KanbanBoard('kanban-container', {
+      onJobClick: (job) => {
+        window.open(job.jobUrl, '_blank');
+      }
+    });
+    await state.kanbanBoard.init();
+  }
+  
+  if (!state.workCalendar) {
+    state.workCalendar = new WorkCalendar('calendar-container', {
+      onEventClick: (event) => {
+        const jobUrl = event.extendedProps?.jobUrl;
+        if (jobUrl) {
+          window.open(jobUrl, '_blank');
+        }
+      }
+    });
+    // Only init calendar when we switch to it
+  }
+}
+
+/**
+ * Close the work panel
+ */
+function closeWorkPanel() {
+  const overlay = document.getElementById('work-panel-overlay');
+  overlay?.classList.remove('active');
+  state.workPanelOpen = false;
+}
+
+/**
+ * Refresh work panel data
+ */
+async function refreshWorkPanel() {
+  const refreshBtn = document.getElementById('refresh-work-panel');
+  if (refreshBtn) {
+    refreshBtn.querySelector('svg')?.classList.add('spinning');
+  }
+  
+  try {
+    if (state.kanbanBoard) {
+      await state.kanbanBoard.refresh();
+    }
+    if (state.workCalendar && state.currentWorkView === 'calendar') {
+      await state.workCalendar.refresh();
+    }
+  } finally {
+    if (refreshBtn) {
+      refreshBtn.querySelector('svg')?.classList.remove('spinning');
+    }
+  }
+}
+
+/**
+ * Switch between Kanban and Calendar views
+ */
+async function switchWorkView(view) {
+  state.currentWorkView = view;
+  
+  // Update tab styles
+  document.querySelectorAll('.work-view-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === view);
+  });
+  
+  // Update panel visibility
+  document.querySelectorAll('.work-view-panel').forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.view === view);
+  });
+  
+  // Initialize calendar on first view
+  if (view === 'calendar' && state.workCalendar && !state.workCalendar.calendar) {
+    await state.workCalendar.init();
+  }
 }
 
 // ============================================
@@ -877,15 +1021,15 @@ function renderVesselHealthList(vessels) {
     const daysSinceClean = vessel.daysSinceLastClean;
     const fon = perf.hasRealData ? perf.freedomOfNavigation : null;
     
-    const frDisplay = frLevel !== null && frLevel !== undefined
+    const frDisplay = (frLevel !== null && frLevel !== undefined)
       ? `<span style="color: ${frDetails.color}; font-weight: 600;">${frDetails.name}</span>`
       : '<span class="no-data">--</span>';
     
-    const daysDisplay = daysSinceClean !== null
-      ? `<span class="${daysSinceClean >= 60 ? 'warning' : daysSinceClean >= 90 ? 'critical' : ''}">${daysSinceClean}d</span>`
+    const daysDisplay = (daysSinceClean !== null && daysSinceClean !== undefined)
+      ? `<span class="${daysSinceClean >= 90 ? 'critical' : daysSinceClean >= 60 ? 'warning' : ''}">${daysSinceClean}d</span>`
       : '<span class="no-data">--</span>';
     
-    const fonDisplay = fon !== null
+    const fonDisplay = (fon !== null && fon !== undefined)
       ? `<span class="${getScoreClass(fon)}">${fon}</span>`
       : '<span class="no-data">--</span>';
     

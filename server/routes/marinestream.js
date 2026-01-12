@@ -252,7 +252,58 @@ function generateDateRanges(startDate, endDate, months = 2) {
 }
 
 /**
+ * Generate array paths with index expansion (mirrors Python's handle_nested_paths)
+ * Expands paths like 'data.generalArrangement[].items[]' into indexed paths
+ * 
+ * @param {string} basePath - Base path with [] markers for arrays
+ * @param {string} key - Key prefix for the property
+ * @param {Array<number>} maxElements - Max elements for each array level
+ * @returns {Array} Array of expanded path objects
+ */
+function expandArrayPaths(basePath, key, maxElements = [10, 5]) {
+  const paths = [];
+  
+  // Find all [] markers in the path
+  const parts = basePath.split('[]');
+  
+  if (parts.length === 1) {
+    // No array markers, return single path
+    return [{ key, valuePaths: [`$.${basePath}`] }];
+  }
+  
+  // Generate all combinations of indices
+  function generateCombinations(depth, indices) {
+    if (depth >= parts.length - 1) {
+      // Build the full path with indices
+      let fullPath = '$';
+      for (let i = 0; i < parts.length; i++) {
+        fullPath += parts[i];
+        if (i < indices.length) {
+          fullPath += `[${indices[i]}]`;
+        }
+      }
+      const indexStr = indices.join('_');
+      paths.push({
+        key: `${key}_${indexStr}`,
+        valuePaths: [fullPath]
+      });
+      return;
+    }
+    
+    const maxForLevel = maxElements[depth] || 5;
+    for (let i = 0; i < maxForLevel; i++) {
+      generateCombinations(depth + 1, [...indices, i]);
+    }
+  }
+  
+  generateCombinations(0, []);
+  return paths;
+}
+
+/**
  * Build GraphQL query for work items (mirrors Python's generate_graphql_query)
+ * ENHANCED: Includes generalArrangement extraction with array path expansion
+ * 
  * @param {string} flowOriginId - Flow origin ID to query
  * @param {string} dateStart - Start date ISO string
  * @param {string} dateEnd - End date ISO string
@@ -267,12 +318,39 @@ function buildGraphQLQuery(flowOriginId, dateStart, dateEnd) {
     { key: 'jobType', valuePaths: ['$.data.jobType', '$.data.data.jobType'] },
     { key: 'inspectionType', valuePaths: ['$.data.inspectionType', '$.data.data.inspectionType'] },
     { key: 'workInstruction', valuePaths: ['$.data.workInstruction', '$.data.data.workInstruction'] },
-    { key: 'actualDeliveryDate', valuePaths: ['$.data.actualDelivery.startDateTime', '$.actualDelivery.startDateTime'] },
+    // Delivery dates - both actual and forecast
+    { key: 'actualDeliveryDate', valuePaths: ['$.data.actualDelivery.startDateTime', '$.actualDelivery.startDateTime', '$.data.actualDateOfDelivery'] },
+    { key: 'forecastDeliveryDate', valuePaths: ['$.data.forecastDelivery.startDateTime', '$.forecastDelivery.startDateTime', '$.data.forecastDateOfDelivery', '$.data.scheduledDate'] },
     { key: 'majorContract', valuePaths: ['$.data.majorContract'] },
     { key: 'berthAnchorageLocation', valuePaths: ['$.data.berthAnchorageLocation'] }
   ];
   
-  const propsString = additionalProperties.map(p => 
+  // Add generalArrangement array paths (mirrors Python schema)
+  // These extract fouling rating data from nested structures
+  const gaArrayPaths = [
+    // GA Component level
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].GAComponent', 'GAComponent', [15]),
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].name', 'GAName', [15]),
+    // Items level (nested within generalArrangement)
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].items[].foulingRatingType', 'foulingRatingType', [15, 10]),
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].items[].foulingCoverage', 'foulingCoverage', [15, 10]),
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].items[].pdrRating', 'pdrRating', [15, 10]),
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].items[].description', 'itemDescription', [15, 10]),
+    // Also try frRatingData structure (alternative naming)
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].frRatingData[].foulingRatingType', 'frRatingType', [15, 10]),
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].frRatingData[].foulingCoverage', 'frRatingCoverage', [15, 10]),
+    // Comments
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].diverSupervisorComments', 'diverComments', [15]),
+    ...expandArrayPaths('data.ranVessel.data.generalArrangement[].expertInspectorComments', 'expertComments', [15]),
+    // Also check vessel path (for commercial)
+    ...expandArrayPaths('data.vessel.data.generalArrangement[].items[].foulingRatingType', 'vesselFoulingRatingType', [15, 10]),
+    ...expandArrayPaths('data.vessel.data.generalArrangement[].items[].foulingCoverage', 'vesselFoulingCoverage', [15, 10])
+  ];
+  
+  // Combine all properties
+  const allProperties = [...additionalProperties, ...gaArrayPaths];
+  
+  const propsString = allProperties.map(p => 
     `"{\\"key\\":\\"${p.key}\\",\\"valuePaths\\":${JSON.stringify(p.valuePaths).replace(/"/g, '\\"')}}"`
   ).join(',\n    ');
   
@@ -429,7 +507,101 @@ async function fetchAllWorkFromAllFlows(token, dateStart = null, dateEnd = null)
 }
 
 /**
+ * Reconstruct nested generalArrangement from flattened additionalProperties
+ * Mirrors Python's get_nested_properties() logic
+ * 
+ * @param {object} flatProps - Flattened properties object
+ * @returns {Array} Reconstructed generalArrangement array
+ */
+function reconstructGeneralArrangement(flatProps) {
+  const gaComponents = new Map();
+  
+  // Find all GA-related properties
+  for (const [key, value] of Object.entries(flatProps)) {
+    if (value === null || value === undefined || value === '') continue;
+    
+    // Match patterns like: GAComponent_0, foulingRatingType_0_1, etc.
+    const gaMatch = key.match(/^(GAComponent|GAName)_(\d+)$/);
+    const itemMatch = key.match(/^(foulingRatingType|foulingCoverage|pdrRating|itemDescription)_(\d+)_(\d+)$/);
+    const frMatch = key.match(/^(frRatingType|frRatingCoverage)_(\d+)_(\d+)$/);
+    const commentMatch = key.match(/^(diverComments|expertComments)_(\d+)$/);
+    
+    if (gaMatch) {
+      const [, propName, gaIndex] = gaMatch;
+      if (!gaComponents.has(gaIndex)) {
+        gaComponents.set(gaIndex, { items: [], frRatingData: [] });
+      }
+      const comp = gaComponents.get(gaIndex);
+      if (propName === 'GAComponent' || propName === 'GAName') {
+        comp.name = value;
+        comp.GAComponent = value;
+      }
+    } else if (itemMatch) {
+      const [, propName, gaIndex, itemIndex] = itemMatch;
+      if (!gaComponents.has(gaIndex)) {
+        gaComponents.set(gaIndex, { items: [], frRatingData: [] });
+      }
+      const comp = gaComponents.get(gaIndex);
+      
+      // Ensure items array has the right size
+      while (comp.items.length <= parseInt(itemIndex)) {
+        comp.items.push({});
+      }
+      
+      const item = comp.items[parseInt(itemIndex)];
+      if (propName === 'foulingRatingType') item.foulingRatingType = value;
+      if (propName === 'foulingCoverage') item.foulingCoverage = value;
+      if (propName === 'pdrRating') item.pdrRating = value;
+      if (propName === 'itemDescription') item.description = value;
+    } else if (frMatch) {
+      const [, propName, gaIndex, itemIndex] = frMatch;
+      if (!gaComponents.has(gaIndex)) {
+        gaComponents.set(gaIndex, { items: [], frRatingData: [] });
+      }
+      const comp = gaComponents.get(gaIndex);
+      
+      // Ensure frRatingData array has the right size
+      while (comp.frRatingData.length <= parseInt(itemIndex)) {
+        comp.frRatingData.push({});
+      }
+      
+      const item = comp.frRatingData[parseInt(itemIndex)];
+      if (propName === 'frRatingType') item.foulingRatingType = value;
+      if (propName === 'frRatingCoverage') item.foulingCoverage = value;
+    } else if (commentMatch) {
+      const [, propName, gaIndex] = commentMatch;
+      if (!gaComponents.has(gaIndex)) {
+        gaComponents.set(gaIndex, { items: [], frRatingData: [] });
+      }
+      const comp = gaComponents.get(gaIndex);
+      if (propName === 'diverComments') comp.diverSupervisorComments = value;
+      if (propName === 'expertComments') comp.expertInspectorComments = value;
+    }
+  }
+  
+  // Convert map to sorted array
+  const sortedKeys = Array.from(gaComponents.keys()).sort((a, b) => parseInt(a) - parseInt(b));
+  return sortedKeys.map(key => {
+    const comp = gaComponents.get(key);
+    // Filter out empty items
+    comp.items = comp.items.filter(item => 
+      item.foulingRatingType !== undefined || 
+      item.foulingCoverage !== undefined || 
+      item.pdrRating !== undefined
+    );
+    comp.frRatingData = comp.frRatingData.filter(item =>
+      item.foulingRatingType !== undefined ||
+      item.foulingCoverage !== undefined
+    );
+    return comp;
+  }).filter(comp => 
+    comp.name || comp.items.length > 0 || comp.frRatingData.length > 0
+  );
+}
+
+/**
  * Convert GraphQL additional properties to nested data format
+ * ENHANCED: Reconstructs generalArrangement from flattened properties
  */
 function convertAdditionalPropertiesToData(workItem) {
   const additionalProps = workItem.additionalProperties || [];
@@ -446,14 +618,50 @@ function convertAdditionalPropertiesToData(workItem) {
     }
   }
   
+  // Reconstruct generalArrangement from flattened properties
+  const reconstructedGA = reconstructGeneralArrangement(converted);
+  
+  // Also try to parse existing data.generalArrangement if it's a string
+  let existingGA = null;
+  if (workItem.data) {
+    const vesselData = workItem.data.ranVessel?.data || workItem.data.vessel?.data || {};
+    if (typeof vesselData.generalArrangement === 'string') {
+      try {
+        existingGA = JSON.parse(vesselData.generalArrangement);
+      } catch {
+        // Ignore parse errors
+      }
+    } else if (Array.isArray(vesselData.generalArrangement)) {
+      existingGA = vesselData.generalArrangement;
+    }
+  }
+  
+  // Use existing GA if available, otherwise use reconstructed
+  const finalGA = existingGA && existingGA.length > 0 ? existingGA : 
+                  reconstructedGA.length > 0 ? reconstructedGA : null;
+  
   // Merge with existing data
-  return {
+  const result = {
     ...workItem,
     data: {
       ...(workItem.data || {}),
       ...converted
     }
   };
+  
+  // Add reconstructed generalArrangement to vessel data
+  if (finalGA && finalGA.length > 0) {
+    if (result.data.ranVessel?.data) {
+      result.data.ranVessel.data.generalArrangement = finalGA;
+    } else if (result.data.vessel?.data) {
+      result.data.vessel.data.generalArrangement = finalGA;
+    } else {
+      // Create a vessel structure if none exists
+      result.data.reconstructedGA = finalGA;
+    }
+  }
+  
+  return result;
 }
 
 // Vessel type classification
@@ -545,8 +753,65 @@ function findValue(obj, paths) {
   return null;
 }
 
+/**
+ * Get rating data from a component (handles both 'items' and 'frRatingData' structures)
+ * @param {object} component - GA component
+ * @returns {Array} Array of rating objects
+ */
+function getRatingDataFromComponent(component) {
+  // Try frRatingData first (original structure)
+  if (component.frRatingData && Array.isArray(component.frRatingData) && component.frRatingData.length > 0) {
+    return component.frRatingData;
+  }
+  // Try items (Python structure)
+  if (component.items && Array.isArray(component.items) && component.items.length > 0) {
+    return component.items;
+  }
+  // Return empty array if no data
+  return [];
+}
+
+/**
+ * Extract fouling rating value from a rating object
+ * Handles various field names: foulingRatingType, foulingRating, frType, etc.
+ */
+function extractFoulingRating(rating) {
+  // Try various field names
+  const value = rating.foulingRatingType ?? 
+                rating.foulingRating ?? 
+                rating.frType ?? 
+                rating.fr ??
+                rating.type;
+  
+  // Parse string like "FR3" or just "3"
+  if (typeof value === 'string') {
+    const match = value.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+  }
+  return parseFloat(value) || 0;
+}
+
+/**
+ * Extract coverage value from a rating object
+ * Handles various field names and formats
+ */
+function extractCoverageValue(rating) {
+  const value = rating.foulingCoverage ?? 
+                rating.coverage ?? 
+                rating.coveragePercent ?? 
+                rating.area;
+  
+  // Handle percentage strings like "25%" or just numbers
+  if (typeof value === 'string') {
+    const match = value.match(/([\d.]+)/);
+    return match ? parseFloat(match[1]) : 0;
+  }
+  return parseFloat(value) || 0;
+}
+
 // Calculate Freedom of Navigation (FON) Score from biofouling data
 // FON = 100 - (Σ FR_i × Coverage_i × Weight_i)
+// ENHANCED: Handles both 'items' and 'frRatingData' structures
 function calculateFONScore(generalArrangement) {
   if (!generalArrangement || !Array.isArray(generalArrangement)) return null;
   
@@ -566,13 +831,17 @@ function calculateFONScore(generalArrangement) {
     'dome': 1.8,
     'niche': 1.5,
     'waterline': 1.3,
+    'port': 0.9,
+    'starboard': 0.9,
+    'keel': 1.1,
     'default': 1.0
   };
   
   generalArrangement.forEach(component => {
-    if (!component.frRatingData || !Array.isArray(component.frRatingData)) return;
+    const ratingData = getRatingDataFromComponent(component);
+    if (ratingData.length === 0) return;
     
-    const componentName = (component.name || '').toLowerCase();
+    const componentName = (component.name || component.GAComponent || '').toLowerCase();
     let weight = componentWeights.default;
     
     // Match component to weight
@@ -583,9 +852,9 @@ function calculateFONScore(generalArrangement) {
       }
     }
     
-    component.frRatingData.forEach(rating => {
-      const fr = parseFloat(rating.foulingRatingType) || 0;  // FR 0-5
-      const coverage = parseFloat(rating.foulingCoverage) || 0;  // 0-100%
+    ratingData.forEach(rating => {
+      const fr = extractFoulingRating(rating);  // FR 0-5
+      const coverage = extractCoverageValue(rating);  // 0-100%
       
       if (fr > 0 || coverage > 0) {
         // Penalty increases exponentially with FR level
@@ -608,6 +877,7 @@ function calculateFONScore(generalArrangement) {
 
 // Calculate Hull Performance from biofouling assessment
 // HP = BaseEfficiency × (1 - FoulingPenalty)
+// ENHANCED: Handles both 'items' and 'frRatingData' structures
 function calculateHullPerformance(generalArrangement) {
   if (!generalArrangement || !Array.isArray(generalArrangement)) return null;
   
@@ -615,11 +885,12 @@ function calculateHullPerformance(generalArrangement) {
   let totalWeight = 0;
   
   generalArrangement.forEach(component => {
-    if (!component.frRatingData || !Array.isArray(component.frRatingData)) return;
+    const ratingData = getRatingDataFromComponent(component);
+    if (ratingData.length === 0) return;
     
-    component.frRatingData.forEach(rating => {
-      const fr = parseFloat(rating.foulingRatingType) || 0;
-      const coverage = parseFloat(rating.foulingCoverage) || 0;
+    ratingData.forEach(rating => {
+      const fr = extractFoulingRating(rating);
+      const coverage = extractCoverageValue(rating);
       
       if (coverage > 0) {
         // Weight by coverage area
@@ -642,6 +913,39 @@ function calculateHullPerformance(generalArrangement) {
   
   const hullPerformance = Math.max(0, Math.round(100 - dragPenalty));
   return hullPerformance;
+}
+
+/**
+ * Calculate weighted average fouling rating from generalArrangement
+ * @param {Array} generalArrangement - GA data
+ * @returns {number|null} Weighted average FR (0-5) or null if no data
+ */
+function calculateAverageFoulingRating(generalArrangement) {
+  if (!generalArrangement || !Array.isArray(generalArrangement)) return null;
+  
+  let totalFRWeighted = 0;
+  let totalWeight = 0;
+  let dataPoints = 0;
+  
+  generalArrangement.forEach(component => {
+    const ratingData = getRatingDataFromComponent(component);
+    
+    ratingData.forEach(rating => {
+      const fr = extractFoulingRating(rating);
+      const coverage = extractCoverageValue(rating);
+      
+      // If no coverage specified, assume equal weight
+      const weight = coverage > 0 ? coverage / 100 : 1;
+      totalFRWeighted += fr * weight;
+      totalWeight += weight;
+      dataPoints++;
+    });
+  });
+  
+  if (dataPoints === 0) return null;
+  if (totalWeight === 0) totalWeight = dataPoints; // Fallback for missing coverage
+  
+  return Math.round((totalFRWeighted / totalWeight) * 10) / 10;
 }
 
 // Extract comprehensive vessel data from work item
@@ -1281,15 +1585,17 @@ router.get('/fleet', async (req, res) => {
       vessel.performance.hasRealCleaningData = hasRealCleaningData;
       
       // Calculate days since last clean - prefer API data, fallback to job data
-      let daysSinceLastClean = vessel.daysSinceLastClean;
-      if (daysSinceLastClean === null && lastClean) {
+      let daysSinceLastClean = vessel.daysSinceLastClean ?? null;
+      
+      // If no API data, calculate from last completed cleaning job
+      if ((daysSinceLastClean === null || daysSinceLastClean === undefined) && lastClean) {
         const cleanDate = new Date(lastClean.lastModified);
         daysSinceLastClean = Math.floor((new Date() - cleanDate) / (1000 * 60 * 60 * 24));
       }
       
       // Calculate fouling prediction if we have cleaning data
       let foulingPrediction = null;
-      if (foulingCalculator && daysSinceLastClean !== null) {
+      if (foulingCalculator && daysSinceLastClean !== null && daysSinceLastClean !== undefined) {
         foulingPrediction = foulingCalculator.predictFoulingRating(daysSinceLastClean, 'mixed', 0.5);
         
         // If we have an API fouling rating, use it to validate/override prediction
@@ -1562,6 +1868,10 @@ router.get('/work', async (req, res) => {
     });
   }
 });
+
+// Forward reference to deliveries endpoint - must be defined BEFORE :id route
+// The actual implementation is defined later but we need this here for route ordering
+router.get('/work/deliveries', deliveriesHandler);
 
 // GET /api/marinestream/work/:id - Get single work item details
 router.get('/work/:id', async (req, res) => {
@@ -2075,6 +2385,604 @@ router.get('/discover/flows', async (req, res) => {
       success: false,
       error: { message: error.message }
     });
+  }
+});
+
+// GET /api/marinestream/work/deliveries - List all work items with delivery dates
+// Uses REST API: GET /api/v3/work/{work_id}?format=standard (per Rise-X docs)
+// Note: Route is registered earlier (before /work/:id) but handler is defined here
+async function deliveriesHandler(req, res) {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    console.log('📅 Fetching all work items with delivery dates (REST API)...');
+    
+    const allWorkItems = [];
+    const errors = [];
+    
+    // Method 1: Try fetching open work items for each flow origin
+    // Uses: GET /api/v3/work/user/open?flowOriginId={flowid}
+    console.log('  📋 Fetching open work items by flow origin...');
+    for (const flowOriginId of ALL_WORKFLOW_FLOW_ORIGINS) {
+      try {
+        const workRes = await makeApiRequest(`/api/v3/work/user/open?flowOriginId=${flowOriginId}`, token);
+        
+        if (workRes.statusCode === 200) {
+          const works = JSON.parse(workRes.body);
+          if (works.length > 0) {
+            allWorkItems.push(...works);
+            console.log(`    ✓ Flow ${flowOriginId.substring(0, 8)}...: ${works.length} items`);
+          }
+        } else if (workRes.statusCode !== 401) {
+          console.log(`    ⚠ Flow ${flowOriginId.substring(0, 8)}...: status ${workRes.statusCode}`);
+        }
+      } catch (err) {
+        errors.push({ flowOriginId, error: err.message });
+      }
+    }
+    
+    // Method 2: Try the base /work endpoint
+    // Uses: GET /api/v3/work
+    console.log('  📋 Fetching from base /work endpoint...');
+    try {
+      const baseWorkRes = await makeApiRequest('/api/v3/work', token);
+      if (baseWorkRes.statusCode === 200) {
+        const baseWorks = JSON.parse(baseWorkRes.body);
+        if (baseWorks.length > 0) {
+          allWorkItems.push(...baseWorks);
+          console.log(`    ✓ Base /work: ${baseWorks.length} items`);
+        }
+      } else {
+        console.log(`    ⚠ Base /work: status ${baseWorkRes.statusCode}`);
+      }
+    } catch (err) {
+      errors.push({ endpoint: '/work', error: err.message });
+    }
+    
+    // Method 3: Try fetching work items assigned to user
+    // Uses: GET /api/v3/work/user/assigned
+    console.log('  📋 Fetching user assigned work...');
+    try {
+      const assignedRes = await makeApiRequest('/api/v3/work/user/assigned', token);
+      if (assignedRes.statusCode === 200) {
+        const assignedWorks = JSON.parse(assignedRes.body);
+        if (assignedWorks.length > 0) {
+          allWorkItems.push(...assignedWorks);
+          console.log(`    ✓ User assigned: ${assignedWorks.length} items`);
+        }
+      }
+    } catch (err) {
+      // Silent fail for this optional endpoint
+    }
+    
+    // Deduplicate by work ID
+    const workMap = new Map();
+    for (const work of allWorkItems) {
+      if (work.id && !workMap.has(work.id)) {
+        workMap.set(work.id, work);
+      }
+    }
+    
+    console.log(`📊 Processing ${workMap.size} unique work items...`);
+    
+    // For each work item, try to get full details if we don't have delivery dates
+    // Uses: GET /api/v3/work/{work_id}?format=standard
+    const workWithDates = [];
+    let detailsFetched = 0;
+    
+    for (const [workId, work] of workMap) {
+      // Check if we already have delivery dates in the summary data
+      let actualDelivery = findDeliveryDate(work, 'actual');
+      let forecastDelivery = findDeliveryDate(work, 'forecast');
+      
+      // If missing dates and we have few items, fetch full details
+      if ((!actualDelivery && !forecastDelivery) && workMap.size <= 100 && detailsFetched < 50) {
+        try {
+          const detailRes = await makeApiRequest(`/api/v3/work/${workId}?format=standard`, token);
+          if (detailRes.statusCode === 200) {
+            const fullWork = JSON.parse(detailRes.body);
+            actualDelivery = findDeliveryDate(fullWork, 'actual');
+            forecastDelivery = findDeliveryDate(fullWork, 'forecast');
+            detailsFetched++;
+            
+            // Also update vessel info if available
+            if (fullWork.data) {
+              work.data = { ...work.data, ...fullWork.data };
+            }
+          }
+        } catch (err) {
+          // Silent fail for detail fetch
+        }
+      }
+      
+      const vessel = work.data?.ranVessel || work.data?.vessel;
+      const vesselName = vessel?.displayName || vessel?.name || vessel?.data?.name || null;
+      
+      // Determine time category
+      const now = new Date();
+      let timeCategory = 'unknown';
+      
+      if (work.currentState === 'Complete' || work.status === 'Complete') {
+        timeCategory = 'historic';
+      } else if (forecastDelivery) {
+        const forecastDate = new Date(forecastDelivery);
+        if (forecastDate < now) {
+          timeCategory = 'overdue';
+        } else if (forecastDate.toDateString() === now.toDateString()) {
+          timeCategory = 'today';
+        } else {
+          timeCategory = 'future';
+        }
+      } else if (work.currentState === 'InProgress' || work.currentState === 'Draft') {
+        timeCategory = 'in_progress';
+      }
+      
+      workWithDates.push({
+        workId: work.id,
+        workCode: work.workCode,
+        displayName: work.displayName,
+        flowType: work.flowType,
+        flowOriginId: work.flowOriginId,
+        status: work.currentState || work.status || 'Unknown',
+        createdDate: work.createdDate,
+        lastModified: work.lastModified,
+        vesselName,
+        // Delivery dates
+        actualDeliveryDate: actualDelivery,
+        forecastDeliveryDate: forecastDelivery,
+        // Time category
+        timeCategory,
+        // Link to job
+        jobUrl: `https://app.marinestream.io/marinestream/work/${work.id}`
+      });
+    }
+    
+    // Sort by forecast date (future first), then by last modified
+    workWithDates.sort((a, b) => {
+      // Future items first
+      if (a.timeCategory === 'future' && b.timeCategory !== 'future') return -1;
+      if (b.timeCategory === 'future' && a.timeCategory !== 'future') return 1;
+      
+      // Then by date
+      const dateA = a.forecastDeliveryDate || a.actualDeliveryDate || a.lastModified;
+      const dateB = b.forecastDeliveryDate || b.actualDeliveryDate || b.lastModified;
+      
+      if (dateA && dateB) {
+        return new Date(dateB) - new Date(dateA);
+      }
+      return 0;
+    });
+    
+    // Group by category
+    const byCategory = {
+      future: workWithDates.filter(w => w.timeCategory === 'future'),
+      today: workWithDates.filter(w => w.timeCategory === 'today'),
+      overdue: workWithDates.filter(w => w.timeCategory === 'overdue'),
+      in_progress: workWithDates.filter(w => w.timeCategory === 'in_progress'),
+      historic: workWithDates.filter(w => w.timeCategory === 'historic'),
+      unknown: workWithDates.filter(w => w.timeCategory === 'unknown')
+    };
+    
+    // Group by flow type
+    const byFlowType = {};
+    workWithDates.forEach(w => {
+      const flowType = w.flowType || 'unknown';
+      if (!byFlowType[flowType]) {
+        byFlowType[flowType] = [];
+      }
+      byFlowType[flowType].push(w);
+    });
+    
+    console.log(`✅ Found ${workWithDates.length} work items:`);
+    console.log(`   - Future: ${byCategory.future.length}`);
+    console.log(`   - Today: ${byCategory.today.length}`);
+    console.log(`   - Overdue: ${byCategory.overdue.length}`);
+    console.log(`   - In Progress: ${byCategory.in_progress.length}`);
+    console.log(`   - Historic: ${byCategory.historic.length}`);
+    console.log(`   - With Forecast Date: ${workWithDates.filter(w => w.forecastDeliveryDate).length}`);
+    console.log(`   - With Actual Date: ${workWithDates.filter(w => w.actualDeliveryDate).length}`);
+    
+    res.json({
+      success: true,
+      data: {
+        timestamp: new Date().toISOString(),
+        totalWorkItems: workWithDates.length,
+        detailsFetched,
+        summary: {
+          future: byCategory.future.length,
+          today: byCategory.today.length,
+          overdue: byCategory.overdue.length,
+          inProgress: byCategory.in_progress.length,
+          historic: byCategory.historic.length,
+          withForecastDate: workWithDates.filter(w => w.forecastDeliveryDate).length,
+          withActualDate: workWithDates.filter(w => w.actualDeliveryDate).length
+        },
+        byCategory,
+        byFlowType,
+        allWork: workWithDates,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (error) {
+    console.error('Deliveries endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+}
+
+/**
+ * Extract date value from potentially nested date object
+ * MarineStream returns dates as objects like: { date: "2025-08-30T00:12:47.942Z", offset: 480, timezone: "Australia/Perth" }
+ */
+function extractDateValue(dateObj) {
+  if (!dateObj) return null;
+  
+  // If it's already a string, return it
+  if (typeof dateObj === 'string') {
+    return dateObj;
+  }
+  
+  // If it's an object with a date property, extract it
+  if (typeof dateObj === 'object') {
+    // Try common date object formats
+    if (dateObj.date) return dateObj.date;
+    if (dateObj.startDateTime) return extractDateValue(dateObj.startDateTime);
+    if (dateObj.endDateTime) return extractDateValue(dateObj.endDateTime);
+    if (dateObj.dateTime) return dateObj.dateTime;
+    if (dateObj.value) return dateObj.value;
+    
+    // If it has a ticks property, convert to ISO string
+    if (dateObj.ticks) {
+      try {
+        return new Date(parseInt(dateObj.ticks)).toISOString();
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Find delivery date in work item data
+ * Searches various possible field locations
+ */
+function findDeliveryDate(work, type) {
+  if (!work) return null;
+  
+  const data = work.data || {};
+  
+  if (type === 'actual') {
+    return extractDateValue(data.actualDelivery?.startDateTime) ||
+           extractDateValue(data.actualDelivery?.endDateTime) ||
+           extractDateValue(data.actualDelivery) ||
+           extractDateValue(data.actualDateOfDelivery) ||
+           extractDateValue(data.actualDate) ||
+           extractDateValue(data.completedDate) ||
+           extractDateValue(work.actualDelivery?.startDateTime) ||
+           extractDateValue(work.actualDelivery) ||
+           null;
+  }
+  
+  if (type === 'forecast') {
+    return extractDateValue(data.forecastDelivery?.startDateTime) ||
+           extractDateValue(data.forecastDelivery?.endDateTime) ||
+           extractDateValue(data.forecastDelivery) ||
+           extractDateValue(data.forecastDateOfDelivery) ||
+           extractDateValue(data.forecastDate) ||
+           extractDateValue(data.scheduledDate) ||
+           extractDateValue(data.plannedDate) ||
+           extractDateValue(data.dueDate) ||
+           extractDateValue(work.forecastDelivery?.startDateTime) ||
+           extractDateValue(work.forecastDelivery) ||
+           null;
+  }
+  
+  return null;
+}
+
+// GET /api/marinestream/debug/fouling/:vesselName - Debug endpoint to check fouling data for a vessel
+router.get('/debug/fouling/:vesselName', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const { vesselName } = req.params;
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    console.log(`🔍 Debug: Searching for fouling data for vessel "${vesselName}"...`);
+    
+    const results = {
+      vesselName,
+      timestamp: new Date().toISOString(),
+      sources: {},
+      rawData: {}
+    };
+    
+    // 1. Check asset registries for bfmpProperties
+    console.log('  📦 Checking asset registries...');
+    for (const [registryName, registryId] of Object.entries(FLOW_ORIGINS.assetRegistries)) {
+      try {
+        const assetRes = await makeApiRequest(`/api/v3/thing?thingTypeId=${registryId}`, token);
+        
+        if (assetRes.statusCode === 200) {
+          const assets = JSON.parse(assetRes.body);
+          const matchingAsset = assets.find(a => {
+            const name = (a.displayName || a.name || a.data?.name || '').toLowerCase();
+            return name.includes(vesselName.toLowerCase()) || vesselName.toLowerCase().includes(name);
+          });
+          
+          if (matchingAsset) {
+            results.sources[registryName] = {
+              found: true,
+              assetId: matchingAsset.id,
+              name: matchingAsset.displayName || matchingAsset.name,
+              bfmpProperties: matchingAsset.data?.bfmpProperties || null,
+              daysSinceLastClean: matchingAsset.data?.bfmpProperties?.daysSinceLastClean ?? null,
+              foulingRating: matchingAsset.data?.bfmpProperties?.foulingRating ?? null,
+              generalArrangement: matchingAsset.data?.generalArrangement || null,
+              rawData: matchingAsset.data
+            };
+            console.log(`    ✓ Found in ${registryName}: ${matchingAsset.displayName}`);
+            
+            // Store full raw data for debugging
+            results.rawData[registryName] = matchingAsset;
+          }
+        }
+      } catch (err) {
+        results.sources[registryName] = { found: false, error: err.message };
+      }
+    }
+    
+    // 2. Check work items for biofouling assessments
+    console.log('  📋 Checking work items...');
+    const workItems = [];
+    
+    for (const flowOriginId of ALL_WORKFLOW_FLOW_ORIGINS) {
+      try {
+        const workRes = await makeApiRequest(`/api/v3/work/user/open?flowOriginId=${flowOriginId}`, token);
+        
+        if (workRes.statusCode === 200) {
+          const works = JSON.parse(workRes.body);
+          
+          works.forEach(work => {
+            const vessel = work.data?.ranVessel || work.data?.vessel;
+            const vName = vessel?.displayName || vessel?.name || vessel?.data?.name || '';
+            
+            if (vName.toLowerCase().includes(vesselName.toLowerCase())) {
+              const vesselData = vessel?.data || {};
+              workItems.push({
+                workId: work.id,
+                workCode: work.workCode,
+                flowType: work.flowType,
+                status: work.currentState,
+                lastModified: work.lastModified,
+                vesselName: vName,
+                hasGeneralArrangement: !!vesselData.generalArrangement,
+                generalArrangementLength: Array.isArray(vesselData.generalArrangement) ? vesselData.generalArrangement.length : 0,
+                generalArrangement: vesselData.generalArrangement || null,
+                bfmpProperties: vesselData.bfmpProperties || null
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.log(`    ⚠ Flow ${flowOriginId.substring(0, 8)}...: ${err.message}`);
+      }
+    }
+    
+    // Sort work items by date (newest first)
+    workItems.sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+    results.workItems = workItems;
+    results.workItemCount = workItems.length;
+    
+    // 3. Find the most recent assessment with GA data
+    const latestWithGA = workItems.find(w => w.hasGeneralArrangement && w.status === 'Complete');
+    if (latestWithGA) {
+      results.latestAssessment = {
+        workCode: latestWithGA.workCode,
+        date: latestWithGA.lastModified,
+        generalArrangementComponents: latestWithGA.generalArrangementLength,
+        sampleData: Array.isArray(latestWithGA.generalArrangement) 
+          ? latestWithGA.generalArrangement.slice(0, 2).map(comp => ({
+              name: comp.name || comp.GAComponent,
+              hasItems: !!(comp.items && comp.items.length),
+              hasFrRatingData: !!(comp.frRatingData && comp.frRatingData.length),
+              itemCount: comp.items?.length || 0,
+              frRatingDataCount: comp.frRatingData?.length || 0,
+              sampleItem: comp.items?.[0] || comp.frRatingData?.[0] || null
+            }))
+          : null
+      };
+    }
+    
+    // Calculate what we can extract
+    if (latestWithGA?.generalArrangement) {
+      const fon = calculateFONScore(latestWithGA.generalArrangement);
+      const hp = calculateHullPerformance(latestWithGA.generalArrangement);
+      const avgFR = calculateAverageFoulingRating(latestWithGA.generalArrangement);
+      
+      results.calculatedMetrics = {
+        freedomOfNavigation: fon,
+        hullPerformance: hp,
+        averageFoulingRating: avgFR
+      };
+    }
+    
+    console.log(`  ✅ Debug complete. Found ${workItems.length} work items, ${Object.keys(results.sources).length} registry matches.`);
+    
+    res.json({
+      success: true,
+      data: results
+    });
+  } catch (error) {
+    console.error('Debug endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+// GET /api/marinestream/debug/dates - Discover all date fields in work items
+router.get('/debug/dates', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({ success: false, error: { message: 'Authorization token required' } });
+  }
+
+  try {
+    console.log('🔍 Discovering date fields in work items...');
+    
+    // Fetch a sample of work items
+    const workRes = await makeApiRequest('/api/v3/work', token);
+    
+    if (workRes.statusCode !== 200) {
+      return res.status(workRes.statusCode).json({ success: false, error: { message: 'Failed to fetch work' } });
+    }
+
+    const workItems = JSON.parse(workRes.body);
+    const dateFieldsFound = new Set();
+    const sampleDates = {};
+    
+    // Helper function to find date fields recursively
+    function findDateFields(obj, path = '') {
+      if (!obj || typeof obj !== 'object') return;
+      
+      for (const [key, value] of Object.entries(obj)) {
+        const currentPath = path ? `${path}.${key}` : key;
+        
+        // Check if key suggests a date field
+        const isDateKey = /date|time|delivery|scheduled|forecast|actual|created|modified|start|end/i.test(key);
+        
+        // Check if value looks like a date
+        const isDateValue = typeof value === 'string' && 
+          (/^\d{4}-\d{2}-\d{2}/.test(value) || /T\d{2}:\d{2}/.test(value));
+        
+        if (isDateKey || isDateValue) {
+          dateFieldsFound.add(currentPath);
+          if (!sampleDates[currentPath]) {
+            sampleDates[currentPath] = [];
+          }
+          if (sampleDates[currentPath].length < 3 && value) {
+            sampleDates[currentPath].push(value);
+          }
+        }
+        
+        // Recurse into objects and arrays
+        if (typeof value === 'object' && value !== null) {
+          if (Array.isArray(value)) {
+            value.slice(0, 2).forEach((item, i) => {
+              findDateFields(item, `${currentPath}[${i}]`);
+            });
+          } else {
+            findDateFields(value, currentPath);
+          }
+        }
+      }
+    }
+    
+    // Analyze each work item
+    workItems.slice(0, 20).forEach(work => {
+      findDateFields(work);
+    });
+    
+    // Sort and categorize date fields
+    const sortedFields = Array.from(dateFieldsFound).sort();
+    const deliveryFields = sortedFields.filter(f => /delivery|scheduled|forecast|actual/i.test(f));
+    const otherDateFields = sortedFields.filter(f => !/delivery|scheduled|forecast|actual/i.test(f));
+    
+    console.log(`✅ Found ${sortedFields.length} date-related fields`);
+    
+    res.json({
+      success: true,
+      data: {
+        totalWorkItemsAnalyzed: Math.min(workItems.length, 20),
+        deliveryDateFields: deliveryFields,
+        otherDateFields: otherDateFields,
+        allDateFields: sortedFields,
+        sampleValues: sampleDates
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
+});
+
+// GET /api/marinestream/debug/structure - Debug endpoint to show data structure for a single work item
+router.get('/debug/structure/:workId', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const { workId } = req.params;
+  
+  if (!token) {
+    return res.status(401).json({ success: false, error: { message: 'Authorization token required' } });
+  }
+
+  try {
+    const result = await makeApiRequest(`/api/v3/work/${workId}?format=standard`, token);
+    
+    if (result.statusCode !== 200) {
+      return res.status(result.statusCode).json({ success: false, error: { message: 'Failed to fetch work item' } });
+    }
+
+    const work = JSON.parse(result.body);
+    
+    // Analyze the data structure
+    function analyzeStructure(obj, path = '') {
+      const analysis = {};
+      
+      if (obj === null) return { type: 'null', path };
+      if (obj === undefined) return { type: 'undefined', path };
+      if (Array.isArray(obj)) {
+        return {
+          type: 'array',
+          length: obj.length,
+          path,
+          sample: obj.slice(0, 2).map((item, i) => analyzeStructure(item, `${path}[${i}]`))
+        };
+      }
+      if (typeof obj === 'object') {
+        const keys = Object.keys(obj);
+        return {
+          type: 'object',
+          keys: keys,
+          path,
+          children: keys.reduce((acc, key) => {
+            acc[key] = analyzeStructure(obj[key], `${path}.${key}`);
+            return acc;
+          }, {})
+        };
+      }
+      return { type: typeof obj, value: String(obj).substring(0, 100), path };
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        workId,
+        workCode: work.workCode,
+        flowType: work.flowType,
+        structure: analyzeStructure(work, 'work'),
+        raw: work
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: { message: error.message } });
   }
 });
 
