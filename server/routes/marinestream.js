@@ -1916,14 +1916,20 @@ function determineFlowCategory(flowOrigin) {
 
 // POST /api/marinestream/work - Create a new work item (job)
 router.post('/work', async (req, res) => {
+  console.log('🚀 POST /work endpoint hit');
+  console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
+  
   const token = getTokenFromRequest(req);
   
   if (!token) {
+    console.log('❌ No token found in request');
     return res.status(401).json({
       success: false,
       error: { message: 'Authorization token required' }
     });
   }
+  
+  console.log('✅ Token found, length:', token.length);
 
   try {
     const { flowOriginId, displayName, data } = req.body;
