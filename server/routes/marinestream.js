@@ -28,14 +28,6 @@ try {
   console.warn('OAuth routes not available, using header-only auth');
 }
 
-// Import Marinesia service for vessel lookup and tracking
-let marinesia;
-try {
-  marinesia = require('../services/marinesia');
-} catch (e) {
-  console.warn('Marinesia service not available:', e.message);
-}
-
 // Import authoritative MMSI registry - NEVER overwrite with blank/invalid data
 let mmsiRegistry;
 try {
@@ -67,118 +59,6 @@ try {
 }
 
 const DIANA_API_BASE = 'api.idiana.io';
-
-/**
- * Use Marinesia to find vessel MMSI and position by name
- * This is crucial for tracking vessels that don't have MMSI in registries
- */
-async function findVesselViaMarinesia(vesselName, existingIMO = null, existingMMSI = null) {
-  if (!marinesia || !marinesia.isConfigured()) {
-    return null;
-  }
-  
-  try {
-    // If we have a valid MMSI, get full data from Marinesia
-    if (existingMMSI && String(existingMMSI).length === 9 && !/^50300\d{4}$/.test(existingMMSI)) {
-      const [profile, location] = await Promise.allSettled([
-        marinesia.getVesselProfile(existingMMSI),
-        marinesia.getVesselLatestLocation(existingMMSI)
-      ]);
-      
-      if (profile.status === 'fulfilled' && profile.value) {
-        return {
-          mmsi: existingMMSI,
-          imo: profile.value.imo || existingIMO,
-          marinesia: profile.value,
-          position: location.status === 'fulfilled' ? location.value : null,
-          source: 'marinesia_direct'
-        };
-      }
-    }
-    
-    // Search by name if no valid MMSI
-    const cleanName = vesselName
-      .replace(/^hmas\s+/i, '')  // Remove HMAS prefix
-      .replace(/^mv\s+/i, '')    // Remove MV prefix
-      .replace(/^hms\s+/i, '')   // Remove HMS prefix
-      .replace(/\s*\([^)]*\)\s*$/, '')  // Remove trailing parenthetical
-      .trim();
-    
-    if (cleanName.length < 3) return null;
-    
-    // Search Marinesia vessel database
-    const searchResult = await marinesia.searchVesselProfiles({
-      filters: `name:${cleanName}`,
-      limit: 5
-    });
-    
-    if (searchResult.vessels && searchResult.vessels.length > 0) {
-      // Try to find best match
-      const match = searchResult.vessels.find(v => {
-        const mName = (v.name || '').toLowerCase();
-        const searchName = cleanName.toLowerCase();
-        return mName.includes(searchName) || searchName.includes(mName);
-      }) || searchResult.vessels[0];
-      
-      if (match && match.mmsi) {
-        // Get location for matched vessel
-        const location = await marinesia.getVesselLatestLocation(match.mmsi).catch(() => null);
-        
-        console.log(`  🔍 Marinesia: Found "${vesselName}" -> MMSI ${match.mmsi} (${match.name})`);
-        
-        return {
-          mmsi: String(match.mmsi),
-          imo: match.imo || existingIMO,
-          marinesia: {
-            name: match.name,
-            ship_type: match.type,
-            country: match.flag,
-            length: match.l,
-            width: match.w,
-            callsign: match.cs
-          },
-          position: location,
-          source: 'marinesia_search'
-        };
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.log(`  ⚠️ Marinesia lookup failed for "${vesselName}":`, error.message);
-    return null;
-  }
-}
-
-/**
- * Get live position from Marinesia for a known MMSI
- */
-async function getMarinesiaPosition(mmsi) {
-  if (!marinesia || !marinesia.isConfigured() || !mmsi) {
-    return null;
-  }
-  
-  try {
-    const location = await marinesia.getVesselLatestLocation(mmsi);
-    if (location && location.lat && location.lng) {
-      return {
-        lat: location.lat,
-        lng: location.lng,
-        speed: location.sog,
-        course: location.cog,
-        heading: location.hdt,
-        status: location.status,
-        destination: location.dest,
-        eta: location.eta,
-        timestamp: location.ts,
-        source: 'marinesia'
-      };
-    }
-  } catch (error) {
-    // Silent fail
-  }
-  return null;
-}
 
 /**
  * Get access token from request
