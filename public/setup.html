@@ -255,6 +255,9 @@
       </div>
       
       <script>
+        // Dashboard URL - use production URL for bookmarklet
+        const DASHBOARD_BASE_URL = 'https://marinestream-workspace.onrender.com';
+        
         // Generate bookmarklet URL safely
         const bookmarkletCode = `javascript:(function(){
           var s=localStorage,o=sessionStorage,t,k,v,i,found=false;
@@ -266,7 +269,7 @@
             var mins=Math.round((exp-Date.now())/60000);
             if(mins>0){
               var overlay=document.createElement('div');
-              overlay.innerHTML='<div style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:system-ui"><div style="background:#1e293b;border-radius:16px;padding:32px;max-width:400px;text-align:center;color:#f1f5f9;box-shadow:0 25px 50px rgba(0,0,0,0.5)"><div style="font-size:48px;margin-bottom:12px">✅</div><h2 style="font-size:20px;margin:0 0 4px">Token Ready!</h2><p style="color:#94a3b8;margin:0 0 20px;font-size:14px">Valid for '+mins+' minutes</p><input id="ms-token-input" type="text" value="'+t+'" readonly style="width:100%;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:11px;margin-bottom:12px;font-family:monospace"><button onclick="navigator.clipboard.writeText(document.getElementById(\\'ms-token-input\\').value);this.textContent=\\'Copied!\\'" style="width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-bottom:8px">Copy Token</button><button onclick="window.open(\\'http://localhost:3000/dashboard.html?token='+encodeURIComponent(t)+'\\',\\'_blank\\')" style="width:100%;padding:12px;background:#22c55e;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-bottom:12px">Open Fleet Command →</button><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#64748b;cursor:pointer">Close</button></div></div>';
+              overlay.innerHTML='<div style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:system-ui"><div style="background:#1e293b;border-radius:16px;padding:32px;max-width:400px;text-align:center;color:#f1f5f9;box-shadow:0 25px 50px rgba(0,0,0,0.5)"><div style="font-size:48px;margin-bottom:12px">✅</div><h2 style="font-size:20px;margin:0 0 4px">Token Ready!</h2><p style="color:#94a3b8;margin:0 0 20px;font-size:14px">Valid for '+mins+' minutes</p><input id="ms-token-input" type="text" value="'+t+'" readonly style="width:100%;padding:10px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#94a3b8;font-size:11px;margin-bottom:12px;font-family:monospace"><button onclick="navigator.clipboard.writeText(document.getElementById(\\'ms-token-input\\').value);this.textContent=\\'Copied!\\'" style="width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-bottom:8px">Copy Token</button><button onclick="window.open(\\'${DASHBOARD_BASE_URL}/dashboard.html?token='+encodeURIComponent(t)+'\\',\\'_blank\\')" style="width:100%;padding:12px;background:#22c55e;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;margin-bottom:12px">Open Fleet Command →</button><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#64748b;cursor:pointer">Close</button></div></div>';
               document.body.appendChild(overlay);
             }else{alert('Token expired ('+mins+'m). Refresh MarineStream and try again.');}
           }else{alert('No token found. Make sure you\\'re logged into MarineStream.');}
