@@ -45,9 +45,24 @@ const server = http.createServer(app);
 // WebSocket server for AIS relay
 const wss = new WebSocketServer({ server, path: '/api/map/stream' });
 
-// Middleware
+// Middleware - CORS configuration for production and development
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://marinestream-workspace.onrender.com',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || origin.endsWith('.onrender.com')) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 app.use(express.json());

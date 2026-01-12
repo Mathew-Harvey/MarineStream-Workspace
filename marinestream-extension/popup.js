@@ -2,6 +2,9 @@
  * MarineStream PAT Capture - Popup Script
  */
 
+// Dashboard URL - uses production URL, fallback to localhost for development
+const DASHBOARD_URL = 'https://marinestream-workspace.onrender.com/dashboard.html';
+
 document.addEventListener('DOMContentLoaded', () => {
   updateStatus();
   
@@ -92,7 +95,7 @@ function updateStatus() {
       document.getElementById('open-dashboard').addEventListener('click', () => {
         // Store token in a way the dashboard can access
         chrome.storage.local.set({ dashboard_ready: true }, () => {
-          chrome.tabs.create({ url: 'http://localhost:3000/dashboard.html' });
+          chrome.tabs.create({ url: DASHBOARD_URL });
         });
       });
       

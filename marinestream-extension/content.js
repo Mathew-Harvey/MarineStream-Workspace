@@ -153,7 +153,7 @@ function showCaptureNotification() {
       Your authentication token has been captured. You can now use the Fleet Command dashboard without manual token entry.
     </div>
     
-    <a href="http://localhost:3000/dashboard.html" class="btn" target="_blank">
+    <a href="https://marinestream-workspace.onrender.com/dashboard.html" class="btn" target="_blank">
       Open Fleet Command
     </a>
     <button class="btn btn-ghost" onclick="this.parentElement.parentElement.remove()">
@@ -227,7 +227,7 @@ function showTokenIndicator(data) {
   }
   
   indicator.addEventListener('click', () => {
-    window.open('http://localhost:3000/dashboard.html', '_blank');
+    window.open('https://marinestream-workspace.onrender.com/dashboard.html', '_blank');
   });
   
   document.body.appendChild(indicator);
