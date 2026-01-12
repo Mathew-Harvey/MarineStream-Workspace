@@ -2,9 +2,18 @@
  * MarineStream Core API Proxy
  * Proxies requests to api.idiana.io (Rise-X Diana API)
  * 
- * ENHANCED: Complete historic data fetching using GraphQL endpoint,
- * flow origin iteration, date range chunking, and proper pagination
- * (Mirrors the Python extraction approach for complete data coverage)
+ * API STRATEGY:
+ * - REST API (recommended): Used for most endpoints - work queries, asset queries,
+ *   flow origins, user info, and creating new work items. REST endpoints follow
+ *   the pattern: GET/POST /api/v3/{resource}
+ * 
+ * - GraphQL API (historic extraction only): Used ONLY for the /extract endpoint
+ *   which mirrors the Python extraction script for complete historic data coverage.
+ *   GraphQL is used here because it can efficiently extract nested/complex data
+ *   structures (like generalArrangement with fouling ratings) in a single query.
+ *   Endpoint: POST /api/v3/graphql/works
+ * 
+ * All new endpoints should use REST API calls via makeApiRequest().
  */
 
 const express = require('express');
@@ -1989,6 +1998,213 @@ router.get('/flows', async (req, res) => {
     });
   } catch (error) {
     console.error('Flows API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+// GET /api/marinestream/flow-origins - Get available flow origins for creating new work
+// These are the templates/workflows that can be used to start new jobs
+// Note: Uses hardcoded flow origins since the API doesn't provide this endpoint
+router.get('/flow-origins', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    // Use our known flow origins (API doesn't provide a flow listing endpoint)
+    // These are the flow origin IDs used for creating new work items
+    const availableWorkflows = [
+      // RAN Biofouling workflows
+      {
+        id: 'c87625d0-74b4-4bef-8ab2-eb2cd65fa833',
+        displayName: 'RAN Biofouling',
+        description: 'Royal Australian Navy biofouling inspection and cleaning workflow',
+        flowType: 'biofouling',
+        category: 'ran_biofouling',
+        canCreateNew: true
+      },
+      {
+        id: 'ce374b64-dd61-4892-ae40-fd24e625be79',
+        displayName: 'RAN Engineering',
+        description: 'Royal Australian Navy engineering inspection workflow',
+        flowType: 'engineering',
+        category: 'ran_engineering',
+        canCreateNew: true
+      },
+      {
+        id: '7a3ded1b-aa86-476a-95f7-dda9822b9518',
+        displayName: 'RAN Assets',
+        description: 'Royal Australian Navy assets workflow',
+        flowType: 'assets',
+        category: 'ran_assets',
+        canCreateNew: true
+      },
+      {
+        id: 'f7ee94cf-b2e7-4321-9a21-2a179b3830ee',
+        displayName: 'RAN Workboard',
+        description: 'Royal Australian Navy workboard',
+        flowType: 'workboard',
+        category: 'ran_workboard',
+        canCreateNew: true
+      },
+      // Commercial Biofouling workflows
+      {
+        id: 'f46b1946-b7f9-4ecb-88d3-dc2b6a8e2a39',
+        displayName: 'Biofouling',
+        description: 'Commercial biofouling inspection and cleaning workflow',
+        flowType: 'biofouling',
+        category: 'commercial_biofouling',
+        canCreateNew: true
+      },
+      {
+        id: '3e2d5ca9-7e4c-4b43-9152-78f3c0b35d4a',
+        displayName: 'Engineering',
+        description: 'Commercial engineering inspection workflow',
+        flowType: 'engineering',
+        category: 'commercial_engineering',
+        canCreateNew: true
+      }
+    ];
+    
+    res.json({
+      success: true,
+      data: availableWorkflows,
+      help: 'Use these flow origin IDs with POST /api/marinestream/work to create new jobs'
+    });
+  } catch (error) {
+    console.error('Flow Origins API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+/**
+ * Helper to determine flow category based on flow origin properties
+ */
+function determineFlowCategory(flowOrigin) {
+  const name = (flowOrigin.displayName || flowOrigin.name || '').toLowerCase();
+  const description = (flowOrigin.description || '').toLowerCase();
+  
+  if (name.includes('ran') || description.includes('ran')) {
+    if (name.includes('biofouling') || description.includes('biofouling')) {
+      return 'ran-biofouling';
+    } else if (name.includes('engineering') || description.includes('engineering')) {
+      return 'ran-engineering';
+    }
+    return 'ran';
+  }
+  
+  if (name.includes('commercial') || name.includes('biofouling')) {
+    return 'commercial';
+  }
+  
+  if (name.includes('engineering')) {
+    return 'engineering';
+  }
+  
+  return 'other';
+}
+
+// POST /api/marinestream/work - Create a new work item (job)
+router.post('/work', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    const { flowOriginId, displayName, data } = req.body;
+    
+    if (!flowOriginId) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'flowOriginId is required to create a new work item' }
+      });
+    }
+    
+    console.log(`📝 Creating new work item from flow origin: ${flowOriginId}`);
+    
+    // Build the work creation payload
+    const workPayload = {
+      flowOriginId,
+      displayName: displayName || undefined,
+      data: data || {}
+    };
+    
+    // Make POST request to Diana API to create work
+    const postData = JSON.stringify(workPayload);
+    
+    const result = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: DIANA_API_BASE,
+        port: 443,
+        path: '/api/v3/work',
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const req = https.request(options, (response) => {
+        let data = '';
+        response.on('data', chunk => data += chunk);
+        response.on('end', () => {
+          resolve({
+            statusCode: response.statusCode,
+            body: data
+          });
+        });
+      });
+
+      req.on('error', reject);
+      req.write(postData);
+      req.end();
+    });
+    
+    if (result.statusCode === 200 || result.statusCode === 201) {
+      const newWork = JSON.parse(result.body);
+      console.log(`✅ Created new work item: ${newWork.id} (${newWork.workCode})`);
+      
+      res.json({
+        success: true,
+        data: {
+          workId: newWork.id,
+          workCode: newWork.workCode,
+          displayName: newWork.displayName,
+          flowType: newWork.flowType,
+          status: newWork.currentState,
+          jobUrl: `https://app.marinestream.io/marinestream/work/${newWork.id}`
+        }
+      });
+    } else {
+      console.error(`❌ Failed to create work item: ${result.statusCode}`, result.body);
+      res.status(result.statusCode).json({
+        success: false,
+        error: { 
+          message: 'Failed to create work item',
+          details: result.body
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Create Work API error:', error);
     res.status(500).json({
       success: false,
       error: { message: error.message }

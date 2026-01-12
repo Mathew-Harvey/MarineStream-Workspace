@@ -916,3 +916,262 @@
     font-size: 10px;
   }
 }
+
+/* ========================================
+   Create Job Button Styles
+   ======================================== */
+.kanban-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.kanban-create-btn,
+.cal-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.kanban-create-btn:hover,
+.cal-create-btn:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+}
+
+.kanban-create-btn svg,
+.cal-create-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* FullCalendar custom button override */
+.fc .fc-createJob-button {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  font-weight: 600 !important;
+}
+
+.fc .fc-createJob-button:hover {
+  background: #ea580c !important;
+  border-color: #ea580c !important;
+}
+
+/* ========================================
+   Create Job Modal Styles
+   ======================================== */
+.kanban-modal-overlay,
+.calendar-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.kanban-modal,
+.calendar-modal {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kanban-modal-header,
+.calendar-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.kanban-modal-header h3,
+.calendar-modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.kanban-modal-close,
+.calendar-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.kanban-modal-close:hover,
+.calendar-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.kanban-modal-close svg,
+.calendar-modal-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.kanban-modal-body,
+.calendar-modal-body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+  max-height: calc(80vh - 70px);
+}
+
+.kanban-modal-subtitle,
+.calendar-modal-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0 0 var(--space-md) 0;
+}
+
+.kanban-flow-list,
+.calendar-flow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kanban-flow-item,
+.calendar-flow-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.kanban-flow-item:hover,
+.calendar-flow-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+  transform: translateX(4px);
+}
+
+.kanban-flow-item:disabled,
+.calendar-flow-item:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.kanban-flow-info,
+.calendar-flow-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kanban-flow-name,
+.calendar-flow-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.kanban-flow-category,
+.calendar-flow-category {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.kanban-flow-item svg,
+.calendar-flow-item svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.kanban-flow-item:hover svg,
+.calendar-flow-item:hover svg {
+  color: var(--accent-primary);
+  transform: translateX(4px);
+}
+
+.kanban-no-flows,
+.calendar-no-flows {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--text-muted);
+}
+
+.kanban-no-flows p,
+.calendar-no-flows p {
+  margin: 0;
+}
+
+.kanban-no-flows .small,
+.calendar-no-flows .small {
+  font-size: 12px;
+  margin-top: var(--space-xs);
+}
+
+/* Small loading spinner for buttons */
+.loading-spinner.small {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+
+/* Fallback calendar create button positioning */
+.calendar-simple .calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-md);
+}
+
+.calendar-simple .cal-nav-group {
+  display: flex;
+  gap: 4px;
+}

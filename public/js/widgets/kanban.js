@@ -8,17 +8,26 @@ export class KanbanBoard {
     this.container = document.getElementById(containerId);
     this.options = {
       onJobClick: options.onJobClick || ((job) => window.open(job.jobUrl, '_blank')),
+      onJobCreated: options.onJobCreated || ((job) => window.open(job.jobUrl, '_blank')),
       maxItemsPerColumn: options.maxItemsPerColumn || 50,
       ...options
     };
     this.workItems = [];
+    this.flowOrigins = [];
+  }
+
+  /**
+   * Get auth token from localStorage
+   */
+  getToken() {
+    return localStorage.getItem('marinestream_pat');
   }
 
   /**
    * Fetch work items from the API
    */
   async fetchWorkItems() {
-    const token = localStorage.getItem('marinestream_pat');
+    const token = this.getToken();
     if (!token) {
       console.warn('No auth token available for Kanban');
       return [];
@@ -42,6 +51,169 @@ export class KanbanBoard {
       console.error('Failed to fetch work items for Kanban:', error);
       return [];
     }
+  }
+
+  /**
+   * Fetch available flow origins (job types) for creating new work
+   */
+  async fetchFlowOrigins() {
+    const token = this.getToken();
+    if (!token) return [];
+
+    try {
+      const response = await fetch('/api/marinestream/flow-origins', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        this.flowOrigins = data.data;
+        return this.flowOrigins;
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch flow origins:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Create a new work item
+   */
+  async createWork(flowOriginId, displayName = null) {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const response = await fetch('/api/marinestream/work', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          flowOriginId,
+          displayName
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        return data.data;
+      }
+      throw new Error(data.error?.message || 'Failed to create work item');
+    } catch (error) {
+      console.error('Failed to create work:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Show the create job modal
+   */
+  async showCreateJobModal() {
+    // Fetch flow origins if not already loaded
+    if (this.flowOrigins.length === 0) {
+      await this.fetchFlowOrigins();
+    }
+
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'kanban-modal-overlay';
+    modal.innerHTML = `
+      <div class="kanban-modal">
+        <div class="kanban-modal-header">
+          <h3>Create New Job</h3>
+          <button class="kanban-modal-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="kanban-modal-body">
+          <p class="kanban-modal-subtitle">Select the type of job to create:</p>
+          <div class="kanban-flow-list">
+            ${this.flowOrigins.length > 0 ? this.flowOrigins.map(flow => `
+              <button class="kanban-flow-item" data-flow-id="${flow.id}">
+                <div class="kanban-flow-info">
+                  <span class="kanban-flow-name">${flow.displayName}</span>
+                  <span class="kanban-flow-category">${this.formatCategory(flow.category)}</span>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            `).join('') : `
+              <div class="kanban-no-flows">
+                <p>No workflow templates available</p>
+                <p class="small">Contact your administrator to set up workflows</p>
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    modal.querySelector('.kanban-modal-close').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+    });
+
+    // Flow item click handlers
+    modal.querySelectorAll('.kanban-flow-item').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const flowId = btn.dataset.flowId;
+        btn.disabled = true;
+        btn.innerHTML = `
+          <div class="kanban-flow-info">
+            <span class="kanban-flow-name">Creating job...</span>
+          </div>
+          <div class="loading-spinner small"></div>
+        `;
+        
+        try {
+          const newJob = await this.createWork(flowId);
+          modal.remove();
+          
+          // Notify and open the new job
+          if (this.options.onJobCreated) {
+            this.options.onJobCreated(newJob);
+          }
+          
+          // Refresh the board
+          await this.refresh();
+        } catch (error) {
+          btn.disabled = false;
+          btn.innerHTML = `
+            <div class="kanban-flow-info">
+              <span class="kanban-flow-name" style="color: var(--color-critical)">Failed: ${error.message}</span>
+            </div>
+          `;
+          setTimeout(() => this.showCreateJobModal(), 2000);
+          modal.remove();
+        }
+      });
+    });
+
+    document.body.appendChild(modal);
+  }
+
+  /**
+   * Format category for display
+   */
+  formatCategory(category) {
+    if (!category) return 'General';
+    return category
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
   }
 
   /**
@@ -199,15 +371,28 @@ export class KanbanBoard {
       <div class="kanban-board">
         <div class="kanban-header">
           <h3>Work Board</h3>
-          <div class="kanban-stats">
-            <span class="stat pending">${categorized.pending.length} Pending</span>
-            <span class="stat progress">${categorized.inProgress.length} In Progress</span>
-            <span class="stat complete">${categorized.complete.length} Complete</span>
+          <div class="kanban-header-actions">
+            <button class="kanban-create-btn" title="Create New Job">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              <span>New Job</span>
+            </button>
+            <div class="kanban-stats">
+              <span class="stat pending">${categorized.pending.length} Pending</span>
+              <span class="stat progress">${categorized.inProgress.length} In Progress</span>
+              <span class="stat complete">${categorized.complete.length} Complete</span>
+            </div>
           </div>
         </div>
         <div class="kanban-columns"></div>
       </div>
     `;
+    
+    // Add create button handler
+    this.container.querySelector('.kanban-create-btn')?.addEventListener('click', () => {
+      this.showCreateJobModal();
+    });
     
     const columnsContainer = this.container.querySelector('.kanban-columns');
     columnsContainer.appendChild(this.createColumn('Pending', categorized.pending, 'pending'));
