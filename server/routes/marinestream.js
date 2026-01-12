@@ -1994,18 +1994,25 @@ router.post('/work', async (req, res) => {
     // According to docs, body should be {} or contain initial data
     const postData = JSON.stringify(data || {});
     
+    // Headers including Environment header (required for MarineStream)
+    const requestHeaders = {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json, text/plain, */*',
+      'Content-Type': 'application/json-patch+json',
+      'Content-Length': Buffer.byteLength(postData),
+      'Environment': 'marinestream'  // Required for MarineStream environment
+    };
+    
+    console.log('📤 Request headers:', JSON.stringify(requestHeaders, null, 2).replace(token, '[REDACTED]'));
+    console.log('📤 Request body:', postData);
+    
     const result = await new Promise((resolve, reject) => {
       const options = {
         hostname: DIANA_API_BASE,
         port: 443,
         path: apiPath,
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json, text/plain, */*',
-          'Content-Type': 'application/json-patch+json',
-          'Content-Length': Buffer.byteLength(postData)
-        }
+        headers: requestHeaders
       };
 
       const req = https.request(options, (response) => {
@@ -2014,6 +2021,7 @@ router.post('/work', async (req, res) => {
         response.on('end', () => {
           resolve({
             statusCode: response.statusCode,
+            headers: response.headers,
             body: data
           });
         });
@@ -2049,7 +2057,11 @@ router.post('/work', async (req, res) => {
       }
       
       console.error(`❌ Failed to create work item: ${result.statusCode}`);
+      console.error('📋 Response headers:', JSON.stringify(result.headers, null, 2));
       console.error('📋 Response body:', typeof errorDetails === 'object' ? JSON.stringify(errorDetails, null, 2) : errorDetails);
+      console.error('📋 Full API path used:', apiPath);
+      console.error('📋 FlowId used:', actualFlowId);
+      console.error('📋 StepName used:', startStepName || 'none');
       
       res.status(result.statusCode).json({
         success: false,
