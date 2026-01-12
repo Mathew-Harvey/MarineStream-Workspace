@@ -1915,6 +1915,7 @@ function determineFlowCategory(flowOrigin) {
 }
 
 // POST /api/marinestream/work - Create a new work item (job)
+// Uses the Diana API: POST /api/v3/flow/{flowId}/startAt?stepName={stepName}
 router.post('/work', async (req, res) => {
   console.log('🚀 POST /work endpoint hit');
   console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
@@ -1932,49 +1933,72 @@ router.post('/work', async (req, res) => {
   console.log('✅ Token found, length:', token.length);
 
   try {
-    const { flowOriginId, displayName, data } = req.body;
+    const { flowOriginId, flowId, stepName, displayName, data } = req.body;
     
-    if (!flowOriginId) {
+    // We need either flowId or flowOriginId
+    const targetFlowId = flowId || flowOriginId;
+    
+    if (!targetFlowId) {
       return res.status(400).json({
         success: false,
-        error: { message: 'flowOriginId is required to create a new work item' }
+        error: { message: 'flowId or flowOriginId is required to create a new work item' }
       });
     }
     
-    console.log(`📝 Creating new work item from flow origin: ${flowOriginId}`);
+    console.log(`📝 Creating new work item from flow: ${targetFlowId}`);
     
-    // Build the work creation payload
-    // The Diana API expects flowOriginId and optionally data
-    const workPayload = {
-      flowOriginId
-    };
+    // Step 1: If we don't have a stepName, we need to fetch the flow to get the first step
+    let startStepName = stepName;
     
-    // Only add data if provided
-    if (data && Object.keys(data).length > 0) {
-      workPayload.data = data;
+    if (!startStepName) {
+      console.log('🔍 Fetching flow details to find start step...');
+      
+      // Try to get flow details
+      const flowResult = await makeApiRequest(`/api/v3/flow/${targetFlowId}`, token);
+      
+      if (flowResult.statusCode === 200) {
+        const flowData = JSON.parse(flowResult.body);
+        console.log('📋 Flow data received:', flowData.displayName || flowData.name);
+        
+        // Try to find the first step/task that allows startAt
+        if (flowData.steps && flowData.steps.length > 0) {
+          const firstStep = flowData.steps.find(s => s.allowStartAt) || flowData.steps[0];
+          startStepName = firstStep.name || firstStep.id;
+          console.log('📍 Using step:', startStepName);
+        } else if (flowData.firstStepName) {
+          startStepName = flowData.firstStepName;
+          console.log('📍 Using firstStepName:', startStepName);
+        }
+      } else {
+        console.log(`⚠️ Could not fetch flow details: ${flowResult.statusCode}`);
+      }
     }
     
-    console.log('📦 Work creation payload:', JSON.stringify(workPayload, null, 2));
+    // Build the API path for startAt
+    let apiPath = `/api/v3/flow/${targetFlowId}/startAt`;
+    if (startStepName) {
+      apiPath += `?stepName=${encodeURIComponent(startStepName)}`;
+    }
+    
+    console.log(`🌐 POST https://${DIANA_API_BASE}${apiPath}`);
     
     // Make POST request to Diana API to create work
-    const postData = JSON.stringify(workPayload);
+    // According to docs, body should be {} or contain initial data
+    const postData = JSON.stringify(data || {});
     
     const result = await new Promise((resolve, reject) => {
       const options = {
         hostname: DIANA_API_BASE,
         port: 443,
-        path: '/api/v3/work',
+        path: apiPath,
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData),
-          'Environment': 'marinestream'  // Required for Diana API
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/json-patch+json',
+          'Content-Length': Buffer.byteLength(postData)
         }
       };
-      
-      console.log(`🌐 POST https://${options.hostname}${options.path}`);
 
       const req = https.request(options, (response) => {
         let data = '';
