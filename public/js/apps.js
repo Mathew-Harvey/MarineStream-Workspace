@@ -66,7 +66,7 @@ const POC_APPS = [
   {
     slug: 'job-delivery-poc',
     name: 'Job Delivery POC',
-    description: 'New frontend POC for MarineStream API - create and manage jobs directly',
+    description: 'Multi-step job creation workflow with vessel selection and GA inspection forms',
     url: '/job-delivery-poc.html',
     icon: 'clipboard-check',
     category: 'Operations',
@@ -111,7 +111,7 @@ function getDefaultApps() {
     {
       slug: 'job-delivery-poc',
       name: 'Job Delivery POC',
-      description: 'New frontend POC for MarineStream API - create and manage jobs directly',
+      description: 'Multi-step job creation workflow with vessel selection and GA inspection forms',
       url: '/job-delivery-poc.html',
       icon: 'clipboard-check',
       category: 'Operations',
@@ -121,12 +121,12 @@ function getDefaultApps() {
     },
     {
       slug: 'core',
-      name: 'Job Delivery',
-      description: 'Multi-party workflow for delivering inspection & cleaning jobs (MarineStream Core)',
+      name: 'MarineStream Core',
+      description: 'Multi-party workflow for delivering inspection & cleaning jobs',
       url: 'https://app.marinestream.io',
       icon: 'briefcase',
       category: 'Operations',
-      sort_order: 1
+      sort_order: 10
     },
     {
       slug: 'iwc',

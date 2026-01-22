@@ -3,778 +3,1263 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Job Delivery POC - MarineStream API Frontend">
-  <meta name="theme-color" content="#FF6600">
-  
-  <title>Job Delivery POC - MarineStream</title>
-  
-  <!-- Fonts - Inter (MarineStream Brand Font) -->
+  <title>Job Delivery POC | MarineStream</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Base Styles -->
-  <link rel="stylesheet" href="/css/styles.css">
-  
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* POC-specific styles */
-    .poc-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: var(--space-6);
+    /* CSS Variables */
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --bg-hover: #475569;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: #334155;
+      --brand-orange: #f97316;
+      --brand-orange-hover: #ea580c;
+      --color-success: #22c55e;
+      --color-error: #ef4444;
+      --color-info: #3b82f6;
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.3);
     }
-    
-    .poc-header {
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Header */
+    .page-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: var(--space-8);
-      padding-bottom: var(--space-4);
+      padding-bottom: 20px;
       border-bottom: 1px solid var(--border-color);
+      margin-bottom: 24px;
     }
-    
-    .poc-header-left {
+
+    .page-header-left {
       display: flex;
       align-items: center;
-      gap: var(--space-4);
+      gap: 16px;
     }
-    
-    .poc-back-btn {
-      display: flex;
+
+    .back-btn {
+      display: inline-flex;
       align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-3);
+      gap: 8px;
+      padding: 8px 16px;
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       color: var(--text-secondary);
       text-decoration: none;
-      font-size: var(--text-sm);
+      font-size: 14px;
+      font-weight: 500;
       transition: all 0.2s ease;
     }
-    
-    .poc-back-btn:hover {
-      background: var(--bg-hover);
+
+    .back-btn:hover {
+      background: var(--bg-tertiary);
       color: var(--text-primary);
     }
-    
-    .poc-back-btn svg {
-      width: 16px;
-      height: 16px;
-    }
-    
-    .poc-title {
-      font-size: var(--text-2xl);
+
+    .page-title {
+      font-size: 24px;
       font-weight: 700;
       color: var(--text-primary);
-      margin: 0;
     }
-    
-    .poc-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: var(--space-1) var(--space-2);
+
+    .page-badge {
+      padding: 4px 10px;
       background: var(--brand-orange);
       color: white;
       border-radius: var(--radius-sm);
-      font-size: var(--text-xs);
+      font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    
-    .auth-section {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-6);
-      margin-bottom: var(--space-6);
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
-    
+
     .auth-status {
       display: flex;
       align-items: center;
-      gap: var(--space-3);
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-secondary);
     }
-    
-    .auth-status-dot {
-      width: 10px;
-      height: 10px;
+
+    .auth-dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--color-error);
     }
-    
-    .auth-status-dot.authenticated {
+
+    .auth-dot.authenticated {
       background: var(--color-success);
     }
-    
-    .auth-status-text {
-      font-weight: 500;
+
+    /* Main layout */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 24px;
+      min-height: calc(100vh - 150px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      height: fit-content;
+      position: sticky;
+      top: 24px;
+      border: 1px solid var(--border-color);
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+      padding: 0 12px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-tertiary);
       color: var(--text-primary);
     }
-    
-    .auth-user-info {
-      margin-left: auto;
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      border-radius: var(--radius-md);
-      font-weight: 500;
-      font-size: var(--text-sm);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: none;
-    }
-    
-    .btn-primary {
+
+    .nav-item.active {
       background: var(--brand-orange);
       color: white;
     }
-    
-    .btn-primary:hover {
-      background: var(--brand-orange-dark, #e55c00);
+
+    .nav-item.completed .nav-item-icon {
+      color: var(--color-success);
     }
-    
-    .btn-secondary {
+
+    .nav-item-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .nav-item-text {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .nav-item-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    /* Content area */
+    .content-area {
       background: var(--bg-secondary);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-    }
-    
-    .btn-secondary:hover {
-      background: var(--bg-hover);
-    }
-    
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    
-    .work-types-section {
-      margin-bottom: var(--space-6);
-    }
-    
-    .section-title {
-      font-size: var(--text-lg);
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: var(--space-4);
-    }
-    
-    .work-types-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: var(--space-4);
-    }
-    
-    .work-type-card {
-      background: var(--bg-primary);
-      border: 2px solid var(--border-color);
       border-radius: var(--radius-lg);
-      padding: var(--space-4);
-      cursor: pointer;
-      transition: all 0.2s ease;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    
-    .work-type-card:hover {
-      border-color: var(--brand-orange);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+
+    .content-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
     }
-    
-    .work-type-card.selected {
-      border-color: var(--brand-orange);
-      background: var(--bg-orange-subtle, rgba(255, 102, 0, 0.05));
-    }
-    
-    .work-type-name {
+
+    .content-title {
+      font-size: 20px;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: var(--space-1);
+      margin-bottom: 4px;
     }
-    
-    .work-type-category {
-      font-size: var(--text-sm);
+
+    .content-subtitle {
+      font-size: 14px;
       color: var(--text-secondary);
     }
-    
-    .work-type-id {
-      font-size: var(--text-xs);
-      color: var(--text-tertiary);
-      font-family: var(--font-mono);
-      margin-top: var(--space-2);
+
+    .content-body {
+      padding: 32px;
+      flex: 1;
+      overflow-y: auto;
     }
-    
-    .form-section {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-6);
+
+    /* Section styling */
+    .section {
       display: none;
     }
-    
-    .form-section.visible {
-      display: block;
+
+    .section.active {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
-    
+
+    /* Form elements */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
     .form-group {
-      margin-bottom: var(--space-4);
+      margin-bottom: 0;
     }
-    
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
     .form-label {
       display: block;
+      font-size: 13px;
       font-weight: 500;
-      color: var(--text-primary);
-      margin-bottom: var(--space-2);
-      font-size: var(--text-sm);
+      color: var(--text-secondary);
+      margin-bottom: 8px;
     }
-    
-    .form-input, .form-select, .form-textarea {
+
+    .form-input,
+    .form-select,
+    .form-textarea {
       width: 100%;
-      padding: var(--space-3);
+      padding: 12px 14px;
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      font-size: var(--text-sm);
-      background: var(--bg-primary);
+      font-size: 14px;
       color: var(--text-primary);
-      transition: border-color 0.2s ease;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    
-    .form-input:focus, .form-select:focus, .form-textarea:focus {
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
       outline: none;
       border-color: var(--brand-orange);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
     }
-    
+
+    .form-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+    }
+
     .form-textarea {
       min-height: 100px;
       resize: vertical;
     }
-    
-    .form-actions {
-      display: flex;
-      gap: var(--space-3);
-      margin-top: var(--space-6);
-    }
-    
-    .loading-spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid currentColor;
-      border-right-color: transparent;
-      border-radius: 50%;
-      animation: spin 0.75s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .message {
-      padding: var(--space-4);
-      border-radius: var(--radius-md);
-      margin-bottom: var(--space-4);
-    }
-    
-    .message-success {
-      background: var(--bg-success-subtle, rgba(34, 197, 94, 0.1));
-      border: 1px solid var(--color-success);
-      color: var(--color-success);
-    }
-    
-    .message-error {
-      background: var(--bg-error-subtle, rgba(239, 68, 68, 0.1));
-      border: 1px solid var(--color-error);
-      color: var(--color-error);
-    }
-    
-    .message-info {
-      background: var(--bg-info-subtle, rgba(59, 130, 246, 0.1));
-      border: 1px solid var(--color-info, #3b82f6);
-      color: var(--color-info, #3b82f6);
-    }
-    
-    .hidden {
-      display: none !important;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: var(--space-8);
-      color: var(--text-secondary);
-    }
-    
-    .empty-state svg {
-      width: 48px;
-      height: 48px;
-      margin-bottom: var(--space-4);
-      opacity: 0.5;
-    }
-    
-    /* Result display */
-    .result-section {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: var(--space-6);
-      margin-top: var(--space-6);
-      display: none;
-    }
-    
-    .result-section.visible {
-      display: block;
-    }
-    
-    .result-json {
+
+    /* Subsection cards */
+    .subsection {
       background: var(--bg-primary);
       border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: var(--space-4);
-      font-family: var(--font-mono);
-      font-size: var(--text-xs);
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    
-    /* Asset List Styles */
-    .asset-list-container {
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-lg);
+      margin-top: 24px;
       overflow: hidden;
     }
-    
-    .asset-search {
-      border: none;
-      border-bottom: 1px solid var(--border-color);
-      border-radius: 0;
-    }
-    
-    .asset-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    
-    .asset-item {
-      padding: var(--space-3) var(--space-4);
-      border-bottom: 1px solid var(--border-color);
+
+    .subsection-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--bg-tertiary);
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: background 0.15s;
     }
-    
-    .asset-item:last-child {
-      border-bottom: none;
+
+    .subsection-header:hover {
+      background: var(--bg-hover);
     }
-    
-    .asset-item:hover {
-      background: var(--bg-hover, rgba(0,0,0,0.03));
-    }
-    
-    .asset-item.selected {
-      background: var(--bg-orange-subtle, rgba(255, 102, 0, 0.08));
-      border-left: 3px solid var(--brand-orange);
-    }
-    
-    .asset-item-main {
+
+    .subsection-title {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-1);
-    }
-    
-    .asset-item-name {
+      gap: 12px;
       font-weight: 600;
+      font-size: 14px;
       color: var(--text-primary);
     }
-    
-    .asset-item-tags {
-      display: flex;
-      gap: var(--space-1);
-    }
-    
-    .asset-tag {
-      padding: 2px 6px;
-      background: var(--bg-secondary);
-      border-radius: var(--radius-sm);
-      font-size: var(--text-xs);
+
+    .subsection-chevron {
+      transition: transform 0.2s;
       color: var(--text-secondary);
     }
-    
-    .asset-tag-registry {
-      background: var(--brand-orange);
-      color: white;
+
+    .subsection.collapsed .subsection-chevron {
+      transform: rotate(-90deg);
     }
-    
-    .asset-item-meta {
-      display: flex;
-      gap: var(--space-4);
-      font-size: var(--text-xs);
-      color: var(--text-tertiary);
+
+    .subsection-content {
+      padding: 20px;
+      border-top: 1px solid var(--border-color);
     }
-    
-    .asset-meta-item strong {
-      color: var(--text-secondary);
+
+    .subsection.collapsed .subsection-content {
+      display: none;
     }
-    
-    .asset-empty {
-      padding: var(--space-6);
-      text-align: center;
-      color: var(--text-secondary);
+
+    /* Job type cards */
+    .job-type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
     }
-    
-    /* Selected Asset Info */
-    .selected-asset-info {
+
+    .job-type-card {
+      padding: 20px;
       background: var(--bg-primary);
-      border: 2px solid var(--brand-orange);
-      border-radius: var(--radius-md);
-      padding: var(--space-4);
-      margin-bottom: var(--space-4);
-    }
-    
-    .selected-asset-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: var(--space-2);
-    }
-    
-    .selected-asset-header h4 {
-      margin: 0;
-      color: var(--text-primary);
-    }
-    
-    .ga-source {
-      font-size: var(--text-xs);
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-    }
-    
-    .ga-source-default {
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-    }
-    
-    .ga-source-work {
-      background: var(--color-success);
-      color: white;
-    }
-    
-    .selected-asset-details {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    .selected-asset-details strong {
-      color: var(--text-primary);
-    }
-    
-    .selected-asset-loading {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      color: var(--text-secondary);
-    }
-    
-    /* General Arrangement Form */
-    .ga-form-container {
-      background: var(--bg-primary);
-      border: 1px solid var(--border-color);
+      border: 2px solid var(--border-color);
       border-radius: var(--radius-lg);
-      padding: var(--space-4);
-      margin-bottom: var(--space-4);
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
-    
-    .ga-header {
-      margin-bottom: var(--space-4);
+
+    .job-type-card:hover {
+      border-color: var(--brand-orange);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
-    
-    .ga-header h4 {
-      margin: 0 0 var(--space-1) 0;
-      color: var(--text-primary);
+
+    .job-type-card.selected {
+      border-color: var(--brand-orange);
+      background: rgba(249, 115, 22, 0.08);
     }
-    
-    .ga-description {
-      margin: 0;
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-    }
-    
-    .ga-components {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
-    }
-    
-    .ga-component {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
+
+    .job-type-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--bg-tertiary);
       border-radius: var(--radius-md);
-      padding: var(--space-3);
-    }
-    
-    .ga-component-header {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      margin-bottom: var(--space-2);
-    }
-    
-    .ga-component-number {
-      width: 24px;
-      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--brand-orange);
-      color: white;
-      border-radius: 50%;
-      font-size: var(--text-xs);
-      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--brand-orange);
     }
-    
-    .ga-component-name {
+
+    .job-type-name {
       font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 6px;
       color: var(--text-primary);
     }
-    
-    .ga-component-desc {
-      margin: 0 0 var(--space-2) 0;
-      font-size: var(--text-xs);
-      color: var(--text-tertiary);
-      padding-left: 32px;
-    }
-    
-    .ga-component-input {
-      min-height: 60px;
-    }
-    
-    .ga-empty {
-      padding: var(--space-4);
-      text-align: center;
+
+    .job-type-desc {
+      font-size: 13px;
       color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* Vessel cards */
+    .vessel-list {
+      max-height: 450px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .vessel-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .vessel-card:hover {
+      border-color: var(--brand-orange);
+    }
+
+    .vessel-card.selected {
+      border-color: var(--brand-orange);
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .vessel-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .vessel-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .vessel-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .vessel-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .vessel-badges {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .vessel-badge {
+      padding: 4px 10px;
+      font-size: 11px;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .vessel-badge.commercial {
+      background: var(--color-info);
+      color: white;
+    }
+
+    .vessel-badge.ran {
+      background: var(--color-success);
+      color: white;
+    }
+
+    /* Search box */
+    .search-box {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 12px 14px 12px 44px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+
+    .search-box input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--brand-orange);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+    }
+
+    /* Vessel details display */
+    .vessel-details {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .vessel-details-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .vessel-details-header strong {
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    .vessel-details-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .detail-item label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .detail-item span {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    /* GA Component */
+    .ga-component {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .ga-component-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-tertiary);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .ga-component-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .ga-component-name {
+      flex: 1;
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .ga-component-status {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .ga-component-status.complete {
+      background: var(--color-success);
+      color: white;
+    }
+
+    .ga-component-body {
+      padding: 20px;
+      border-top: 1px solid var(--border-color);
+      display: none;
+    }
+
+    .ga-component.expanded .ga-component-body {
+      display: block;
+    }
+
+    .ga-component .chevron {
+      transition: transform 0.2s;
+      color: var(--text-secondary);
+    }
+
+    .ga-component.expanded .chevron {
+      transform: rotate(180deg);
+    }
+
+    .rating-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* Team member */
+    .team-member {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+
+    .team-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--brand-orange);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .team-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .team-name {
+      font-weight: 500;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .team-email {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Action buttons */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 32px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-tertiary);
+      margin-top: auto;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--brand-orange);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--brand-orange-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-sm {
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+
+    /* Messages */
+    .message {
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      margin: 0 32px 16px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .message.success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid var(--color-success);
+      color: var(--color-success);
+    }
+
+    .message.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--color-error);
+      color: var(--color-error);
+    }
+
+    .message.info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--color-info);
+      color: var(--color-info);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 48px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--brand-orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: static;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 16px;
+      }
+      .sidebar-title {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+      .nav-item {
+        padding: 10px 14px;
+        margin: 0;
+      }
+      .vessel-details-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .rating-grid {
+        grid-template-columns: 1fr;
+      }
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-hover);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
     }
   </style>
 </head>
 <body>
-  <div class="poc-container">
+  <div class="container">
     <!-- Header -->
-    <header class="poc-header">
-      <div class="poc-header-left">
-        <a href="/" class="poc-back-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <header class="page-header">
+      <div class="page-header-left">
+        <a href="/" class="back-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
           Back
         </a>
-        <h1 class="poc-title">Job Delivery POC</h1>
-        <span class="poc-badge">POC</span>
+        <h1 class="page-title">Job Delivery</h1>
+        <span class="page-badge">POC</span>
+      </div>
+      <div class="header-actions">
+        <div class="auth-status">
+          <span class="auth-dot" id="auth-dot"></span>
+          <span id="auth-text">Checking...</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="auth-btn" style="display: none;">Login</button>
+        <button class="btn btn-secondary btn-sm" id="logout-btn" style="display: none;">Logout</button>
       </div>
     </header>
 
-    <!-- Auth Section -->
-    <section class="auth-section">
-      <div class="auth-status">
-        <span class="auth-status-dot" id="auth-dot"></span>
-        <span class="auth-status-text" id="auth-status-text">Checking authentication...</span>
-        <span class="auth-user-info" id="auth-user-info"></span>
-        <button class="btn btn-primary" id="auth-btn" style="display: none;">
-          Login with MarineStream
-        </button>
-        <button class="btn btn-secondary" id="pat-btn" style="display: none;">
-          Use PAT
-        </button>
-        <button class="btn btn-secondary" id="debug-btn" style="display: none;">
-          Debug API
-        </button>
-        <button class="btn btn-secondary" id="view-assets-btn" style="display: none;">
-          View All Assets
-        </button>
-        <button class="btn btn-secondary" id="logout-btn" style="display: none;">
-          Logout
-        </button>
-      </div>
-      
-      <!-- PAT Input (hidden by default) -->
-      <div class="pat-input-section" id="pat-section" style="display: none; margin-top: var(--space-4);">
-        <p style="margin-bottom: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary);">
-          Enter your MarineStream Personal Access Token (PAT). You can get this from 
-          <a href="https://app.marinestream.io" target="_blank" style="color: var(--brand-orange);">app.marinestream.io</a> 
-          under your profile settings.
-        </p>
-        <div style="display: flex; gap: var(--space-2);">
-          <input type="password" id="pat-input" class="form-input" placeholder="Paste your PAT here..." style="flex: 1;">
-          <button class="btn btn-primary" id="pat-submit">Authenticate</button>
-          <button class="btn btn-secondary" id="pat-cancel">Cancel</button>
-        </div>
-      </div>
-      
-      <!-- Debug Output (hidden by default) -->
-      <div id="debug-output" style="display: none; margin-top: var(--space-4); padding: var(--space-4); background: var(--bg-tertiary); border-radius: var(--radius-md); font-family: monospace; font-size: var(--text-sm); white-space: pre-wrap; overflow-x: auto; max-height: 400px; overflow-y: auto;"></div>
-      
-      <!-- Assets Table (hidden by default) -->
-      <div id="assets-table-container" style="display: none; margin-top: var(--space-4);">
-        <h3 style="margin-bottom: var(--space-3);">All Assets <span id="assets-count" style="font-weight: normal; color: var(--text-secondary);"></span></h3>
-        <div id="assets-grouped-view" style="max-height: 600px; overflow-y: auto;"></div>
-      </div>
-      
-      <style>
-        .asset-group {
-          margin-bottom: var(--space-3);
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-md);
-          overflow: hidden;
-        }
-        .asset-group-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 16px;
-          background: var(--bg-secondary);
-          cursor: pointer;
-          user-select: none;
-          transition: background 0.2s;
-        }
-        .asset-group-header:hover {
-          background: var(--bg-hover);
-        }
-        .asset-group-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 600;
-        }
-        .asset-group-title .chevron {
-          transition: transform 0.2s;
-        }
-        .asset-group.collapsed .chevron {
-          transform: rotate(-90deg);
-        }
-        .asset-group-count {
-          font-size: var(--text-sm);
-          color: var(--text-secondary);
-          background: var(--bg-tertiary);
-          padding: 2px 8px;
-          border-radius: 12px;
-        }
-        .asset-group-content {
-          max-height: 1000px;
-          overflow: hidden;
-          transition: max-height 0.3s ease;
-        }
-        .asset-group.collapsed .asset-group-content {
-          max-height: 0;
-        }
-        .asset-group table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: var(--text-sm);
-        }
-        .asset-group th {
-          padding: 8px 12px;
-          text-align: left;
-          background: var(--bg-tertiary);
-          border-bottom: 1px solid var(--border-color);
-          font-weight: 500;
-          color: var(--text-secondary);
-        }
-        .asset-group td {
-          padding: 8px 12px;
-          border-bottom: 1px solid var(--border-color);
-        }
-        .asset-group tr:last-child td {
-          border-bottom: none;
-        }
-        .asset-group tr:hover td {
-          background: var(--bg-hover);
-        }
-        .asset-name {
-          font-weight: 500;
-        }
-        .asset-meta {
-          font-family: monospace;
-          font-size: var(--text-xs);
-          color: var(--text-secondary);
-        }
-      </style>
-    </section>
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Sidebar Navigation -->
+      <aside class="sidebar">
+        <div class="sidebar-title">Create Job</div>
+        <nav id="nav-menu">
+          <div class="nav-item active" data-section="job-type">
+            <span class="nav-item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </span>
+            <span class="nav-item-text">Job Type</span>
+          </div>
+          <div class="nav-item" data-section="vessel">
+            <span class="nav-item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M2 20l2-2h16l2 2"/>
+                <path d="M4 18V8a2 2 0 012-2h12a2 2 0 012 2v10"/>
+                <path d="M12 6V2"/>
+              </svg>
+            </span>
+            <span class="nav-item-text">Select Vessel</span>
+          </div>
+          <div class="nav-item" data-section="job-setup">
+            <span class="nav-item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </span>
+            <span class="nav-item-text">Job Setup</span>
+          </div>
+          <div class="nav-item" data-section="team">
+            <span class="nav-item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+                <path d="M16 3.13a4 4 0 010 7.75"/>
+              </svg>
+            </span>
+            <span class="nav-item-text">Delivery Team</span>
+          </div>
+          <div class="nav-item" data-section="inspection">
+            <span class="nav-item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="1"/>
+                <path d="M9 14l2 2 4-4"/>
+              </svg>
+            </span>
+            <span class="nav-item-text">Inspection Areas</span>
+            <span class="nav-item-badge" id="ga-count">0</span>
+          </div>
+          <div class="nav-item" data-section="review">
+            <span class="nav-item-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9 12l2 2 4-4"/>
+              </svg>
+            </span>
+            <span class="nav-item-text">Review & Submit</span>
+          </div>
+        </nav>
+      </aside>
 
-    <!-- Messages -->
-    <div id="messages"></div>
+      <!-- Content Area -->
+      <main class="content-area">
+        <div id="messages"></div>
 
-    <!-- Work Types Section -->
-    <section class="work-types-section" id="work-types-section" style="display: none;">
-      <h2 class="section-title">Select a Work Type</h2>
-      <div class="work-types-grid" id="work-types-grid">
-        <div class="empty-state">
-          <div class="loading-spinner"></div>
-          <p>Loading work types...</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Job Form Section -->
-    <section class="form-section" id="form-section">
-      <h2 class="section-title">Create Job: <span id="selected-work-type-name"></span></h2>
-      
-      <form id="job-form">
-        <div class="form-group">
-          <label class="form-label" for="job-name">Job Name *</label>
-          <input type="text" id="job-name" class="form-input" placeholder="Enter a name for this job" required>
-        </div>
-        
-        <!-- Asset Selection -->
-        <div class="form-group">
-          <label class="form-label">Select Asset (Vessel) *</label>
-          <div class="asset-list-container" id="asset-list-container">
-            <input type="text" id="asset-search" class="form-input asset-search" placeholder="Search by name, MMSI, IMO, pennant...">
-            <div class="asset-list" id="asset-list">
-              <div class="asset-empty">
-                <span class="loading-spinner"></span> Loading assets...
+        <!-- Section 1: Job Type -->
+        <section class="section active" id="section-job-type">
+          <div class="content-header">
+            <h2 class="content-title">Select Job Type</h2>
+            <p class="content-subtitle">Choose the type of work to be performed</p>
+          </div>
+          <div class="content-body">
+            <div class="job-type-grid" id="job-type-grid">
+              <div class="loading">
+                <div class="spinner"></div>
+                Loading job types...
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Selected Asset Info -->
-        <div class="selected-asset-info" id="selected-asset-info" style="display: none;"></div>
-        
-        <!-- General Arrangement Form -->
-        <div class="ga-form-container" id="ga-form-container" style="display: none;"></div>
-        
-        <div class="form-group">
-          <label class="form-label" for="job-notes">Additional Notes</label>
-          <textarea id="job-notes" class="form-textarea" placeholder="Additional notes or context for this job"></textarea>
-        </div>
-        
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="submit-btn">
-            Create Job
-          </button>
-        </div>
-      </form>
-    </section>
+          <div class="action-bar">
+            <div></div>
+            <button class="btn btn-primary" id="btn-next-1" disabled>
+              Continue
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </section>
 
-    <!-- Result Section -->
-    <section class="result-section" id="result-section">
-      <h2 class="section-title">API Response</h2>
-      <pre class="result-json" id="result-json"></pre>
-    </section>
+        <!-- Section 2: Vessel Selection -->
+        <section class="section" id="section-vessel">
+          <div class="content-header">
+            <h2 class="content-title">Select Vessel</h2>
+            <p class="content-subtitle">Choose the vessel for this job</p>
+          </div>
+          <div class="content-body">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input type="text" id="vessel-search" placeholder="Search vessels by name, MMSI, or IMO...">
+            </div>
+            <div class="vessel-list" id="vessel-list">
+              <div class="loading">
+                <div class="spinner"></div>
+                Loading vessels...
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="btn-back-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <button class="btn btn-primary" id="btn-next-2" disabled>
+              Continue
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Section 3: Job Setup -->
+        <section class="section" id="section-job-setup">
+          <div class="content-header">
+            <h2 class="content-title">Job Setup</h2>
+            <p class="content-subtitle">Configure job details and resourcing</p>
+          </div>
+          <div class="content-body">
+            <!-- Selected Vessel Display -->
+            <div class="vessel-details" id="selected-vessel-display">
+              <div class="vessel-details-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <strong id="display-vessel-name">-</strong>
+                  <span id="display-vessel-type" class="vessel-badge commercial">Commercial</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="goToSection('vessel')">Change</button>
+              </div>
+              <div class="vessel-details-grid">
+                <div class="detail-item">
+                  <label>IMO</label>
+                  <span id="display-imo">-</span>
+                </div>
+                <div class="detail-item">
+                  <label>MMSI</label>
+                  <span id="display-mmsi">-</span>
+                </div>
+                <div class="detail-item">
+                  <label>Flag</label>
+                  <span id="display-flag">-</span>
+                </div>
+                <div class="detail-item">
+                  <label>Class</label>
+                  <span id="display-class">-</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Job Number</label>
+                <input type="text" class="form-input" id="job-number" placeholder="e.g., F12345">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Client</label>
+                <input type="text" class="form-input" id="client-name" placeholder="Client name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location / Port</label>
+                <input type="text" class="form-input" id="location" placeholder="e.g., AMC Henderson">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Scheduled Date</label>
+                <input type="date" class="form-input" id="scheduled-date">
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label">Work Instructions</label>
+                <textarea class="form-textarea" id="work-instructions" placeholder="Any specific instructions or notes..."></textarea>
+              </div>
+            </div>
+
+            <!-- ROV Section -->
+            <div class="subsection">
+              <div class="subsection-header" onclick="toggleSubsection(this)">
+                <div class="subsection-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <rect x="2" y="6" width="14" height="12" rx="2"/>
+                    <path d="M16 10l6-4v12l-6-4v-4z"/>
+                  </svg>
+                  ROV Equipment
+                </div>
+                <svg class="subsection-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </div>
+              <div class="subsection-content">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">ROV Used</label>
+                    <select class="form-select" id="rov-used">
+                      <option value="">Select...</option>
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">ROV Details</label>
+                    <input type="text" class="form-input" id="rov-details" placeholder="e.g., Deep Trekker Pivot">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="btn-back-3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <button class="btn btn-primary" id="btn-next-3">
+              Continue
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Section 4: Team -->
+        <section class="section" id="section-team">
+          <div class="content-header">
+            <h2 class="content-title">Delivery Team</h2>
+            <p class="content-subtitle">Assign team members to this job</p>
+          </div>
+          <div class="content-body">
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Supervisor Name</label>
+                <input type="text" class="form-input" id="supervisor-name" placeholder="Supervisor name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Supervisor Email</label>
+                <input type="email" class="form-input" id="supervisor-email" placeholder="supervisor@example.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Inspector Name</label>
+                <input type="text" class="form-input" id="inspector-name" placeholder="Inspector name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Inspector Email</label>
+                <input type="email" class="form-input" id="inspector-email" placeholder="inspector@example.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Approver Name</label>
+                <input type="text" class="form-input" id="approver-name" placeholder="Approver name">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Approver Email</label>
+                <input type="email" class="form-input" id="approver-email" placeholder="approver@example.com">
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="btn-back-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <button class="btn btn-primary" id="btn-next-4">
+              Continue
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Section 5: Inspection Areas (GA) -->
+        <section class="section" id="section-inspection">
+          <div class="content-header">
+            <h2 class="content-title">Inspection Areas</h2>
+            <p class="content-subtitle">General Arrangement components for this vessel</p>
+          </div>
+          <div class="content-body">
+            <div id="ga-components">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                  <rect x="9" y="3" width="6" height="4" rx="1"/>
+                </svg>
+                <p>Select a vessel to see inspection areas</p>
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="btn-back-5">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <button class="btn btn-primary" id="btn-next-5">
+              Continue to Review
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Section 6: Review -->
+        <section class="section" id="section-review">
+          <div class="content-header">
+            <h2 class="content-title">Review & Submit</h2>
+            <p class="content-subtitle">Review your job details before submitting</p>
+          </div>
+          <div class="content-body">
+            <div id="review-summary">
+              <!-- Will be populated dynamically -->
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="btn-back-6">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <button class="btn btn-primary" id="btn-submit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M22 2L11 13"/>
+                <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+              </svg>
+              Create Job
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
   </div>
 
-  <!-- Scripts -->
   <script src="/js/auth-oauth.js"></script>
   <script src="/js/job-delivery-poc.js" type="module"></script>
 </body>
