@@ -3169,9 +3169,137 @@ router.get('/assets/:registryId', async (req, res) => {
   }
 });
 
-// GET /api/marinestream/assets - Get all vessels from all configured registries
+// GET /api/marinestream/debug/api - Test various API endpoints to diagnose connectivity
+router.get('/debug/api', async (req, res) => {
+  try {
+    const token = getTokenFromRequest(req);
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: { message: 'Authorization token required' }
+      });
+    }
+
+    console.log('🔧 DEBUG: Testing API connectivity with token:', token.substring(0, 30) + '...');
+  
+  // Try to decode the JWT to see its claims
+  let tokenInfo = {};
+  try {
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      tokenInfo = {
+        issuer: payload.iss,
+        subject: payload.sub,
+        audience: payload.aud,
+        scope: payload.scope,
+        expiration: payload.exp ? new Date(payload.exp * 1000).toISOString() : 'unknown',
+        isExpired: payload.exp ? Date.now() > payload.exp * 1000 : 'unknown',
+        email: payload.email,
+        name: payload.name || payload.preferred_name
+      };
+      console.log('   Token claims:', JSON.stringify(tokenInfo, null, 2));
+    }
+  } catch (e) {
+    tokenInfo = { error: 'Could not decode JWT: ' + e.message };
+  }
+  
+  const results = {};
+  
+  // Test GET endpoints
+  const getEndpoints = [
+    '/api/v3/user',
+    '/api/v3/work',
+    '/api/v3/thing',
+    '/api/v3/things',  // Try plural
+    '/api/v3/thingtype',
+    '/api/v3/thingtypes', // Try plural
+    '/api/v3/flow',
+    '/api/v3/floworigin',
+    '/api/v3/work/user/open',
+    '/api/v3/work/user/assigned',
+  ];
+  
+  // Also test a specific thing registry with POST
+  const postTests = [
+    {
+      path: '/api/v3/thing',
+      body: { thingTypeId: '6ffaffbd-c9ac-42a6-ab19-8fa7a30752ca' } // RAN Vessels
+    },
+    {
+      path: '/api/v3/thing/search',
+      body: { query: '' }
+    }
+  ];
+  
+  console.log('   Testing GET endpoints...');
+  const endpoints = getEndpoints;
+  
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`   Testing ${endpoint}...`);
+      const result = await makeApiRequest(endpoint, token);
+      results[endpoint] = {
+        status: result.statusCode,
+        bodyPreview: result.body?.substring(0, 300) || 'empty',
+        success: result.statusCode >= 200 && result.statusCode < 300
+      };
+      console.log(`   ${endpoint}: ${result.statusCode}`);
+    } catch (err) {
+      results[endpoint] = { status: 'error', message: err.message };
+      console.log(`   ${endpoint}: ERROR - ${err.message}`);
+    }
+  }
+  
+  // Test POST endpoints
+  console.log('   Testing POST endpoints...');
+  for (const test of postTests) {
+    try {
+      console.log(`   Testing POST ${test.path}...`);
+      const result = await makeApiRequest(test.path, token, 'POST', test.body);
+      results[`POST ${test.path}`] = {
+        status: result.statusCode,
+        bodyPreview: result.body?.substring(0, 300) || 'empty',
+        success: result.statusCode >= 200 && result.statusCode < 300
+      };
+      console.log(`   POST ${test.path}: ${result.statusCode}`);
+    } catch (err) {
+      results[`POST ${test.path}`] = { status: 'error', message: err.message };
+      console.log(`   POST ${test.path}: ERROR - ${err.message}`);
+    }
+  }
+  
+  // Count successes
+    const successCount = Object.values(results).filter(r => r.success).length;
+    
+    res.json({
+      success: true,
+      data: {
+        apiBase: DIANA_API_BASE,
+        tokenPreview: token.substring(0, 30) + '...',
+        tokenInfo,
+        totalEndpoints: Object.keys(results).length,
+        successfulEndpoints: successCount,
+        results
+      }
+    });
+  } catch (error) {
+    console.error('Debug API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message, stack: error.stack }
+    });
+  }
+});
+
+// GET /api/marinestream/assets - Get all vessels/assets
+// Strategy: Extract unique assets from work items since /api/v3/thing endpoint is broken
 router.get('/assets', async (req, res) => {
   const token = getTokenFromRequest(req);
+  
+  console.log('📦 GET /api/marinestream/assets called');
+  console.log('   Token present:', !!token, token ? `(${token.substring(0, 20)}...)` : '');
   
   if (!token) {
     return res.status(401).json({
@@ -3181,60 +3309,198 @@ router.get('/assets', async (req, res) => {
   }
 
   try {
-    const allAssets = [];
-    const registryResults = {};
+    const assetMap = new Map(); // Use map to deduplicate by name
     
-    // Query each configured registry
-    for (const [name, registryId] of Object.entries(FLOW_ORIGINS.assetRegistries)) {
-      // Skip placeholder IDs
-      if (registryId.includes('_FLOW_ORIGIN_ID')) {
-        registryResults[name] = { status: 'not_configured', count: 0 };
-        continue;
+    // Helper function to extract asset from work item
+    const extractAsset = (work, source) => {
+      // The vessel/asset data can be nested in various locations
+      const vesselData = work.data?.ranVessel || 
+                        work.data?.vessel || 
+                        work.data?.commercialVessel ||
+                        null;
+      
+      // IMPORTANT: Prioritize nested vessel name over work.displayName
+      // work.displayName is often the work item name (e.g., "RAN Biofouling"), not the vessel
+      const assetName = vesselData?.displayName ||
+                       vesselData?.name ||
+                       vesselData?.data?.name ||
+                       work.data?.assetName || 
+                       work.data?.vesselName ||
+                       work.data?.vessel?.displayName ||
+                       work.data?.vessel?.name ||
+                       work.data?.ranVessel?.displayName ||
+                       work.data?.ranVessel?.name;
+      
+      // Skip if no vessel name found or if it looks like a workflow name
+      if (!assetName) return null;
+      
+      // Skip generic workflow names that aren't actual vessels
+      const skipNames = ['biofouling', 'engineering', 'ran biofouling', 'ran engineering', 
+                        'commercial biofouling', 'commercial engineering', 'assets', 
+                        'ran assets', 'commercial vessels', 'inspection'];
+      if (skipNames.includes(assetName.toLowerCase())) return null;
+      
+      const mmsi = vesselData?.data?.mmsi || 
+                  vesselData?.data?.MMSI || 
+                  vesselData?.mmsi ||
+                  work.data?.mmsi || '';
+      const imo = vesselData?.data?.imo || 
+                 vesselData?.data?.IMO || 
+                 vesselData?.imo ||
+                 work.data?.imo || '';
+      
+      return {
+        id: vesselData?.id || work.data?.assetId || work.id,
+        name: assetName,
+        displayName: assetName,
+        mmsi: mmsi,
+        imo: imo,
+        class: vesselData?.data?.class || work.data?.class || '',
+        pennant: vesselData?.data?.pennant || work.data?.pennant || '',
+        flag: vesselData?.data?.flag || work.data?.flag || '',
+        registry: source,
+        workItemId: work.id,
+        flowType: work.flowType,
+        hasGeneralArrangement: !!(work.data?.generalArrangement || vesselData?.data?.generalArrangement)
+      };
+    };
+    
+    console.log('   📋 Fetching assets from multiple sources...');
+    
+    // 1. Fetch from base /work endpoint
+    const workResult = await makeApiRequest('/api/v3/work', token);
+    
+    if (workResult.statusCode === 200) {
+      const workItems = JSON.parse(workResult.body);
+      console.log(`   📦 Base /work: ${workItems.length} items`);
+      
+      // Debug: Log first few work items to understand structure
+      if (workItems.length > 0) {
+        console.log('   🔍 Sample work item structure:');
+        const sample = workItems[0];
+        console.log('      - displayName:', sample.displayName);
+        console.log('      - flowType:', sample.flowType);
+        console.log('      - data keys:', sample.data ? Object.keys(sample.data).join(', ') : 'none');
+        if (sample.data?.ranVessel) {
+          console.log('      - ranVessel.displayName:', sample.data.ranVessel.displayName);
+          console.log('      - ranVessel.name:', sample.data.ranVessel.name);
+        }
+        if (sample.data?.vessel) {
+          console.log('      - vessel.displayName:', sample.data.vessel?.displayName);
+          console.log('      - vessel.name:', sample.data.vessel?.name);
+        }
       }
       
-      try {
-        const result = await makeApiRequest(`/api/v3/thing?thingTypeId=${registryId}`, token);
-        
-        if (result.statusCode === 200) {
-          const assets = JSON.parse(result.body);
-          
-          const vessels = assets.map(asset => ({
-            id: asset.id,
-            name: asset.displayName || asset.name || asset.data?.name,
-            entityType: asset.thingType,
-            registry: name,
-            mmsi: asset.data?.mmsi || asset.data?.MMSI,
-            imo: asset.data?.imo || asset.data?.IMO,
-            class: asset.data?.class,
-            pennant: asset.data?.pennant,
-            flag: asset.data?.flag,
-            data: asset.data
-          }));
-          
-          allAssets.push(...vessels);
-          registryResults[name] = { status: 'success', count: vessels.length };
-          console.log(`  ✓ ${name}: ${vessels.length} assets`);
-        } else {
-          registryResults[name] = { status: 'error', statusCode: result.statusCode };
+      for (const work of workItems) {
+        const asset = extractAsset(work, 'work-base');
+        if (asset && !assetMap.has(asset.name.toLowerCase())) {
+          assetMap.set(asset.name.toLowerCase(), asset);
         }
-      } catch (err) {
-        registryResults[name] = { status: 'error', message: err.message };
       }
     }
     
+    // 2. Fetch from open work items
+    const openWorkResult = await makeApiRequest('/api/v3/work/user/open', token);
+    
+    if (openWorkResult.statusCode === 200) {
+      const openWorkItems = JSON.parse(openWorkResult.body);
+      console.log(`   📦 Open work: ${openWorkItems.length} items`);
+      
+      for (const work of openWorkItems) {
+        const asset = extractAsset(work, 'work-open');
+        if (asset && !assetMap.has(asset.name.toLowerCase())) {
+          assetMap.set(asset.name.toLowerCase(), asset);
+        }
+      }
+    }
+    
+    // 3. Query each known flow origin for more coverage
+    console.log('   📋 Querying flow origins for additional assets...');
+    
+    for (const flowOriginId of ALL_WORKFLOW_FLOW_ORIGINS) {
+      try {
+        const flowWorkResult = await makeApiRequest(`/api/v3/work/user/open?flowOriginId=${flowOriginId}`, token);
+        
+        if (flowWorkResult.statusCode === 200) {
+          const flowWorkItems = JSON.parse(flowWorkResult.body);
+          
+          if (flowWorkItems.length > 0) {
+            console.log(`   📦 Flow ${flowOriginId.substring(0, 8)}...: ${flowWorkItems.length} items`);
+            
+            for (const work of flowWorkItems) {
+              const asset = extractAsset(work, `flow-${flowOriginId.substring(0, 8)}`);
+              if (asset && !assetMap.has(asset.name.toLowerCase())) {
+                assetMap.set(asset.name.toLowerCase(), asset);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Silent fail for individual flow queries
+      }
+    }
+    
+    // 4. Try GraphQL for more complete coverage
+    console.log('   📋 Trying GraphQL for additional assets...');
+    
+    for (const flowOriginId of ALL_WORKFLOW_FLOW_ORIGINS.slice(0, 5)) { // Limit to first 5 to avoid timeout
+      try {
+        // Simple GraphQL query to get work items
+        const query = `query {
+          works(
+            flowOriginIds: ["${flowOriginId}"]
+            limit: 500
+            showCompleted: true
+            showDeleted: false
+            showInProgress: true
+          ) {
+            id
+            displayName
+            flowType
+            data
+          }
+        }`;
+        
+        const graphQLResult = await makeGraphQLRequest(query, token);
+        
+        if (graphQLResult.statusCode === 200) {
+          const graphQLData = JSON.parse(graphQLResult.body);
+          const graphQLWorks = graphQLData?.data?.works || [];
+          
+          if (graphQLWorks.length > 0) {
+            console.log(`   📦 GraphQL flow ${flowOriginId.substring(0, 8)}...: ${graphQLWorks.length} items`);
+            
+            for (const work of graphQLWorks) {
+              const asset = extractAsset(work, `graphql-${flowOriginId.substring(0, 8)}`);
+              if (asset && !assetMap.has(asset.name.toLowerCase())) {
+                assetMap.set(asset.name.toLowerCase(), asset);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Silent fail for GraphQL queries
+      }
+    }
+    
+    console.log(`   ✅ Total unique assets after GraphQL: ${assetMap.size}`);
+    
+    // Convert map to array
+    const allAssets = Array.from(assetMap.values());
+    
     // Extract unique MMSI values
     const mmsiList = allAssets
-      .filter(a => a.mmsi && a.mmsi.length === 9)
+      .filter(a => a.mmsi && String(a.mmsi).length === 9)
       .map(a => ({ name: a.name, mmsi: a.mmsi, registry: a.registry }));
     
-    console.log(`📦 Total assets from all registries: ${allAssets.length}`);
+    console.log(`📦 Total unique assets extracted: ${allAssets.length}`);
     console.log(`📡 Vessels with valid MMSI: ${mmsiList.length}`);
     
     res.json({
       success: true,
       data: {
         totalAssets: allAssets.length,
-        registries: registryResults,
+        source: 'work-items',
         assets: allAssets,
         vesselsWithMMSI: mmsiList
       }
@@ -3247,5 +3513,164 @@ router.get('/assets', async (req, res) => {
     });
   }
 });
+
+// GET /api/marinestream/asset/:assetId - Get single asset details with generalArrangement
+// This endpoint fetches the asset and any associated GA template from work items
+router.get('/asset/:assetId', async (req, res) => {
+  const token = getTokenFromRequest(req);
+  const { assetId } = req.params;
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization token required' }
+    });
+  }
+
+  try {
+    console.log(`🔍 Fetching asset details for ${assetId}...`);
+    
+    // Try to get the asset directly using thing API
+    const assetRes = await makeApiRequest(`/api/v3/thing/${assetId}`, token);
+    
+    let asset = null;
+    if (assetRes.statusCode === 200) {
+      asset = JSON.parse(assetRes.body);
+    }
+    
+    // If direct fetch failed, search through registries
+    if (!asset) {
+      for (const [registryName, registryId] of Object.entries(FLOW_ORIGINS.assetRegistries)) {
+        if (registryId.includes('_FLOW_ORIGIN_ID')) continue;
+        
+        try {
+          const result = await makeApiRequest(`/api/v3/thing?thingTypeId=${registryId}`, token);
+          if (result.statusCode === 200) {
+            const assets = JSON.parse(result.body);
+            asset = assets.find(a => a.id === assetId);
+            if (asset) {
+              asset.registry = registryName;
+              break;
+            }
+          }
+        } catch (err) {
+          // Continue to next registry
+        }
+      }
+    }
+    
+    if (!asset) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Asset not found' }
+      });
+    }
+    
+    // Extract asset details
+    const assetDetails = {
+      id: asset.id,
+      name: asset.displayName || asset.name || asset.data?.name,
+      registry: asset.registry || asset.thingType,
+      mmsi: asset.data?.mmsi || asset.data?.MMSI,
+      imo: asset.data?.imo || asset.data?.IMO,
+      class: asset.data?.class,
+      pennant: asset.data?.pennant,
+      flag: asset.data?.flag,
+      vesselType: asset.data?.vesselType || asset.data?.type,
+      // Include generalArrangement if it exists on the asset
+      generalArrangement: asset.data?.generalArrangement || null,
+      // Include raw data for debugging
+      rawData: asset.data
+    };
+    
+    // If no GA on asset, look for it in recent work items
+    if (!assetDetails.generalArrangement) {
+      const vesselName = assetDetails.name;
+      
+      for (const flowOriginId of ALL_WORKFLOW_FLOW_ORIGINS) {
+        try {
+          const workRes = await makeApiRequest(`/api/v3/work/user/open?flowOriginId=${flowOriginId}`, token);
+          
+          if (workRes.statusCode === 200) {
+            const works = JSON.parse(workRes.body);
+            
+            // Find work items for this vessel that have GA data
+            for (const work of works) {
+              const vessel = work.data?.ranVessel || work.data?.vessel;
+              const vName = vessel?.displayName || vessel?.name || vessel?.data?.name || '';
+              
+              if (vName.toLowerCase() === vesselName.toLowerCase() || 
+                  vName.toLowerCase().includes(vesselName.toLowerCase())) {
+                const vesselData = vessel?.data || {};
+                
+                if (vesselData.generalArrangement && Array.isArray(vesselData.generalArrangement)) {
+                  assetDetails.generalArrangement = vesselData.generalArrangement;
+                  assetDetails.generalArrangementSource = {
+                    workId: work.id,
+                    workCode: work.workCode,
+                    flowType: work.flowType,
+                    lastModified: work.lastModified
+                  };
+                  break;
+                }
+              }
+            }
+            
+            if (assetDetails.generalArrangement) break;
+          }
+        } catch (err) {
+          // Continue to next flow
+        }
+      }
+    }
+    
+    // If still no GA, provide a default template based on vessel type
+    if (!assetDetails.generalArrangement) {
+      // Default GA template for biofouling inspections
+      assetDetails.generalArrangement = getDefaultGATemplate(assetDetails.vesselType);
+      assetDetails.generalArrangementSource = { type: 'default_template' };
+    }
+    
+    console.log(`✅ Asset found: ${assetDetails.name}, GA components: ${assetDetails.generalArrangement?.length || 0}`);
+    
+    res.json({
+      success: true,
+      data: assetDetails
+    });
+  } catch (error) {
+    console.error('Asset details API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+/**
+ * Get default General Arrangement template based on vessel type
+ * These are the standard hull zones for biofouling inspection
+ */
+function getDefaultGATemplate(vesselType) {
+  // Standard hull zones for most vessels
+  const standardZones = [
+    { name: 'Bow Thruster', GAComponent: 'bow_thruster', description: 'Bow thruster tunnel and surrounds' },
+    { name: 'Forward Hull - Port', GAComponent: 'hull_fwd_port', description: 'Forward hull section, port side' },
+    { name: 'Forward Hull - Starboard', GAComponent: 'hull_fwd_stbd', description: 'Forward hull section, starboard side' },
+    { name: 'Midship Hull - Port', GAComponent: 'hull_mid_port', description: 'Midship hull section, port side' },
+    { name: 'Midship Hull - Starboard', GAComponent: 'hull_mid_stbd', description: 'Midship hull section, starboard side' },
+    { name: 'Aft Hull - Port', GAComponent: 'hull_aft_port', description: 'Aft hull section, port side' },
+    { name: 'Aft Hull - Starboard', GAComponent: 'hull_aft_stbd', description: 'Aft hull section, starboard side' },
+    { name: 'Flat Bottom', GAComponent: 'flat_bottom', description: 'Flat bottom area' },
+    { name: 'Sea Chests', GAComponent: 'sea_chests', description: 'Sea chest intakes and gratings' },
+    { name: 'Propeller - Port', GAComponent: 'prop_port', description: 'Port propeller and shaft' },
+    { name: 'Propeller - Starboard', GAComponent: 'prop_stbd', description: 'Starboard propeller and shaft' },
+    { name: 'Rudder', GAComponent: 'rudder', description: 'Rudder and steering gear' },
+    { name: 'Stern Tube', GAComponent: 'stern_tube', description: 'Stern tube seals and area' },
+    { name: 'Waterline - Boot Top', GAComponent: 'boot_top', description: 'Boot top and waterline area' },
+    { name: 'Bilge Keels', GAComponent: 'bilge_keels', description: 'Bilge keels, if fitted' }
+  ];
+  
+  return standardZones;
+}
 
 module.exports = router;

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Job Delivery POC - MarineStream API Frontend">
+  <meta name="theme-color" content="#FF6600">
+  
+  <title>Job Delivery POC - MarineStream</title>
+  
+  <!-- Fonts - Inter (MarineStream Brand Font) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Base Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+  
+  <style>
+    /* POC-specific styles */
+    .poc-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-6);
+    }
+    
+    .poc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-8);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .poc-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+    
+    .poc-back-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: var(--text-sm);
+      transition: all 0.2s ease;
+    }
+    
+    .poc-back-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    
+    .poc-back-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    .poc-title {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    
+    .poc-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-1) var(--space-2);
+      background: var(--brand-orange);
+      color: white;
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .auth-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-bottom: var(--space-6);
+    }
+    
+    .auth-status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    
+    .auth-status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--color-error);
+    }
+    
+    .auth-status-dot.authenticated {
+      background: var(--color-success);
+    }
+    
+    .auth-status-text {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .auth-user-info {
+      margin-left: auto;
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      font-size: var(--text-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--brand-orange);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--brand-orange-dark, #e55c00);
+    }
+    
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .work-types-section {
+      margin-bottom: var(--space-6);
+    }
+    
+    .section-title {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--space-4);
+    }
+    
+    .work-types-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-4);
+    }
+    
+    .work-type-card {
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .work-type-card:hover {
+      border-color: var(--brand-orange);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .work-type-card.selected {
+      border-color: var(--brand-orange);
+      background: var(--bg-orange-subtle, rgba(255, 102, 0, 0.05));
+    }
+    
+    .work-type-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--space-1);
+    }
+    
+    .work-type-category {
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .work-type-id {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      margin-top: var(--space-2);
+    }
+    
+    .form-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      display: none;
+    }
+    
+    .form-section.visible {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: var(--space-4);
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: var(--space-2);
+      font-size: var(--text-sm);
+    }
+    
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: var(--space-3);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: border-color 0.2s ease;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--brand-orange);
+    }
+    
+    .form-textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .form-actions {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-6);
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .message {
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-4);
+    }
+    
+    .message-success {
+      background: var(--bg-success-subtle, rgba(34, 197, 94, 0.1));
+      border: 1px solid var(--color-success);
+      color: var(--color-success);
+    }
+    
+    .message-error {
+      background: var(--bg-error-subtle, rgba(239, 68, 68, 0.1));
+      border: 1px solid var(--color-error);
+      color: var(--color-error);
+    }
+    
+    .message-info {
+      background: var(--bg-info-subtle, rgba(59, 130, 246, 0.1));
+      border: 1px solid var(--color-info, #3b82f6);
+      color: var(--color-info, #3b82f6);
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: var(--space-8);
+      color: var(--text-secondary);
+    }
+    
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: var(--space-4);
+      opacity: 0.5;
+    }
+    
+    /* Result display */
+    .result-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-top: var(--space-6);
+      display: none;
+    }
+    
+    .result-section.visible {
+      display: block;
+    }
+    
+    .result-json {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    /* Asset List Styles */
+    .asset-list-container {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    
+    .asset-search {
+      border: none;
+      border-bottom: 1px solid var(--border-color);
+      border-radius: 0;
+    }
+    
+    .asset-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .asset-item {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .asset-item:last-child {
+      border-bottom: none;
+    }
+    
+    .asset-item:hover {
+      background: var(--bg-hover, rgba(0,0,0,0.03));
+    }
+    
+    .asset-item.selected {
+      background: var(--bg-orange-subtle, rgba(255, 102, 0, 0.08));
+      border-left: 3px solid var(--brand-orange);
+    }
+    
+    .asset-item-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-1);
+    }
+    
+    .asset-item-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .asset-item-tags {
+      display: flex;
+      gap: var(--space-1);
+    }
+    
+    .asset-tag {
+      padding: 2px 6px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-xs);
+      color: var(--text-secondary);
+    }
+    
+    .asset-tag-registry {
+      background: var(--brand-orange);
+      color: white;
+    }
+    
+    .asset-item-meta {
+      display: flex;
+      gap: var(--space-4);
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+    }
+    
+    .asset-meta-item strong {
+      color: var(--text-secondary);
+    }
+    
+    .asset-empty {
+      padding: var(--space-6);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+    
+    /* Selected Asset Info */
+    .selected-asset-info {
+      background: var(--bg-primary);
+      border: 2px solid var(--brand-orange);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    
+    .selected-asset-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+    }
+    
+    .selected-asset-header h4 {
+      margin: 0;
+      color: var(--text-primary);
+    }
+    
+    .ga-source {
+      font-size: var(--text-xs);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+    
+    .ga-source-default {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+    
+    .ga-source-work {
+      background: var(--color-success);
+      color: white;
+    }
+    
+    .selected-asset-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .selected-asset-details strong {
+      color: var(--text-primary);
+    }
+    
+    .selected-asset-loading {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--text-secondary);
+    }
+    
+    /* General Arrangement Form */
+    .ga-form-container {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+    
+    .ga-header {
+      margin-bottom: var(--space-4);
+    }
+    
+    .ga-header h4 {
+      margin: 0 0 var(--space-1) 0;
+      color: var(--text-primary);
+    }
+    
+    .ga-description {
+      margin: 0;
+      font-size: var(--text-sm);
+      color: var(--text-secondary);
+    }
+    
+    .ga-components {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    
+    .ga-component {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+    }
+    
+    .ga-component-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+    }
+    
+    .ga-component-number {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--brand-orange);
+      color: white;
+      border-radius: 50%;
+      font-size: var(--text-xs);
+      font-weight: 600;
+    }
+    
+    .ga-component-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .ga-component-desc {
+      margin: 0 0 var(--space-2) 0;
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      padding-left: 32px;
+    }
+    
+    .ga-component-input {
+      min-height: 60px;
+    }
+    
+    .ga-empty {
+      padding: var(--space-4);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <div class="poc-container">
+    <!-- Header -->
+    <header class="poc-header">
+      <div class="poc-header-left">
+        <a href="/" class="poc-back-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Back
+        </a>
+        <h1 class="poc-title">Job Delivery POC</h1>
+        <span class="poc-badge">POC</span>
+      </div>
+    </header>
+
+    <!-- Auth Section -->
+    <section class="auth-section">
+      <div class="auth-status">
+        <span class="auth-status-dot" id="auth-dot"></span>
+        <span class="auth-status-text" id="auth-status-text">Checking authentication...</span>
+        <span class="auth-user-info" id="auth-user-info"></span>
+        <button class="btn btn-primary" id="auth-btn" style="display: none;">
+          Login with MarineStream
+        </button>
+        <button class="btn btn-secondary" id="pat-btn" style="display: none;">
+          Use PAT
+        </button>
+        <button class="btn btn-secondary" id="debug-btn" style="display: none;">
+          Debug API
+        </button>
+        <button class="btn btn-secondary" id="view-assets-btn" style="display: none;">
+          View All Assets
+        </button>
+        <button class="btn btn-secondary" id="logout-btn" style="display: none;">
+          Logout
+        </button>
+      </div>
+      
+      <!-- PAT Input (hidden by default) -->
+      <div class="pat-input-section" id="pat-section" style="display: none; margin-top: var(--space-4);">
+        <p style="margin-bottom: var(--space-2); font-size: var(--text-sm); color: var(--text-secondary);">
+          Enter your MarineStream Personal Access Token (PAT). You can get this from 
+          <a href="https://app.marinestream.io" target="_blank" style="color: var(--brand-orange);">app.marinestream.io</a> 
+          under your profile settings.
+        </p>
+        <div style="display: flex; gap: var(--space-2);">
+          <input type="password" id="pat-input" class="form-input" placeholder="Paste your PAT here..." style="flex: 1;">
+          <button class="btn btn-primary" id="pat-submit">Authenticate</button>
+          <button class="btn btn-secondary" id="pat-cancel">Cancel</button>
+        </div>
+      </div>
+      
+      <!-- Debug Output (hidden by default) -->
+      <div id="debug-output" style="display: none; margin-top: var(--space-4); padding: var(--space-4); background: var(--bg-tertiary); border-radius: var(--radius-md); font-family: monospace; font-size: var(--text-sm); white-space: pre-wrap; overflow-x: auto; max-height: 400px; overflow-y: auto;"></div>
+      
+      <!-- Assets Table (hidden by default) -->
+      <div id="assets-table-container" style="display: none; margin-top: var(--space-4);">
+        <h3 style="margin-bottom: var(--space-3);">All Assets <span id="assets-count" style="font-weight: normal; color: var(--text-secondary);"></span></h3>
+        <div id="assets-grouped-view" style="max-height: 600px; overflow-y: auto;"></div>
+      </div>
+      
+      <style>
+        .asset-group {
+          margin-bottom: var(--space-3);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+        }
+        .asset-group-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          background: var(--bg-secondary);
+          cursor: pointer;
+          user-select: none;
+          transition: background 0.2s;
+        }
+        .asset-group-header:hover {
+          background: var(--bg-hover);
+        }
+        .asset-group-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 600;
+        }
+        .asset-group-title .chevron {
+          transition: transform 0.2s;
+        }
+        .asset-group.collapsed .chevron {
+          transform: rotate(-90deg);
+        }
+        .asset-group-count {
+          font-size: var(--text-sm);
+          color: var(--text-secondary);
+          background: var(--bg-tertiary);
+          padding: 2px 8px;
+          border-radius: 12px;
+        }
+        .asset-group-content {
+          max-height: 1000px;
+          overflow: hidden;
+          transition: max-height 0.3s ease;
+        }
+        .asset-group.collapsed .asset-group-content {
+          max-height: 0;
+        }
+        .asset-group table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: var(--text-sm);
+        }
+        .asset-group th {
+          padding: 8px 12px;
+          text-align: left;
+          background: var(--bg-tertiary);
+          border-bottom: 1px solid var(--border-color);
+          font-weight: 500;
+          color: var(--text-secondary);
+        }
+        .asset-group td {
+          padding: 8px 12px;
+          border-bottom: 1px solid var(--border-color);
+        }
+        .asset-group tr:last-child td {
+          border-bottom: none;
+        }
+        .asset-group tr:hover td {
+          background: var(--bg-hover);
+        }
+        .asset-name {
+          font-weight: 500;
+        }
+        .asset-meta {
+          font-family: monospace;
+          font-size: var(--text-xs);
+          color: var(--text-secondary);
+        }
+      </style>
+    </section>
+
+    <!-- Messages -->
+    <div id="messages"></div>
+
+    <!-- Work Types Section -->
+    <section class="work-types-section" id="work-types-section" style="display: none;">
+      <h2 class="section-title">Select a Work Type</h2>
+      <div class="work-types-grid" id="work-types-grid">
+        <div class="empty-state">
+          <div class="loading-spinner"></div>
+          <p>Loading work types...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Job Form Section -->
+    <section class="form-section" id="form-section">
+      <h2 class="section-title">Create Job: <span id="selected-work-type-name"></span></h2>
+      
+      <form id="job-form">
+        <div class="form-group">
+          <label class="form-label" for="job-name">Job Name *</label>
+          <input type="text" id="job-name" class="form-input" placeholder="Enter a name for this job" required>
+        </div>
+        
+        <!-- Asset Selection -->
+        <div class="form-group">
+          <label class="form-label">Select Asset (Vessel) *</label>
+          <div class="asset-list-container" id="asset-list-container">
+            <input type="text" id="asset-search" class="form-input asset-search" placeholder="Search by name, MMSI, IMO, pennant...">
+            <div class="asset-list" id="asset-list">
+              <div class="asset-empty">
+                <span class="loading-spinner"></span> Loading assets...
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Selected Asset Info -->
+        <div class="selected-asset-info" id="selected-asset-info" style="display: none;"></div>
+        
+        <!-- General Arrangement Form -->
+        <div class="ga-form-container" id="ga-form-container" style="display: none;"></div>
+        
+        <div class="form-group">
+          <label class="form-label" for="job-notes">Additional Notes</label>
+          <textarea id="job-notes" class="form-textarea" placeholder="Additional notes or context for this job"></textarea>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">
+            Create Job
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Result Section -->
+    <section class="result-section" id="result-section">
+      <h2 class="section-title">API Response</h2>
+      <pre class="result-json" id="result-json"></pre>
+    </section>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/auth-oauth.js"></script>
+  <script src="/js/job-delivery-poc.js" type="module"></script>
+</body>
+</html>

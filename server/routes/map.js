@@ -21,37 +21,69 @@ const POSITION_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
  */
 router.get('/vessels', optionalAuth, async (req, res) => {
   try {
-    // Get vessels from database
-    const result = await db.query(
-      `SELECT id, mmsi, name, vessel_type, flag, organization_id
-       FROM vessels
-       WHERE is_tracked = true AND mmsi IS NOT NULL`
-    );
-
+    let vessels = [];
     const now = Date.now();
     
-    // Merge with cached AIS positions
-    let vessels = result.rows.map(vessel => {
-      const position = vesselPositions.get(vessel.mmsi);
-      const isStale = position ? (now - new Date(position.timestamp).getTime() > POSITION_MAX_AGE_MS) : true;
+    // Try to get vessels from database
+    try {
+      const result = await db.query(
+        `SELECT id, mmsi, name, vessel_type, flag, organization_id
+         FROM vessels
+         WHERE is_tracked = true AND mmsi IS NOT NULL`
+      );
       
-      return {
-        ...vessel,
-        position: position ? {
-          lat: position.lat,
-          lng: position.lng || position.lon,
-          speed: position.speed,
-          course: position.course,
-          heading: position.heading,
-          status: position.status,
-          shipName: position.shipName,
-          isStale
-        } : null,
-        lastUpdate: position?.timestamp || null,
-        hasLivePosition: !!position && !isStale,
-        positionSource: position ? 'aisstream' : null
-      };
-    });
+      // Merge with cached AIS positions
+      vessels = result.rows.map(vessel => {
+        const position = vesselPositions.get(vessel.mmsi);
+        const isStale = position ? (now - new Date(position.timestamp).getTime() > POSITION_MAX_AGE_MS) : true;
+        
+        return {
+          ...vessel,
+          position: position ? {
+            lat: position.lat,
+            lng: position.lng || position.lon,
+            speed: position.speed,
+            course: position.course,
+            heading: position.heading,
+            status: position.status,
+            shipName: position.shipName,
+            isStale
+          } : null,
+          lastUpdate: position?.timestamp || null,
+          hasLivePosition: !!position && !isStale,
+          positionSource: position ? 'aisstream' : null
+        };
+      });
+    } catch (dbErr) {
+      // Database table might not exist - fall back to cached positions only
+      console.warn('Database query failed, using cached positions only:', dbErr.message);
+      
+      // Return vessels from AIS cache
+      vesselPositions.forEach((pos, mmsi) => {
+        const isStale = (now - new Date(pos.timestamp).getTime() > POSITION_MAX_AGE_MS);
+        vessels.push({
+          id: null,
+          mmsi,
+          name: pos.shipName || `Vessel ${mmsi}`,
+          vessel_type: null,
+          flag: null,
+          organization_id: null,
+          position: {
+            lat: pos.lat,
+            lng: pos.lng || pos.lon,
+            speed: pos.speed,
+            course: pos.course,
+            heading: pos.heading,
+            status: pos.status,
+            shipName: pos.shipName,
+            isStale
+          },
+          lastUpdate: pos.timestamp,
+          hasLivePosition: !isStale,
+          positionSource: 'aisstream'
+        });
+      });
+    }
 
     res.json({
       success: true,

@@ -61,6 +61,21 @@ const icons = {
 // Store loaded apps
 let loadedApps = [];
 
+// POC apps that should always be shown (injected into the list)
+const POC_APPS = [
+  {
+    slug: 'job-delivery-poc',
+    name: 'Job Delivery POC',
+    description: 'New frontend POC for MarineStream API - create and manage jobs directly',
+    url: '/job-delivery-poc.html',
+    icon: 'clipboard-check',
+    category: 'Operations',
+    sort_order: 0,
+    badge: 'POC',
+    internal: true
+  }
+];
+
 /**
  * Load applications from API
  */
@@ -72,7 +87,8 @@ export async function loadApps(container) {
     const data = await response.json();
     
     if (data.success && data.data) {
-      loadedApps = data.data.apps || [];
+      // Always inject POC apps at the beginning
+      loadedApps = [...POC_APPS, ...(data.data.apps || [])];
       renderApps(container, loadedApps);
     } else {
       // Fallback to hardcoded apps if API fails
@@ -92,6 +108,17 @@ export async function loadApps(container) {
  */
 function getDefaultApps() {
   return [
+    {
+      slug: 'job-delivery-poc',
+      name: 'Job Delivery POC',
+      description: 'New frontend POC for MarineStream API - create and manage jobs directly',
+      url: '/job-delivery-poc.html',
+      icon: 'clipboard-check',
+      category: 'Operations',
+      sort_order: 0,
+      badge: 'POC',
+      internal: true
+    },
     {
       slug: 'core',
       name: 'Job Delivery',
@@ -179,8 +206,13 @@ function createAppCard(app) {
   const card = document.createElement('a');
   card.className = 'app-card';
   card.href = app.url;
-  card.target = '_blank';
-  card.rel = 'noopener noreferrer';
+  
+  // Internal apps don't open in new tab
+  if (!app.internal && !app.url.startsWith('/')) {
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+  }
+  
   card.dataset.category = app.category || 'Other';
   card.dataset.slug = app.slug;
   
