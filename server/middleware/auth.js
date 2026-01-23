@@ -1,13 +1,37 @@
 /**
  * MarineStream Workspace - Authentication Middleware
  * Clerk JWT verification and user context
+ * Rise-X connection management
  */
 
 const { clerkClient } = require('@clerk/clerk-sdk-node');
 const db = require('../db');
 
+// Lazy-load services to avoid circular dependencies
+let tokenManager = null;
+let syncService = null;
+
+function getTokenManager() {
+  if (!tokenManager) {
+    tokenManager = require('../services/tokenManager');
+  }
+  return tokenManager;
+}
+
+function getSyncService() {
+  if (!syncService) {
+    syncService = require('../services/riseXSync');
+  }
+  return syncService;
+}
+
+// Track recent syncs to avoid triggering too frequently
+const recentSyncs = new Map();
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Verify Clerk session and attach user to request
+ * Also checks Rise-X connection status and triggers sync if needed
  */
 async function requireAuth(req, res, next) {
   try {
@@ -33,7 +57,8 @@ async function requireAuth(req, res, next) {
         email: 'dev@marinestream.io',
         full_name: 'Dev User',
         role: 'admin',
-        organization_id: null
+        organization_id: null,
+        riseXConnected: false
       };
       return next();
     }
@@ -51,11 +76,14 @@ async function requireAuth(req, res, next) {
       });
     }
 
-    // Get user from database
+    // Get user from database with Rise-X connection status
     const result = await db.query(
-      `SELECT u.*, o.name as organization_name, o.slug as organization_slug
+      `SELECT u.*, o.name as organization_name, o.slug as organization_slug,
+              urc.is_active as rise_x_connected,
+              urc.last_sync_at as rise_x_last_sync
        FROM users u
        LEFT JOIN organizations o ON u.organization_id = o.id
+       LEFT JOIN user_rise_x_connections urc ON u.id = urc.user_id
        WHERE u.clerk_id = $1`,
       [session.userId]
     );
@@ -76,9 +104,22 @@ async function requireAuth(req, res, next) {
         ]
       );
       
-      req.user = insertResult.rows[0];
+      req.user = {
+        ...insertResult.rows[0],
+        riseXConnected: false,
+        riseXLastSync: null
+      };
     } else {
-      req.user = result.rows[0];
+      req.user = {
+        ...result.rows[0],
+        riseXConnected: result.rows[0].rise_x_connected || false,
+        riseXLastSync: result.rows[0].rise_x_last_sync
+      };
+    }
+
+    // Trigger background sync if connected and not recently synced
+    if (req.user.riseXConnected && req.user.id) {
+      triggerBackgroundSyncIfNeeded(req.user.id);
     }
 
     next();
@@ -99,6 +140,25 @@ async function requireAuth(req, res, next) {
       }
     });
   }
+}
+
+/**
+ * Trigger a background sync if the user hasn't synced recently
+ */
+function triggerBackgroundSyncIfNeeded(userId) {
+  const lastSync = recentSyncs.get(userId);
+  const now = Date.now();
+  
+  if (lastSync && (now - lastSync) < SYNC_COOLDOWN_MS) {
+    return; // Recently synced, skip
+  }
+  
+  recentSyncs.set(userId, now);
+  
+  // Trigger incremental sync in background
+  getSyncService().incrementalSync(userId).catch(err => {
+    console.warn(`Background sync failed for user ${userId}:`, err.message);
+  });
 }
 
 /**
@@ -176,9 +236,58 @@ async function requireInternal(req, res, next) {
   });
 }
 
+/**
+ * Require Rise-X connection
+ * Use after requireAuth to ensure user has connected their Rise-X account
+ */
+async function requireRiseXConnection(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required'
+      }
+    });
+  }
+
+  if (!req.user.riseXConnected) {
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: 'RISE_X_NOT_CONNECTED',
+        message: 'Please connect your Rise-X account to access this feature'
+      }
+    });
+  }
+
+  next();
+}
+
+/**
+ * Attach Rise-X token to request if available
+ * Useful for routes that proxy to Rise-X API
+ */
+async function attachRiseXToken(req, res, next) {
+  if (req.user && req.user.id && req.user.riseXConnected) {
+    try {
+      const token = await getTokenManager().getValidToken(req.user.id);
+      req.riseXToken = token;
+    } catch (err) {
+      console.warn('Failed to get Rise-X token:', err.message);
+      req.riseXToken = null;
+    }
+  } else {
+    req.riseXToken = null;
+  }
+  next();
+}
+
 module.exports = {
   requireAuth,
   optionalAuth,
   requireAdmin,
-  requireInternal
+  requireInternal,
+  requireRiseXConnection,
+  attachRiseXToken
 };

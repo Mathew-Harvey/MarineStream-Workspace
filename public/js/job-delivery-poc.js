@@ -1,47 +1,81 @@
 /**
  * MarineStream Job Delivery POC
  * Multi-step job creation workflow with vessel selection and GA inspection forms
+ * Integrated with Clerk authentication and Rise-X API
  */
+
+import { initAuth, getCurrentUser, isAuthenticated, signOut, isClerkReady } from './auth.js';
+import { loadConfig } from './config.js';
 
 // State management
 const state = {
-  authenticated: false,
-  token: null,
+  // Clerk authentication
+  clerkUser: null,
+  clerkAuthenticated: false,
+  
+  // Rise-X connection
+  riseXConnected: false,
+  riseXToken: null,
+  
+  // Current draft job ID (for auto-save)
+  currentDraftId: null,
+  
+  // UI state
   currentSection: 'job-type',
   selectedJobType: null,
   selectedVessel: null,
   vesselDetails: null,
   jobTypes: [],
   vessels: [],
-  formData: {
-    jobNumber: '',
-    clientName: '',
-    location: '',
-    scheduledDate: '',
-    workInstructions: '',
-    rovUsed: '',
-    rovDetails: '',
-    supervisor: { name: '', email: '' },
-    inspector: { name: '', email: '' },
-    approver: { name: '', email: '' },
-    gaData: {}
-  }
+  
+  // Auto-save state
+  saveTimeout: null,
+  isSaving: false,
+  lastSaved: null
 };
 
 // DOM Elements
 const elements = {
+  // User info
+  userInfo: document.getElementById('user-info'),
+  userAvatar: document.getElementById('user-avatar'),
+  userName: document.getElementById('user-name'),
+  
+  // Rise-X status
+  riseXStatus: document.getElementById('risex-status'),
+  riseXDot: document.getElementById('risex-dot'),
+  riseXText: document.getElementById('risex-text'),
+  connectRiseXBtn: document.getElementById('connect-risex-btn'),
+  
+  // Rise-X modal
+  riseXModal: document.getElementById('risex-modal'),
+  riseXModalBackdrop: document.getElementById('risex-modal-backdrop'),
+  closeRiseXModal: document.getElementById('close-risex-modal'),
+  riseXPat: document.getElementById('risex-pat'),
+  cancelRiseX: document.getElementById('cancel-risex'),
+  saveRiseXPat: document.getElementById('save-risex-pat'),
+  
+  // Legacy auth elements
   authDot: document.getElementById('auth-dot'),
   authText: document.getElementById('auth-text'),
-  authBtn: document.getElementById('auth-btn'),
   logoutBtn: document.getElementById('logout-btn'),
+  
+  // Auto-save indicator
+  autoSaveIndicator: document.getElementById('auto-save-indicator'),
+  
+  // Navigation
   navMenu: document.getElementById('nav-menu'),
   messages: document.getElementById('messages'),
+  
+  // Job form elements
   jobTypeGrid: document.getElementById('job-type-grid'),
   vesselSearch: document.getElementById('vessel-search'),
   vesselList: document.getElementById('vessel-list'),
   gaComponents: document.getElementById('ga-components'),
   gaCount: document.getElementById('ga-count'),
   reviewSummary: document.getElementById('review-summary'),
+  
+  // Navigation buttons
   btnNext1: document.getElementById('btn-next-1'),
   btnNext2: document.getElementById('btn-next-2'),
   btnBack2: document.getElementById('btn-back-2'),
@@ -66,17 +100,162 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   console.log('🚀 Job Delivery POC initializing...');
+  
+  // Initialize Clerk authentication first
+  await initClerkAuth();
+  
+  // If not authenticated with Clerk, redirect to main workspace
+  if (!state.clerkAuthenticated) {
+    console.log('🔒 Not authenticated - redirecting to workspace login...');
+    showMessage('Please sign in to access Job Delivery', 'info');
+    setTimeout(() => {
+      window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
+    }, 1500);
+    return;
+  }
+  
+  // Check for Rise-X connection
+  checkRiseXConnection();
+  
+  // Setup all event listeners
   setupEventListeners();
-  await checkAuth();
+  setupAutoSave();
+  
+  // Load initial data
+  if (state.riseXConnected) {
+    await loadInitialData();
+  } else {
+    // Show default job types without Rise-X
+    state.jobTypes = getDefaultJobTypes();
+    renderJobTypes();
+    showMessage('Connect to Rise-X to access vessels and sync jobs', 'info');
+  }
+  
+  // Load any existing draft
+  await loadDraft();
+  
   console.log('✅ Job Delivery POC initialized');
+}
+
+/**
+ * Initialize Clerk authentication
+ */
+async function initClerkAuth() {
+  try {
+    // Load config from server first
+    const config = await loadConfig();
+    
+    if (!config?.clerk?.publishableKey) {
+      console.warn('No Clerk key configured');
+      return;
+    }
+    
+    const { user, isAuthenticated: isAuth } = await initAuth({
+      publishableKey: config.clerk.publishableKey,
+      onSignIn: (user) => {
+        state.clerkUser = user;
+        state.clerkAuthenticated = true;
+        updateUserUI();
+      },
+      onSignOut: () => {
+        state.clerkUser = null;
+        state.clerkAuthenticated = false;
+        window.location.href = '/';
+      }
+    });
+    
+    state.clerkUser = user;
+    state.clerkAuthenticated = isAuth;
+    
+    if (isAuth) {
+      console.log('✅ Clerk authenticated:', user?.email);
+      updateUserUI();
+    }
+  } catch (error) {
+    console.error('Clerk init error:', error);
+  }
+}
+
+/**
+ * Update UI to show current user
+ */
+function updateUserUI() {
+  if (state.clerkUser && elements.userInfo) {
+    elements.userInfo.style.display = 'flex';
+    if (elements.userAvatar) {
+      elements.userAvatar.src = state.clerkUser.imageUrl || '/assets/default-avatar.png';
+    }
+    if (elements.userName) {
+      elements.userName.textContent = state.clerkUser.fullName || state.clerkUser.email || 'User';
+    }
+    if (elements.logoutBtn) {
+      elements.logoutBtn.style.display = 'inline-flex';
+    }
+  }
+}
+
+/**
+ * Check if Rise-X is connected (PAT stored)
+ */
+function checkRiseXConnection() {
+  const storedToken = localStorage.getItem('marinestream_pat');
+  if (storedToken) {
+    state.riseXToken = storedToken;
+    state.riseXConnected = true;
+    updateRiseXUI(true);
+  } else {
+    updateRiseXUI(false);
+  }
+}
+
+/**
+ * Update Rise-X connection UI
+ */
+function updateRiseXUI(connected) {
+  if (connected) {
+    elements.riseXDot?.classList.add('authenticated');
+    if (elements.riseXText) elements.riseXText.textContent = 'Rise-X: Connected';
+    if (elements.connectRiseXBtn) {
+      elements.connectRiseXBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <path d="M9 12l2 2 4-4"/>
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        Connected
+      `;
+      elements.connectRiseXBtn.classList.add('connected');
+    }
+  } else {
+    elements.riseXDot?.classList.remove('authenticated');
+    if (elements.riseXText) elements.riseXText.textContent = 'Rise-X: Not Connected';
+    if (elements.connectRiseXBtn) {
+      elements.connectRiseXBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        Connect Rise-X
+      `;
+      elements.connectRiseXBtn.classList.remove('connected');
+    }
+  }
 }
 
 function setupEventListeners() {
   console.log('⚙️ Setting up event listeners...');
   
-  // Auth buttons
-  elements.authBtn?.addEventListener('click', handleLogin);
-  elements.logoutBtn?.addEventListener('click', handleLogout);
+  // Logout button (Clerk)
+  elements.logoutBtn?.addEventListener('click', async () => {
+    await signOut();
+    window.location.href = '/';
+  });
+
+  // Rise-X connection modal
+  elements.connectRiseXBtn?.addEventListener('click', openRiseXModal);
+  elements.closeRiseXModal?.addEventListener('click', closeRiseXModal);
+  elements.riseXModalBackdrop?.addEventListener('click', closeRiseXModal);
+  elements.cancelRiseX?.addEventListener('click', closeRiseXModal);
+  elements.saveRiseXPat?.addEventListener('click', handleSaveRiseXPat);
 
   // Navigation
   elements.navMenu?.addEventListener('click', (e) => {
@@ -123,82 +302,253 @@ function setupEventListeners() {
   }
 }
 
-// Auth functions
-async function checkAuth() {
-  console.log('🔐 Checking authentication...');
+/**
+ * Setup auto-save for all form inputs
+ */
+function setupAutoSave() {
+  // Get all form inputs, selects, and textareas
+  const formElements = document.querySelectorAll('.form-input, .form-select, .form-textarea');
+  
+  formElements.forEach(el => {
+    // Save on blur (when user leaves field)
+    el.addEventListener('blur', () => {
+      triggerAutoSave();
+    });
+    
+    // Also save on change for selects
+    if (el.tagName === 'SELECT') {
+      el.addEventListener('change', () => {
+        triggerAutoSave();
+      });
+    }
+  });
+  
+  console.log(`📝 Auto-save setup for ${formElements.length} form elements`);
+}
+
+/**
+ * Trigger auto-save with debounce
+ */
+function triggerAutoSave() {
+  // Clear any existing timeout
+  if (state.saveTimeout) {
+    clearTimeout(state.saveTimeout);
+  }
+  
+  // Debounce saves to avoid too many API calls
+  state.saveTimeout = setTimeout(async () => {
+    await saveJobDraft();
+  }, 1000);
+}
+
+/**
+ * Save job draft to local database
+ */
+async function saveJobDraft() {
+  if (state.isSaving) return;
+  
+  state.isSaving = true;
+  showAutoSaveIndicator('saving');
   
   try {
-    // Check for stored PAT
-    const storedToken = localStorage.getItem('marinestream_pat');
-    if (storedToken) {
-      console.log('🔑 Found stored PAT');
-      state.token = storedToken;
-      state.authenticated = true;
-      updateAuthUI();
-      await loadInitialData();
-      return;
-    }
-
-    // Check OAuth
-    if (typeof MarineStreamAuth !== 'undefined') {
-      console.log('🔑 Checking OAuth...');
-      const token = await MarineStreamAuth.getToken();
-      if (token) {
-        console.log('🔑 Got OAuth token');
-        state.token = token;
-        state.authenticated = true;
-        updateAuthUI();
-        await loadInitialData();
-        return;
-      }
+    const draftData = collectFormData(false);
+    
+    // Add user metadata
+    draftData.metadata = {
+      userId: state.clerkUser?.id,
+      userEmail: state.clerkUser?.email,
+      userName: state.clerkUser?.fullName,
+      lastModified: new Date().toISOString(),
+      riseXConnected: state.riseXConnected
+    };
+    
+    // Save to our local database
+    const response = await fetch('/api/jobs/draft', {
+      method: state.currentDraftId ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: state.currentDraftId,
+        data: draftData
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      state.currentDraftId = result.data?.id || state.currentDraftId;
+      state.lastSaved = new Date();
+      showAutoSaveIndicator('saved');
+      console.log('💾 Draft saved:', state.currentDraftId);
     } else {
-      console.log('⚠️ MarineStreamAuth not available');
+      throw new Error(result.error || 'Failed to save draft');
     }
   } catch (error) {
-    console.error('❌ Auth check failed:', error);
+    console.error('Auto-save failed:', error);
+    showAutoSaveIndicator('error');
+  } finally {
+    state.isSaving = false;
+  }
+}
+
+/**
+ * Load existing draft if any
+ */
+async function loadDraft() {
+  try {
+    const response = await fetch('/api/jobs/draft/current', {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) return;
+    
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      console.log('📂 Loaded existing draft:', result.data.id);
+      state.currentDraftId = result.data.id;
+      // Populate form fields from draft data if needed
+      // populateFormFromDraft(result.data);
+    }
+  } catch (error) {
+    console.log('No existing draft found');
+  }
+}
+
+/**
+ * Show auto-save indicator
+ */
+function showAutoSaveIndicator(status) {
+  const indicator = elements.autoSaveIndicator;
+  if (!indicator) return;
+  
+  indicator.classList.remove('hidden', 'saving', 'saved', 'error');
+  
+  const textEl = indicator.querySelector('.auto-save-text');
+  
+  switch (status) {
+    case 'saving':
+      indicator.classList.add('saving');
+      if (textEl) textEl.textContent = 'Saving...';
+      break;
+    case 'saved':
+      indicator.classList.add('saved');
+      if (textEl) textEl.textContent = 'Saved';
+      // Hide after 2 seconds
+      setTimeout(() => {
+        indicator.classList.add('hidden');
+      }, 2000);
+      break;
+    case 'error':
+      indicator.classList.add('error');
+      if (textEl) textEl.textContent = 'Save failed';
+      setTimeout(() => {
+        indicator.classList.add('hidden');
+      }, 3000);
+      break;
+  }
+}
+
+/**
+ * Open Rise-X connection modal
+ */
+function openRiseXModal() {
+  if (elements.riseXModal) {
+    elements.riseXModal.classList.remove('hidden');
+  }
+}
+
+/**
+ * Close Rise-X connection modal
+ */
+function closeRiseXModal() {
+  if (elements.riseXModal) {
+    elements.riseXModal.classList.add('hidden');
+  }
+  if (elements.riseXPat) {
+    elements.riseXPat.value = '';
+  }
+}
+
+/**
+ * Handle saving Rise-X PAT
+ */
+async function handleSaveRiseXPat() {
+  const pat = elements.riseXPat?.value?.trim();
+  
+  if (!pat) {
+    showMessage('Please enter your Personal Access Token', 'error');
+    return;
   }
   
-  console.log('⚠️ Not authenticated');
-  state.authenticated = false;
-  updateAuthUI();
-  showMessage('Please click Login and enter your Personal Access Token to continue', 'info');
-}
-
-function updateAuthUI() {
-  if (state.authenticated) {
-    elements.authDot?.classList.add('authenticated');
-    if (elements.authText) elements.authText.textContent = 'Connected';
-    if (elements.authBtn) elements.authBtn.style.display = 'none';
-    if (elements.logoutBtn) elements.logoutBtn.style.display = 'inline-flex';
-  } else {
-    elements.authDot?.classList.remove('authenticated');
-    if (elements.authText) elements.authText.textContent = 'Not connected';
-    if (elements.authBtn) elements.authBtn.style.display = 'inline-flex';
-    if (elements.logoutBtn) elements.logoutBtn.style.display = 'none';
+  // Show loading state
+  const btn = elements.saveRiseXPat;
+  const originalHtml = btn?.innerHTML;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px"></div> Connecting...';
+  }
+  
+  try {
+    // Verify the PAT works by making a test API call
+    const response = await fetch('/api/marinestream/flow-origins', {
+      headers: {
+        'Authorization': `Bearer ${pat}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // PAT is valid - save it
+      localStorage.setItem('marinestream_pat', pat);
+      state.riseXToken = pat;
+      state.riseXConnected = true;
+      
+      updateRiseXUI(true);
+      closeRiseXModal();
+      showMessage('Successfully connected to Rise-X!', 'success');
+      
+      // Load data now that we're connected
+      await loadInitialData();
+    } else {
+      throw new Error(result.error || 'Invalid PAT');
+    }
+  } catch (error) {
+    console.error('Rise-X connection failed:', error);
+    showMessage(`Connection failed: ${error.message}`, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
-async function handleLogin() {
-  // Show PAT prompt for now
-  const pat = prompt('Enter your MarineStream Personal Access Token:');
-  if (pat) {
-    localStorage.setItem('marinestream_pat', pat);
-    await checkAuth();
-  }
-}
+// Auth/Token functions
 
-function handleLogout() {
-  localStorage.removeItem('marinestream_pat');
-  localStorage.removeItem('marinestream_oauth_token');
-  state.authenticated = false;
-  state.token = null;
-  updateAuthUI();
-  showMessage('Logged out successfully', 'success');
-}
-
+/**
+ * Get token for Rise-X API calls
+ * Returns Rise-X PAT if connected, otherwise throws
+ */
 async function getToken() {
-  if (state.token) return state.token;
-  throw new Error('Not authenticated');
+  if (state.riseXToken) return state.riseXToken;
+  throw new Error('Rise-X not connected');
+}
+
+/**
+ * Disconnect from Rise-X
+ */
+function disconnectRiseX() {
+  localStorage.removeItem('marinestream_pat');
+  state.riseXToken = null;
+  state.riseXConnected = false;
+  updateRiseXUI(false);
+  showMessage('Disconnected from Rise-X', 'info');
 }
 
 // Data loading

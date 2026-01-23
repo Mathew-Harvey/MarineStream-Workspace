@@ -28,6 +28,17 @@ try {
   console.warn('OAuth routes not available, using header-only auth');
 }
 
+// Import sync services for authenticated users
+let tokenManager = null;
+let syncService = null;
+try {
+  tokenManager = require('../services/tokenManager');
+  syncService = require('../services/riseXSync');
+  console.log('✓ Rise-X sync services loaded');
+} catch (e) {
+  console.warn('Sync services not available:', e.message);
+}
+
 // Import authoritative MMSI registry - NEVER overwrite with blank/invalid data
 let mmsiRegistry;
 try {
@@ -62,10 +73,15 @@ const DIANA_API_BASE = 'api.idiana.io';
 
 /**
  * Get access token from request
- * Checks: 1) Authorization header, 2) OAuth session
+ * Checks: 1) Rise-X token attached by auth middleware, 2) Authorization header, 3) OAuth session
  */
 function getTokenFromRequest(req) {
-  // First check Authorization header
+  // First check if Rise-X token was attached by auth middleware
+  if (req.riseXToken) {
+    return req.riseXToken;
+  }
+  
+  // Then check Authorization header (for direct Rise-X token)
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.replace('Bearer ', '');
@@ -80,6 +96,32 @@ function getTokenFromRequest(req) {
       if (tokens?.accessToken) {
         return tokens.accessToken;
       }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Get access token from request - async version
+ * Also tries to get token from tokenManager for Clerk-authenticated users
+ */
+async function getTokenFromRequestAsync(req) {
+  // First try sync methods
+  const syncToken = getTokenFromRequest(req);
+  if (syncToken) {
+    return syncToken;
+  }
+  
+  // If user is authenticated via Clerk and has Rise-X connection, get token from tokenManager
+  if (req.user?.id && tokenManager) {
+    try {
+      const token = await tokenManager.getValidToken(req.user.id);
+      if (token) {
+        return token;
+      }
+    } catch (err) {
+      console.warn('Failed to get Rise-X token from tokenManager:', err.message);
     }
   }
   
@@ -3672,5 +3714,253 @@ function getDefaultGATemplate(vesselType) {
   
   return standardZones;
 }
+
+// ============================================
+// Synced Data Routes (Local Database)
+// ============================================
+
+/**
+ * GET /api/marinestream/local/work-items
+ * Get work items from local synced database
+ * Falls back to Rise-X API if no local data available
+ */
+router.get('/local/work-items', async (req, res) => {
+  const { limit = 100, offset = 0, status, vesselId, search, useCache = 'true' } = req.query;
+  
+  // Check if user wants to use local cache
+  if (useCache === 'true' && syncService) {
+    try {
+      // Try to get from local database first
+      const userId = req.user?.id;
+      if (userId) {
+        const localData = await syncService.getWorkItems(userId, {
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          status,
+          vesselId,
+          search
+        });
+        
+        if (localData && localData.length > 0) {
+          return res.json({
+            success: true,
+            data: localData,
+            meta: {
+              source: 'local',
+              count: localData.length
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to get local work items:', err.message);
+    }
+  }
+  
+  // Fall back to Rise-X API
+  const token = await getTokenFromRequestAsync(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization required' }
+    });
+  }
+  
+  try {
+    const result = await makeApiRequest('/api/v3/work', token);
+    
+    if (result.statusCode !== 200) {
+      return res.status(result.statusCode).json({
+        success: false,
+        error: { message: 'Failed to fetch work items' }
+      });
+    }
+    
+    let workItems = JSON.parse(result.body);
+    
+    // Apply filters
+    if (status) {
+      workItems = workItems.filter(w => 
+        (w.currentState || w.status)?.toLowerCase() === status.toLowerCase()
+      );
+    }
+    
+    if (vesselId) {
+      workItems = workItems.filter(w => {
+        const vessel = w.data?.ranVessel || w.data?.vessel;
+        return vessel?.id === vesselId;
+      });
+    }
+    
+    if (search) {
+      const searchLower = search.toLowerCase();
+      workItems = workItems.filter(w => {
+        const vessel = w.data?.ranVessel || w.data?.vessel;
+        const vesselName = (vessel?.displayName || vessel?.name || '').toLowerCase();
+        return vesselName.includes(searchLower);
+      });
+    }
+    
+    // Apply pagination
+    const paginatedItems = workItems.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: paginatedItems.map(w => extractWorkDetails(w)),
+      meta: {
+        source: 'rise-x',
+        total: workItems.length,
+        count: paginatedItems.length
+      }
+    });
+  } catch (error) {
+    console.error('Work items API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+/**
+ * GET /api/marinestream/local/assets
+ * Get assets from local synced database
+ */
+router.get('/local/assets', async (req, res) => {
+  const { limit = 100, offset = 0, registryId, search, useCache = 'true' } = req.query;
+  
+  // Check if user wants to use local cache
+  if (useCache === 'true' && syncService) {
+    try {
+      const userId = req.user?.id;
+      if (userId) {
+        const localData = await syncService.getAssets(userId, {
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          registryId,
+          search
+        });
+        
+        if (localData && localData.length > 0) {
+          return res.json({
+            success: true,
+            data: localData,
+            meta: {
+              source: 'local',
+              count: localData.length
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to get local assets:', err.message);
+    }
+  }
+  
+  // Fall back to Rise-X API
+  const token = await getTokenFromRequestAsync(req);
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      error: { message: 'Authorization required' }
+    });
+  }
+  
+  try {
+    // Fetch from all registries or specific one
+    const registries = registryId 
+      ? [{ id: registryId, name: 'Custom' }]
+      : Object.values(FLOW_ORIGINS.assetRegistries).map((id, i) => ({ id, name: Object.keys(FLOW_ORIGINS.assetRegistries)[i] }));
+    
+    const allAssets = [];
+    
+    for (const registry of registries) {
+      try {
+        const result = await makeApiRequest(`/api/v3/thing?thingTypeId=${registry.id || registry}`, token);
+        
+        if (result.statusCode === 200) {
+          const assets = JSON.parse(result.body);
+          allAssets.push(...assets.map(a => ({
+            ...a,
+            registry: registry.name || registry
+          })));
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch assets from registry ${registry}:`, err.message);
+      }
+    }
+    
+    // Apply search filter
+    let filteredAssets = allAssets;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredAssets = allAssets.filter(a => {
+        const name = (a.displayName || a.name || '').toLowerCase();
+        const mmsi = (a.data?.mmsi || '').toLowerCase();
+        return name.includes(searchLower) || mmsi.includes(searchLower);
+      });
+    }
+    
+    // Apply pagination
+    const paginatedAssets = filteredAssets.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: paginatedAssets,
+      meta: {
+        source: 'rise-x',
+        total: filteredAssets.length,
+        count: paginatedAssets.length
+      }
+    });
+  } catch (error) {
+    console.error('Assets API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
+
+/**
+ * GET /api/marinestream/local/vessels/:vesselId/assessments
+ * Get biofouling assessments for a vessel from local database
+ */
+router.get('/local/vessels/:vesselId/assessments', async (req, res) => {
+  const { vesselId } = req.params;
+  const { limit = 50, component } = req.query;
+  
+  if (!syncService) {
+    return res.status(501).json({
+      success: false,
+      error: { message: 'Sync service not available' }
+    });
+  }
+  
+  try {
+    const assessments = await syncService.getBiofoulingAssessments(vesselId, {
+      limit: parseInt(limit),
+      component
+    });
+    
+    res.json({
+      success: true,
+      data: assessments,
+      meta: {
+        vesselId,
+        count: assessments.length,
+        source: 'local'
+      }
+    });
+  } catch (error) {
+    console.error('Assessments API error:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message }
+    });
+  }
+});
 
 module.exports = router;

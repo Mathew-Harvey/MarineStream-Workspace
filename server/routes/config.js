@@ -11,11 +11,16 @@ const router = express.Router();
  * Returns public configuration for the frontend
  */
 router.get('/', (req, res) => {
+  // Support both naming conventions for Clerk key
+  const clerkKey = process.env.CLERK_PUBLISHABLE_KEY || 
+                   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+                   '';
+  
   res.json({
     success: true,
     data: {
       clerk: {
-        publishableKey: process.env.CLERK_PUBLISHABLE_KEY || ''
+        publishableKey: clerkKey
       },
       mapbox: {
         accessToken: process.env.MAPBOX_ACCESS_TOKEN || ''

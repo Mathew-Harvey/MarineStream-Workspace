@@ -1525,13 +1525,48 @@ input, textarea, select {
 }
 
 .auth-modal-content {
-  width: 420px;
+  width: 380px;
+  max-width: 90vw;
   padding: var(--space-8);
+  position: relative;
+  overflow: visible;
+}
+
+.auth-modal-content .modal-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.auth-modal-content .modal-close:hover {
+  background: var(--ms-bg-secondary);
+}
+
+.auth-modal-content .modal-close svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ms-text-tertiary);
 }
 
 .auth-header {
   text-align: center;
   margin-bottom: var(--space-6);
+}
+
+.auth-logo-icon {
+  margin: 0 auto var(--space-4);
+  width: 64px;
+  height: 64px;
 }
 
 .auth-logo {
@@ -1542,13 +1577,59 @@ input, textarea, select {
 }
 
 .auth-header h2 {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: var(--font-bold);
   color: var(--ms-text-primary);
   margin-bottom: var(--space-2);
 }
 
 .auth-header p {
+  color: var(--ms-text-tertiary);
+  font-size: var(--text-sm);
+}
+
+#clerk-auth {
+  margin-bottom: var(--space-4);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+  color: var(--ms-text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ms-border);
+}
+
+.auth-footer {
+  text-align: center;
+}
+
+.auth-footer .guest-link {
+  display: inline-block;
+  color: var(--ms-orange);
+  font-weight: 500;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.auth-footer .guest-link:hover {
+  background: rgba(255, 102, 0, 0.1);
+}
+
+.auth-footer .guest-note {
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
   color: var(--ms-text-tertiary);
 }
 

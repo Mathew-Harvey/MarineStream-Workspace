@@ -546,6 +546,9 @@ function setupEventListeners() {
   
   // Work Panel event listeners
   setupWorkPanelListeners();
+  
+  // Settings panel
+  setupSettingsPanelListeners();
 }
 
 // ============================================
@@ -2953,3 +2956,261 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+// ============================================
+// Settings Panel & Rise-X Connection
+// ============================================
+
+/**
+ * Set up settings panel event listeners
+ */
+function setupSettingsPanelListeners() {
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsPanel = document.getElementById('settings-panel');
+  const settingsClose = document.getElementById('settings-close');
+  const connectBtn = document.getElementById('btn-connect-risex');
+  
+  // Toggle settings panel
+  settingsBtn?.addEventListener('click', toggleSettingsPanel);
+  settingsClose?.addEventListener('click', closeSettingsPanel);
+  
+  // Close panel when clicking outside
+  document.addEventListener('click', (e) => {
+    if (settingsPanel?.classList.contains('active') &&
+        !settingsPanel.contains(e.target) &&
+        !settingsBtn?.contains(e.target)) {
+      closeSettingsPanel();
+    }
+  });
+  
+  // Connect Rise-X button
+  connectBtn?.addEventListener('click', () => {
+    if (window.MarineStreamAuth?.startLogin) {
+      window.MarineStreamAuth.startLogin();
+    } else {
+      console.error('MarineStreamAuth not available');
+    }
+  });
+  
+  // Listen for Rise-X connection events
+  window.addEventListener('riseX:connected', () => {
+    updateRiseXConnectionUI();
+  });
+  
+  window.addEventListener('riseX:disconnected', () => {
+    updateRiseXConnectionUI();
+  });
+  
+  // Initial check for Rise-X connection status
+  checkRiseXConnectionStatus();
+}
+
+/**
+ * Toggle settings panel visibility
+ */
+function toggleSettingsPanel() {
+  const panel = document.getElementById('settings-panel');
+  if (panel?.classList.contains('active')) {
+    closeSettingsPanel();
+  } else {
+    openSettingsPanel();
+  }
+}
+
+/**
+ * Open settings panel
+ */
+function openSettingsPanel() {
+  const panel = document.getElementById('settings-panel');
+  panel?.classList.add('active');
+  
+  // Refresh Rise-X connection status
+  checkRiseXConnectionStatus();
+}
+
+/**
+ * Close settings panel
+ */
+function closeSettingsPanel() {
+  const panel = document.getElementById('settings-panel');
+  panel?.classList.remove('active');
+}
+
+/**
+ * Check Rise-X connection status from server
+ */
+async function checkRiseXConnectionStatus() {
+  if (!window.MarineStreamAuth?.getConnectionStatus) {
+    console.log('MarineStreamAuth not available for connection status');
+    return;
+  }
+  
+  try {
+    const status = await window.MarineStreamAuth.getConnectionStatus();
+    updateRiseXConnectionUI(status);
+    
+    if (status.connected) {
+      // Also fetch sync status
+      const syncStatus = await window.MarineStreamAuth.getSyncStatus();
+      updateSyncStatusUI(syncStatus?.data);
+    }
+  } catch (error) {
+    console.warn('Failed to check Rise-X connection:', error);
+  }
+}
+
+/**
+ * Update Rise-X connection UI based on status
+ */
+function updateRiseXConnectionUI(status = null) {
+  const connectionIcon = document.getElementById('connection-icon');
+  const connectionTitle = document.getElementById('connection-title');
+  const connectionSubtitle = document.getElementById('connection-subtitle');
+  const connectionActions = document.getElementById('connection-actions');
+  const syncStatus = document.getElementById('sync-status');
+  
+  if (!status || !status.connected) {
+    // Not connected
+    connectionIcon?.classList.remove('connected');
+    connectionIcon?.classList.add('disconnected');
+    if (connectionTitle) connectionTitle.textContent = 'Not Connected';
+    if (connectionSubtitle) connectionSubtitle.textContent = 'Connect to enable data sync';
+    if (connectionSubtitle) connectionSubtitle.classList.remove('connection-email');
+    
+    if (connectionActions) {
+      connectionActions.innerHTML = `
+        <button class="btn-connect" id="btn-connect-risex">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          Connect Rise-X
+        </button>
+      `;
+      
+      // Re-add click handler
+      document.getElementById('btn-connect-risex')?.addEventListener('click', () => {
+        if (window.MarineStreamAuth?.startLogin) {
+          window.MarineStreamAuth.startLogin();
+        }
+      });
+    }
+    
+    if (syncStatus) syncStatus.style.display = 'none';
+  } else {
+    // Connected
+    connectionIcon?.classList.add('connected');
+    connectionIcon?.classList.remove('disconnected');
+    if (connectionTitle) connectionTitle.textContent = 'Connected';
+    if (connectionSubtitle) {
+      connectionSubtitle.textContent = status.riseXEmail || 'Rise-X account linked';
+      connectionSubtitle.classList.add('connection-email');
+    }
+    
+    if (connectionActions) {
+      connectionActions.innerHTML = `
+        <button class="btn-sync" id="btn-sync-risex">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Sync Now
+        </button>
+        <button class="btn-disconnect" id="btn-disconnect-risex">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+            <line x1="12" y1="2" x2="12" y2="12"/>
+          </svg>
+          Disconnect
+        </button>
+      `;
+      
+      // Add click handlers
+      document.getElementById('btn-sync-risex')?.addEventListener('click', triggerRiseXSync);
+      document.getElementById('btn-disconnect-risex')?.addEventListener('click', disconnectRiseX);
+    }
+    
+    if (syncStatus) syncStatus.style.display = 'block';
+  }
+}
+
+/**
+ * Update sync status UI
+ */
+function updateSyncStatusUI(status) {
+  if (!status) return;
+  
+  const lastSyncTime = document.getElementById('last-sync-time');
+  const syncWorkItems = document.getElementById('sync-work-items');
+  const syncAssets = document.getElementById('sync-assets');
+  
+  if (lastSyncTime) {
+    if (status.lastSyncAt) {
+      lastSyncTime.textContent = formatRelativeTime(status.lastSyncAt);
+    } else {
+      lastSyncTime.textContent = 'Never';
+    }
+  }
+  
+  if (syncWorkItems && status.entities?.work_items) {
+    const workStatus = status.entities.work_items;
+    syncWorkItems.textContent = `${workStatus.total_synced || 0} synced`;
+    syncWorkItems.classList.toggle('success', workStatus.sync_status === 'completed');
+    syncWorkItems.classList.toggle('error', workStatus.sync_status === 'failed');
+  }
+  
+  if (syncAssets && status.entities?.assets) {
+    const assetStatus = status.entities.assets;
+    syncAssets.textContent = `${assetStatus.total_synced || 0} synced`;
+    syncAssets.classList.toggle('success', assetStatus.sync_status === 'completed');
+    syncAssets.classList.toggle('error', assetStatus.sync_status === 'failed');
+  }
+}
+
+/**
+ * Trigger Rise-X sync
+ */
+async function triggerRiseXSync() {
+  const syncBtn = document.getElementById('btn-sync-risex');
+  if (!syncBtn) return;
+  
+  syncBtn.disabled = true;
+  syncBtn.classList.add('syncing');
+  
+  try {
+    const result = await window.MarineStreamAuth?.triggerSync('incremental');
+    
+    if (result?.success) {
+      console.log('Sync completed:', result);
+      // Refresh sync status after a short delay
+      setTimeout(checkRiseXConnectionStatus, 1000);
+    } else {
+      console.error('Sync failed:', result?.error);
+    }
+  } catch (error) {
+    console.error('Sync error:', error);
+  } finally {
+    syncBtn.disabled = false;
+    syncBtn.classList.remove('syncing');
+  }
+}
+
+/**
+ * Disconnect Rise-X account
+ */
+async function disconnectRiseX() {
+  if (!confirm('Are you sure you want to disconnect your Rise-X account?')) {
+    return;
+  }
+  
+  try {
+    const success = await window.MarineStreamAuth?.disconnectFromServer();
+    
+    if (success) {
+      updateRiseXConnectionUI({ connected: false });
+    }
+  } catch (error) {
+    console.error('Disconnect error:', error);
+  }
+}

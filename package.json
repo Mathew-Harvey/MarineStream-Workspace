@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "db:init": "node server/db/init.js"
+    "db:init": "node server/db/init.js",
+    "db:migrate-sync": "node scripts/migrate-sync.js",
+    "db:migrate-all": "npm run db:init && npm run db:migrate-sync"
   },
   "keywords": [
     "maritime",

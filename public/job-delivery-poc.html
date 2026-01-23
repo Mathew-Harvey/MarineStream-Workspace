@@ -894,12 +894,31 @@
         <span class="page-badge">POC</span>
       </div>
       <div class="header-actions">
-        <div class="auth-status">
+        <!-- User Info (Clerk auth) -->
+        <div class="user-info" id="user-info" style="display: none;">
+          <img id="user-avatar" class="user-avatar" src="" alt="User" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+          <span id="user-name" style="font-size:14px;color:var(--text-secondary);"></span>
+        </div>
+        
+        <!-- Rise-X Connection Status -->
+        <div class="auth-status" id="risex-status">
+          <span class="auth-dot" id="risex-dot"></span>
+          <span id="risex-text">Rise-X: Not Connected</span>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="connect-risex-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          Connect Rise-X
+        </button>
+        
+        <!-- Clerk auth status (hidden, just for state) -->
+        <div class="auth-status" id="clerk-auth-status" style="display:none;">
           <span class="auth-dot" id="auth-dot"></span>
           <span id="auth-text">Checking...</span>
         </div>
-        <button class="btn btn-secondary btn-sm" id="auth-btn" style="display: none;">Login</button>
-        <button class="btn btn-secondary btn-sm" id="logout-btn" style="display: none;">Logout</button>
+        <button class="btn btn-secondary btn-sm" id="logout-btn" style="display: none;">Sign Out</button>
       </div>
     </header>
 
@@ -1585,7 +1604,275 @@
     </div>
   </div>
 
-  <script src="/js/auth-oauth.js"></script>
+  <!-- Rise-X Connection Modal -->
+  <div id="risex-modal" class="modal hidden">
+    <div class="modal-backdrop" id="risex-modal-backdrop"></div>
+    <div class="modal-content risex-modal-content">
+      <button class="modal-close" id="close-risex-modal" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      
+      <div class="risex-modal-header">
+        <div class="risex-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </div>
+        <h2>Connect to Rise-X MarineStream</h2>
+      </div>
+      
+      <div class="risex-modal-body">
+        <div class="risex-explanation">
+          <h4>Why connect to Rise-X?</h4>
+          <p>Connecting to Rise-X allows you to:</p>
+          <ul>
+            <li><strong>Access vessel data</strong> - Pull real-time vessel information, General Arrangements, and inspection history</li>
+            <li><strong>Sync jobs</strong> - Jobs you create here will sync to the Rise-X platform, accessible to your team</li>
+            <li><strong>Generate reports</strong> - Use Rise-X's reporting templates and document management</li>
+          </ul>
+          <p class="risex-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+            <strong>Note:</strong> A Personal Access Token (PAT) is required to securely connect to Rise-X. You can generate one from your Rise-X MarineStream account settings.
+          </p>
+        </div>
+        
+        <div class="risex-form">
+          <label class="form-label" for="risex-pat">Personal Access Token (PAT)</label>
+          <input type="password" class="form-input" id="risex-pat" placeholder="Paste your Rise-X PAT here...">
+          <p class="form-help">Your PAT is stored locally and never shared. <a href="https://marinestream.io/settings/api" target="_blank">Get your PAT</a></p>
+        </div>
+      </div>
+      
+      <div class="risex-modal-footer">
+        <button class="btn btn-secondary" id="cancel-risex">Cancel</button>
+        <button class="btn btn-primary" id="save-risex-pat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          Connect
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auto-save indicator -->
+  <div id="auto-save-indicator" class="auto-save-indicator hidden">
+    <span class="auto-save-icon"></span>
+    <span class="auto-save-text">Saving...</span>
+  </div>
+
+  <style>
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.hidden { display: none; }
+    .modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+    }
+    .modal-content {
+      position: relative;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    
+    /* Rise-X Modal specific */
+    .risex-modal-content {
+      padding: 0;
+    }
+    .risex-modal-header {
+      padding: 24px 24px 16px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .risex-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: rgba(249, 115, 22, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--brand-orange);
+    }
+    .risex-modal-header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .risex-modal-body {
+      padding: 24px;
+    }
+    .risex-explanation {
+      margin-bottom: 24px;
+    }
+    .risex-explanation h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 12px 0;
+    }
+    .risex-explanation p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0 0 12px 0;
+      line-height: 1.5;
+    }
+    .risex-explanation ul {
+      margin: 0 0 16px 0;
+      padding-left: 20px;
+    }
+    .risex-explanation li {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .risex-explanation li strong {
+      color: var(--text-primary);
+    }
+    .risex-note {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--color-info);
+    }
+    .risex-note svg {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .risex-form {
+      margin-top: 16px;
+    }
+    .form-help {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    .form-help a {
+      color: var(--brand-orange);
+      text-decoration: none;
+    }
+    .form-help a:hover {
+      text-decoration: underline;
+    }
+    .risex-modal-footer {
+      padding: 16px 24px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    
+    /* User info in header */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+    }
+    .user-avatar {
+      border: 2px solid var(--brand-orange);
+    }
+    
+    /* Auto-save indicator */
+    .auto-save-indicator {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-lg);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    .auto-save-indicator.hidden {
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+    }
+    .auto-save-indicator.saving .auto-save-icon {
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border-color);
+      border-top-color: var(--brand-orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .auto-save-indicator.saved {
+      color: var(--color-success);
+      border-color: var(--color-success);
+    }
+    .auto-save-indicator.saved .auto-save-icon::before {
+      content: '✓';
+    }
+    .auto-save-indicator.error {
+      color: var(--color-error);
+      border-color: var(--color-error);
+    }
+    .auto-save-indicator.error .auto-save-icon::before {
+      content: '✕';
+    }
+  </style>
+
   <script src="/js/job-delivery-poc.js" type="module"></script>
 </body>
 </html>

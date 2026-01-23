@@ -17,8 +17,7 @@
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
   <script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
   
-  <!-- Clerk (loaded dynamically with key from server) -->
-  <script src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" async></script>
+  <!-- Clerk is loaded dynamically by auth.js after config is fetched -->
   
   <!-- Styles -->
   <link rel="stylesheet" href="/css/styles.css">
@@ -349,18 +348,33 @@
 
   <!-- Auth Modal (for unauthenticated state) -->
   <div id="auth-modal" class="modal hidden">
-    <div class="modal-backdrop"></div>
+    <div class="modal-backdrop" id="auth-modal-backdrop"></div>
     <div class="modal-content auth-modal-content">
-      <div class="auth-header">
-        <svg viewBox="0 0 48 48" class="auth-logo">
-          <path d="M24 4L4 14v20l20 10 20-10V14L24 4z" fill="none" stroke="currentColor" stroke-width="2"/>
-          <path d="M24 14l-10 5v10l10 5 10-5V19l-10-5z" fill="currentColor" opacity="0.3"/>
-          <path d="M24 24v10M14 19l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <button class="modal-close" id="close-auth-modal" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
+      </button>
+      <div class="auth-header">
+        <div class="auth-logo-icon">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <circle cx="24" cy="24" r="22" fill="#FF6600" opacity="0.1"/>
+            <path d="M24 8L14 14v8l10 6 10-6v-8L24 8z" fill="#FF6600"/>
+            <path d="M24 28l-10-6v8l10 6 10-6v-8l-10 6z" fill="#FF6600" opacity="0.6"/>
+          </svg>
+        </div>
         <h2>Welcome to MarineStream</h2>
-        <p>Sign in to access your workspace</p>
+        <p>Sign in to access your workspace and fleet data</p>
       </div>
       <div id="clerk-auth"></div>
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+      <div class="auth-footer">
+        <a href="#" id="continue-guest" class="guest-link">Continue as Guest</a>
+        <p class="guest-note">Some features require sign-in</p>
+      </div>
     </div>
   </div>
 

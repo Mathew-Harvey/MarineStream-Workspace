@@ -4,7 +4,7 @@
  */
 
 import { loadConfig, getClerkKey, getMapboxToken } from './config.js';
-import { initAuth } from './auth.js';
+import { initAuth, isClerkReady } from './auth.js';
 import { initMap } from './map.js';
 import { loadApps, filterApps } from './apps.js';
 
@@ -140,17 +140,23 @@ async function init() {
       console.log('🗺️ Mapbox token configured');
     }
     
-    // Initialize Clerk auth with key from config
+    // Initialize Clerk auth with key from config (non-blocking)
     const clerkKey = getClerkKey();
     if (clerkKey) {
-      const authResult = await initAuth({
-        publishableKey: clerkKey,
-        onSignIn: handleSignIn,
-        onSignOut: handleSignOut
-      });
-      
-      state.user = authResult.user;
-      state.isAuthenticated = authResult.isAuthenticated;
+      try {
+        const authResult = await initAuth({
+          publishableKey: clerkKey,
+          onSignIn: handleSignIn,
+          onSignOut: handleSignOut
+        });
+        
+        state.user = authResult.user;
+        state.isAuthenticated = authResult.isAuthenticated;
+      } catch (authError) {
+        console.warn('⚠️ Auth initialization failed - continuing without auth:', authError.message);
+        state.user = null;
+        state.isAuthenticated = false;
+      }
     } else {
       console.warn('⚠️ Clerk publishable key not configured - auth disabled');
       state.user = null;
@@ -158,8 +164,12 @@ async function init() {
     }
     updateProgressBar(60);
     
-    // Update UI based on auth state
-    updateAuthUI();
+    // Update UI based on auth state (don't throw if Clerk isn't ready)
+    try {
+      updateAuthUI();
+    } catch (uiError) {
+      console.warn('⚠️ Could not update auth UI:', uiError.message);
+    }
     
     // Load applications
     await loadApps(elements.appsGrid);
@@ -251,7 +261,7 @@ function handleSignOut() {
  */
 function updateAuthUI() {
   if (state.user) {
-    // Show user info
+    // User is signed in
     elements.userName.textContent = state.user.fullName || state.user.email;
     elements.userEmail.textContent = state.user.email;
     
@@ -262,11 +272,121 @@ function updateAuthUI() {
       const initials = getInitials(state.user.fullName || state.user.email);
       elements.userAvatar.innerHTML = `<span>${initials}</span>`;
     }
+    
+    // Hide auth modal if shown
+    if (elements.authModal) {
+      elements.authModal.classList.add('hidden');
+      elements.authModal.classList.remove('show');
+    }
   } else {
+    // User is NOT signed in - show sign-in prompt
     elements.userName.textContent = 'Guest';
-    elements.userEmail.textContent = 'Not signed in';
+    elements.userEmail.textContent = 'Click to sign in';
     elements.userAvatar.innerHTML = '<span>?</span>';
+    
+    // Show sign-in prompt in auth modal
+    showSignInPrompt();
   }
+}
+
+/**
+ * Show sign-in prompt/modal
+ */
+function showSignInPrompt() {
+  if (!elements.authModal) return;
+  
+  const clerkAuthDiv = document.getElementById('clerk-auth');
+  if (!clerkAuthDiv) return;
+  
+  // Clear any existing content
+  clerkAuthDiv.innerHTML = '';
+  
+  // Create a simple sign-in button that opens Clerk's native modal
+  const signInBtn = document.createElement('button');
+  signInBtn.className = 'btn btn-primary';
+  signInBtn.style.cssText = `
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: #FF6600;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  `;
+  signInBtn.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px">
+      <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+      <polyline points="10 17 15 12 10 7"/>
+      <line x1="15" y1="12" x2="3" y2="12"/>
+    </svg>
+    Sign In with Email or Social
+  `;
+  
+  signInBtn.addEventListener('mouseenter', () => {
+    signInBtn.style.background = '#e55a00';
+    signInBtn.style.transform = 'translateY(-1px)';
+  });
+  signInBtn.addEventListener('mouseleave', () => {
+    signInBtn.style.background = '#FF6600';
+    signInBtn.style.transform = 'translateY(0)';
+  });
+  
+  signInBtn.addEventListener('click', () => {
+    // Close our modal first
+    closeAuthModal();
+    
+    // Open Clerk's native sign-in modal
+    if (isClerkReady() && window.Clerk && window.Clerk.openSignIn) {
+      window.Clerk.openSignIn({
+        appearance: {
+          variables: {
+            colorPrimary: '#FF6600',
+            colorText: '#1a1a19',
+            borderRadius: '8px'
+          }
+        }
+      });
+    } else {
+      console.warn('Clerk sign-in not available yet');
+      alert('Sign-in is still loading. Please try again in a moment.');
+    }
+  });
+  
+  clerkAuthDiv.appendChild(signInBtn);
+  
+  // Add "or create account" text
+  const signUpText = document.createElement('p');
+  signUpText.style.cssText = 'text-align: center; margin-top: 16px; color: #666; font-size: 14px;';
+  signUpText.innerHTML = `Don't have an account? <a href="#" id="open-signup" style="color: #FF6600; text-decoration: none; font-weight: 500;">Sign up</a>`;
+  clerkAuthDiv.appendChild(signUpText);
+  
+  // Add click handler for sign up link
+  setTimeout(() => {
+    document.getElementById('open-signup')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeAuthModal();
+      if (window.Clerk && window.Clerk.openSignUp) {
+        window.Clerk.openSignUp({
+          appearance: {
+            variables: {
+              colorPrimary: '#FF6600'
+            }
+          }
+        });
+      }
+    });
+  }, 0);
+  
+  // Show our modal
+  elements.authModal.classList.remove('hidden');
+  elements.authModal.classList.add('show');
 }
 
 /**
@@ -334,11 +454,34 @@ function getNavStatus(code) {
  * Setup event listeners
  */
 function setupEventListeners() {
-  // User dropdown toggle
+  // User dropdown toggle / sign-in trigger
   elements.userAvatar.addEventListener('click', (e) => {
     e.stopPropagation();
-    elements.userDropdown.classList.toggle('show');
-    elements.userDropdown.classList.toggle('hidden');
+    
+    if (state.isAuthenticated) {
+      // User is signed in - show dropdown
+      elements.userDropdown.classList.toggle('show');
+      elements.userDropdown.classList.toggle('hidden');
+    } else {
+      // User is NOT signed in - trigger sign-in
+      try {
+        if (isClerkReady() && window.Clerk && window.Clerk.openSignIn) {
+          window.Clerk.openSignIn({
+            appearance: {
+              variables: {
+                colorPrimary: '#FF6600'
+              }
+            }
+          });
+        } else {
+          // Fallback: show auth modal
+          showSignInPrompt();
+        }
+      } catch (error) {
+        console.warn('Could not open sign-in:', error.message);
+        showSignInPrompt();
+      }
+    }
   });
   
   // Close dropdown on outside click
@@ -459,6 +602,24 @@ function setupEventListeners() {
     elements.mapModal.classList.remove('show');
     elements.mapModal.classList.add('hidden');
   });
+  
+  // Auth modal close handlers
+  document.getElementById('close-auth-modal')?.addEventListener('click', closeAuthModal);
+  document.getElementById('auth-modal-backdrop')?.addEventListener('click', closeAuthModal);
+  document.getElementById('continue-guest')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closeAuthModal();
+  });
+}
+
+/**
+ * Close the auth modal
+ */
+function closeAuthModal() {
+  if (elements.authModal) {
+    elements.authModal.classList.remove('show');
+    elements.authModal.classList.add('hidden');
+  }
 }
 
 /**

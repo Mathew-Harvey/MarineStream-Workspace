@@ -84,12 +84,13 @@ export async function initMap(containerId, options = {}) {
     connectWebSocket();
     
     // Load ports when map moves (debounced)
+    // TODO: Implement loadNearbyPorts functionality
     let portLoadTimeout = null;
     map.on('moveend', () => {
       if (portLoadTimeout) clearTimeout(portLoadTimeout);
       portLoadTimeout = setTimeout(() => {
         if (map.getZoom() >= 6) { // Only load ports when zoomed in enough
-          loadNearbyPorts();
+          // loadNearbyPorts(); // TODO: implement this function
         } else {
           // Clear port markers when zoomed out
           portMarkers.forEach(marker => marker.remove());

@@ -139,6 +139,73 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 -- ============================================
+-- Job Drafts (auto-saved during form entry)
+-- ============================================
+CREATE TABLE IF NOT EXISTS job_drafts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255), -- Clerk user ID
+    user_email VARCHAR(255),
+    data JSONB NOT NULL, -- Full form data
+    status VARCHAR(50) DEFAULT 'draft', -- 'draft', 'submitted', 'discarded'
+    job_id UUID, -- Reference to finalized job if submitted
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- Jobs (finalized jobs with Rise-X sync status)
+-- ============================================
+CREATE TABLE IF NOT EXISTS jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(255), -- Clerk user ID
+    user_email VARCHAR(255),
+    vessel_name VARCHAR(255),
+    job_type VARCHAR(100),
+    data JSONB NOT NULL, -- Full job data
+    risex_synced BOOLEAN DEFAULT FALSE,
+    risex_sync_status VARCHAR(50), -- 'pending', 'synced', 'failed'
+    risex_job_id VARCHAR(255), -- ID from Rise-X if synced
+    risex_sync_error TEXT, -- Error message if sync failed
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- Job Drafts (auto-saved job data)
+-- ============================================
+CREATE TABLE IF NOT EXISTS job_drafts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clerk_user_id VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255),
+    user_name VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'draft', -- 'draft', 'submitted', 'synced'
+    rise_x_job_id VARCHAR(255), -- ID from Rise-X after sync
+    data JSONB NOT NULL DEFAULT '{}', -- Full job form data
+    metadata JSONB DEFAULT '{}', -- User metadata, timestamps, etc.
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- Jobs (submitted/completed jobs)
+-- ============================================
+CREATE TABLE IF NOT EXISTS jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    draft_id UUID REFERENCES job_drafts(id) ON DELETE SET NULL,
+    clerk_user_id VARCHAR(255) NOT NULL,
+    job_number VARCHAR(100),
+    job_type VARCHAR(100),
+    vessel_id VARCHAR(255),
+    vessel_name VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'in_progress', 'completed', 'synced'
+    rise_x_job_id VARCHAR(255), -- ID from Rise-X after sync
+    rise_x_synced_at TIMESTAMPTZ,
+    data JSONB NOT NULL DEFAULT '{}', -- Full job data
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- Vessel Position Cache (Last Known Positions)
 -- ============================================
 CREATE TABLE IF NOT EXISTS vessel_positions (
@@ -171,6 +238,19 @@ CREATE INDEX IF NOT EXISTS idx_fleets_org ON fleets(organization_id);
 CREATE INDEX IF NOT EXISTS idx_fleets_active ON fleets(is_active) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_fleet_vessels_fleet ON fleet_vessels(fleet_id);
 CREATE INDEX IF NOT EXISTS idx_fleet_vessels_vessel ON fleet_vessels(vessel_id);
+CREATE INDEX IF NOT EXISTS idx_job_drafts_user ON job_drafts(user_id);
+CREATE INDEX IF NOT EXISTS idx_job_drafts_status ON job_drafts(status);
+CREATE INDEX IF NOT EXISTS idx_job_drafts_updated ON job_drafts(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_jobs_risex_sync ON jobs(risex_synced, risex_sync_status);
+CREATE INDEX IF NOT EXISTS idx_job_drafts_user ON job_drafts(clerk_user_id);
+CREATE INDEX IF NOT EXISTS idx_job_drafts_status ON job_drafts(status);
+CREATE INDEX IF NOT EXISTS idx_job_drafts_updated ON job_drafts(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(clerk_user_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+CREATE INDEX IF NOT EXISTS idx_jobs_vessel ON jobs(vessel_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);
 
 -- ============================================
 -- Seed Data: Franmarine Organization

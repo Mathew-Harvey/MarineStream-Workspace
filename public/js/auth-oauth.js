@@ -142,11 +142,14 @@ async function handleCallback() {
   localStorage.removeItem(STORAGE_KEYS.codeVerifier);
   localStorage.removeItem(STORAGE_KEYS.authState);
   
-  // Store tokens
+  // Store tokens locally
   storeTokens(tokens);
   
   // Fetch and store user info
-  await fetchAndStoreUserInfo(tokens.access_token);
+  const userInfo = await fetchAndStoreUserInfo(tokens.access_token);
+  
+  // Store connection on the server (for syncing)
+  await storeConnectionOnServer(tokens, userInfo);
   
   // Schedule token refresh
   scheduleTokenRefresh(tokens.expires_in);
@@ -155,6 +158,73 @@ async function handleCallback() {
   window.history.replaceState({}, document.title, window.location.pathname);
   
   return tokens;
+}
+
+/**
+ * Store the Rise-X connection on the server
+ * This enables server-side syncing with Rise-X API
+ */
+async function storeConnectionOnServer(tokens, userInfo) {
+  try {
+    // Get Clerk token for authentication
+    const clerkToken = await getClerkToken();
+    
+    if (!clerkToken) {
+      console.warn('No Clerk token available, skipping server-side connection storage');
+      return;
+    }
+    
+    const response = await fetch('/api/sync/connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${clerkToken}`
+      },
+      body: JSON.stringify({
+        tokenData: {
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expires_in: tokens.expires_in,
+          token_type: tokens.token_type,
+          scope: tokens.scope
+        },
+        userInfo: userInfo
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ Rise-X connection stored on server');
+      window.dispatchEvent(new CustomEvent('riseX:connected'));
+    } else {
+      const error = await response.json();
+      console.warn('Failed to store connection on server:', error);
+    }
+  } catch (error) {
+    console.warn('Error storing connection on server:', error);
+  }
+}
+
+/**
+ * Get Clerk token for API authentication
+ * Returns null if Clerk is not available or user is not signed in
+ */
+async function getClerkToken() {
+  try {
+    // Check if Clerk is available (from auth.js)
+    if (window.Clerk && window.Clerk.session) {
+      return await window.Clerk.session.getToken();
+    }
+    
+    // Check if MarineStreamClerkAuth is available
+    if (window.MarineStreamClerkAuth && window.MarineStreamClerkAuth.getToken) {
+      return await window.MarineStreamClerkAuth.getToken();
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('Failed to get Clerk token:', error);
+    return null;
+  }
 }
 
 /**
@@ -441,6 +511,120 @@ async function logout(redirectToLogin = true) {
 }
 
 /**
+ * Disconnect Rise-X account from server
+ */
+async function disconnectFromServer() {
+  try {
+    const clerkToken = await getClerkToken();
+    
+    if (!clerkToken) {
+      console.warn('No Clerk token available');
+      return false;
+    }
+    
+    const response = await fetch('/api/sync/connection', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${clerkToken}`
+      }
+    });
+    
+    if (response.ok) {
+      // Clear local tokens
+      clearTokens();
+      console.log('✅ Rise-X account disconnected');
+      window.dispatchEvent(new CustomEvent('riseX:disconnected'));
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Failed to disconnect:', error);
+    return false;
+  }
+}
+
+/**
+ * Get Rise-X connection status from server
+ */
+async function getConnectionStatus() {
+  try {
+    const clerkToken = await getClerkToken();
+    
+    if (!clerkToken) {
+      return { connected: false, error: 'Not authenticated' };
+    }
+    
+    const response = await fetch('/api/sync/connection', {
+      headers: {
+        'Authorization': `Bearer ${clerkToken}`
+      }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      return result.data;
+    }
+    
+    return { connected: false };
+  } catch (error) {
+    console.error('Failed to get connection status:', error);
+    return { connected: false, error: error.message };
+  }
+}
+
+/**
+ * Trigger a sync from the server
+ */
+async function triggerSync(type = 'incremental') {
+  try {
+    const clerkToken = await getClerkToken();
+    
+    if (!clerkToken) {
+      return { success: false, error: 'Not authenticated' };
+    }
+    
+    const response = await fetch('/api/sync/trigger', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${clerkToken}`
+      },
+      body: JSON.stringify({ type })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Sync failed:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get sync status from server
+ */
+async function getSyncStatus() {
+  try {
+    const clerkToken = await getClerkToken();
+    
+    if (!clerkToken) {
+      return { success: false, error: 'Not authenticated' };
+    }
+    
+    const response = await fetch('/api/sync/status', {
+      headers: {
+        'Authorization': `Bearer ${clerkToken}`
+      }
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to get sync status:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Initialize auth on page load
  */
 async function initAuth() {
@@ -496,6 +680,12 @@ window.MarineStreamAuth = {
   // Token status
   isTokenExpiring,
   getTokenExpiryInfo,
+  
+  // Rise-X connection management
+  getConnectionStatus,
+  disconnectFromServer,
+  triggerSync,
+  getSyncStatus,
   
   // For backward compatibility
   getToken: getAccessToken,
