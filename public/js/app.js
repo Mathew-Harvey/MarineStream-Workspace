@@ -7,6 +7,7 @@ import { loadConfig, getClerkKey, getMapboxToken } from './config.js';
 import { initAuth, isClerkReady } from './auth.js';
 import { initMap } from './map.js';
 import { loadApps, filterApps } from './apps.js';
+import { initVideoUI } from './video-ui.js';
 
 // Humorous loading messages (Discord-inspired)
 const loadingMessages = [
@@ -152,6 +153,15 @@ async function init() {
         
         state.user = authResult.user;
         state.isAuthenticated = authResult.isAuthenticated;
+        
+        // Initialize video UI for already-authenticated users
+        if (authResult.isAuthenticated && authResult.user) {
+          initVideoUI(authResult.user).then(() => {
+            checkCallInviteUrl();
+          }).catch(err => {
+            console.warn('Video UI init error:', err);
+          });
+        }
       } catch (authError) {
         console.warn('⚠️ Auth initialization failed - continuing without auth:', authError.message);
         state.user = null;
@@ -239,9 +249,65 @@ function handleSignIn(user) {
   // Reload apps with user-specific access
   loadApps(elements.appsGrid);
   
+  // Initialize video calling UI
+  initVideoUI(user).then(() => {
+    // Check for call invite in URL (from email invite)
+    checkCallInviteUrl();
+  }).catch(err => {
+    console.warn('Video UI init error:', err);
+  });
+  
   // Close auth modal if open
   elements.authModal.classList.remove('show');
   elements.authModal.classList.add('hidden');
+}
+
+/**
+ * Check URL for call invite token and join if valid
+ */
+async function checkCallInviteUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteToken = urlParams.get('join_call');
+  
+  if (!inviteToken) return;
+  
+  try {
+    // Get invite details
+    const response = await fetch(`/api/video/invite/${inviteToken}`);
+    const result = await response.json();
+    
+    if (!result.success) {
+      console.warn('Invalid call invite:', result.error);
+      return;
+    }
+    
+    const { channelName, fromUserName, callStatus } = result.data;
+    
+    // Check if call is still active
+    if (callStatus !== 'active') {
+      alert(`The call from ${fromUserName} has ended.`);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+    
+    // Prompt user to join
+    if (confirm(`${fromUserName} invited you to a video call. Join now?`)) {
+      // Import video functions
+      const { joinCall } = await import('./video-call.js');
+      await joinCall(channelName, state.user.id, state.user.fullName);
+      
+      // Show PiP widget
+      document.getElementById('video-pip-widget')?.classList.remove('hidden');
+      document.getElementById('video-call-btn')?.classList.add('in-call');
+    }
+    
+    // Clean up URL
+    window.history.replaceState({}, '', window.location.pathname);
+    
+  } catch (error) {
+    console.error('Join call from URL error:', error);
+  }
 }
 
 /**

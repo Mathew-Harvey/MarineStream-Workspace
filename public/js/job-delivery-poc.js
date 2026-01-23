@@ -6,6 +6,25 @@
 
 import { initAuth, getCurrentUser, isAuthenticated, signOut, isClerkReady } from './auth.js';
 import { loadConfig } from './config.js';
+import { 
+  initVideoCall, 
+  joinCall,
+  leaveCall, 
+  toggleMute, 
+  toggleVideo, 
+  playLocalVideo, 
+  playRemoteVideo,
+  getCallState,
+  hasActiveCall,
+  rejoinCall,
+  setCallbacks
+} from './video-call.js';
+import { 
+  initPresence, 
+  notifyPageChange,
+  setPresenceCallbacks,
+  sendCallResponse 
+} from './video-presence.js';
 
 // State management
 const state = {
@@ -63,6 +82,23 @@ const elements = {
   // Auto-save indicator
   autoSaveIndicator: document.getElementById('auto-save-indicator'),
   
+  // Video call PiP elements
+  pipWidget: document.getElementById('video-pip-widget'),
+  pipExpandBtn: document.getElementById('pip-expand-btn'),
+  pipMinimizeBtn: document.getElementById('pip-minimize-btn'),
+  pipMuteBtn: document.getElementById('pip-mute-btn'),
+  pipVideoBtn: document.getElementById('pip-video-btn'),
+  pipEndBtn: document.getElementById('pip-end-btn'),
+  pipRemoteVideo: document.getElementById('pip-remote-video'),
+  pipLocalVideo: document.getElementById('pip-local-video'),
+  
+  // Incoming call modal
+  incomingCallModal: document.getElementById('incoming-call-modal'),
+  callerAvatar: document.getElementById('caller-avatar'),
+  callerName: document.getElementById('caller-name'),
+  acceptCallBtn: document.getElementById('accept-call-btn'),
+  declineCallBtn: document.getElementById('decline-call-btn'),
+  
   // Navigation
   navMenu: document.getElementById('nav-menu'),
   messages: document.getElementById('messages'),
@@ -113,6 +149,9 @@ async function init() {
     }, 1500);
     return;
   }
+  
+  // Initialize video calling (for PiP persistence)
+  await initVideoCallFeatures();
   
   // Check for Rise-X connection
   checkRiseXConnection();
@@ -173,6 +212,232 @@ async function initClerkAuth() {
     }
   } catch (error) {
     console.error('Clerk init error:', error);
+  }
+}
+
+/**
+ * Initialize video call features (PiP persistence)
+ */
+async function initVideoCallFeatures() {
+  try {
+    const configured = await initVideoCall();
+    
+    if (!configured) {
+      console.log('📹 Video calling not configured');
+      return;
+    }
+
+    // Initialize presence tracking
+    if (state.clerkUser) {
+      initPresence(
+        state.clerkUser.id, 
+        state.clerkUser.fullName || state.clerkUser.firstName, 
+        state.clerkUser.email
+      );
+      
+      // Notify presence of page change
+      notifyPageChange('/job-delivery-poc');
+    }
+
+    // Set up video call event handlers
+    setCallbacks({
+      onUserJoined: (user) => {
+        console.log('📹 Remote user joined:', user.uid);
+        setTimeout(() => playRemoteVideo(user.uid, 'pip-remote-video'), 500);
+      },
+      onUserLeft: (user) => {
+        console.log('📹 Remote user left:', user.uid);
+      },
+      onCallEnded: () => {
+        hidePiPWidget();
+      },
+      onLocalTrackReady: () => {
+        playLocalVideo('pip-local-video');
+      }
+    });
+
+    // Set up presence callbacks for incoming calls
+    setPresenceCallbacks({
+      onIncomingCall: handleIncomingCall,
+      onCallResponse: (data) => {
+        console.log('📞 Call response:', data);
+      }
+    });
+
+    // Setup PiP control listeners
+    setupVideoPiPControls();
+
+    // Check for active call to rejoin
+    if (hasActiveCall() && state.clerkUser) {
+      console.log('📹 Found active call, attempting to rejoin...');
+      const rejoined = await rejoinCall(
+        state.clerkUser.id, 
+        state.clerkUser.fullName || state.clerkUser.firstName
+      );
+      if (rejoined) {
+        showPiPWidget();
+      }
+    }
+
+    console.log('📹 Video call features initialized');
+  } catch (error) {
+    console.warn('Video call init error:', error);
+  }
+}
+
+/**
+ * Setup PiP widget controls
+ */
+function setupVideoPiPControls() {
+  elements.pipExpandBtn?.addEventListener('click', () => {
+    // Navigate back to workspace
+    window.location.href = '/';
+  });
+
+  elements.pipMinimizeBtn?.addEventListener('click', () => {
+    elements.pipWidget?.classList.toggle('minimized');
+  });
+
+  elements.pipMuteBtn?.addEventListener('click', async () => {
+    const isMuted = await toggleMute();
+    elements.pipMuteBtn?.classList.toggle('active', isMuted);
+  });
+
+  elements.pipVideoBtn?.addEventListener('click', async () => {
+    const isOff = await toggleVideo();
+    elements.pipVideoBtn?.classList.toggle('active', isOff);
+  });
+
+  elements.pipEndBtn?.addEventListener('click', async () => {
+    await leaveCall();
+    hidePiPWidget();
+  });
+
+  // Incoming call modal
+  elements.acceptCallBtn?.addEventListener('click', handleAcceptIncomingCall);
+  elements.declineCallBtn?.addEventListener('click', handleDeclineIncomingCall);
+
+  // Make PiP draggable
+  makePiPDraggable();
+}
+
+/**
+ * Show PiP widget
+ */
+function showPiPWidget() {
+  elements.pipWidget?.classList.remove('hidden');
+  playLocalVideo('pip-local-video');
+}
+
+/**
+ * Hide PiP widget
+ */
+function hidePiPWidget() {
+  elements.pipWidget?.classList.add('hidden');
+}
+
+/**
+ * Handle incoming call
+ */
+let pendingIncomingCall = null;
+
+function handleIncomingCall(data) {
+  console.log('📞 Incoming call from:', data.fromUserName);
+  pendingIncomingCall = data;
+  
+  if (elements.callerName) {
+    elements.callerName.textContent = data.fromUserName || 'Unknown';
+  }
+  if (elements.callerAvatar) {
+    elements.callerAvatar.textContent = data.fromUserName ? 
+      data.fromUserName.charAt(0).toUpperCase() : '?';
+  }
+  elements.incomingCallModal?.classList.remove('hidden');
+}
+
+/**
+ * Handle accepting incoming call
+ */
+async function handleAcceptIncomingCall() {
+  if (!pendingIncomingCall) return;
+  
+  try {
+    elements.incomingCallModal?.classList.add('hidden');
+    
+    // Send acceptance response via presence
+    sendCallResponse(pendingIncomingCall.fromUserId, pendingIncomingCall.channelName, true);
+    
+    // Join the call
+    await joinCall(
+      pendingIncomingCall.channelName, 
+      state.clerkUser?.id, 
+      state.clerkUser?.fullName || state.clerkUser?.firstName
+    );
+    
+    showPiPWidget();
+  } catch (error) {
+    console.error('Accept call error:', error);
+    showMessage('Failed to join call: ' + error.message, 'error');
+  }
+  
+  pendingIncomingCall = null;
+}
+
+/**
+ * Handle declining incoming call
+ */
+function handleDeclineIncomingCall() {
+  if (pendingIncomingCall) {
+    sendCallResponse(pendingIncomingCall.fromUserId, pendingIncomingCall.channelName, false);
+  }
+  elements.incomingCallModal?.classList.add('hidden');
+  pendingIncomingCall = null;
+}
+
+/**
+ * Make PiP widget draggable
+ */
+function makePiPDraggable() {
+  const widget = elements.pipWidget;
+  if (!widget) return;
+  
+  const header = widget.querySelector('.pip-header');
+  if (!header) return;
+  
+  let isDragging = false;
+  let startX, startY, startLeft, startTop;
+  
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button')) return;
+    
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    
+    const rect = widget.getBoundingClientRect();
+    startLeft = rect.left;
+    startTop = rect.top;
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  });
+  
+  function handleMouseMove(e) {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    widget.style.left = `${startLeft + deltaX}px`;
+    widget.style.top = `${startTop + deltaY}px`;
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+  }
+  
+  function handleMouseUp() {
+    isDragging = false;
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
   }
 }
 
@@ -397,7 +662,13 @@ async function saveJobDraft() {
  */
 async function loadDraft() {
   try {
-    const response = await fetch('/api/jobs/draft/current', {
+    // Pass userId to get the current user's draft
+    const userId = state.clerkUser?.id || '';
+    const url = userId 
+      ? `/api/jobs/draft/current?userId=${encodeURIComponent(userId)}`
+      : '/api/jobs/draft/current';
+    
+    const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json'
       }

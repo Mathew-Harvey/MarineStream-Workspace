@@ -1,0 +1,737 @@
+/**
+ * MarineStream Video Call Styles
+ * Includes full call interface and PiP mode
+ */
+
+/* ========================================
+   Video Call Panel (Full Mode)
+   ======================================== */
+.video-call-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: var(--bg-secondary, #1e293b);
+  border-left: 1px solid var(--border-color, #334155);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.video-call-panel.active {
+  transform: translateX(0);
+}
+
+.video-call-panel.expanded {
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Header */
+.video-call-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--bg-tertiary, #334155);
+  border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.video-call-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.video-call-header h3 .call-indicator {
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.video-call-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.video-call-header-actions button {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.video-call-header-actions button:hover {
+  background: var(--bg-hover, #475569);
+  color: var(--text-primary, #f8fafc);
+}
+
+/* Video Container */
+.video-call-videos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.video-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-container .video-label {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
+  font-size: 12px;
+  color: white;
+}
+
+.video-container .video-muted-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px;
+  background: rgba(239, 68, 68, 0.8);
+  border-radius: 4px;
+  color: white;
+}
+
+.video-container.local-video {
+  max-height: 150px;
+}
+
+.video-container.remote-video {
+  flex: 1;
+  min-height: 200px;
+}
+
+/* No video placeholder */
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--bg-tertiary, #334155);
+  color: var(--text-secondary, #94a3b8);
+}
+
+.video-placeholder .avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--brand-orange, #f97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 12px;
+}
+
+/* Controls */
+.video-call-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-tertiary, #334155);
+  border-top: 1px solid var(--border-color, #334155);
+}
+
+.video-call-controls button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.video-call-controls .btn-control {
+  background: var(--bg-secondary, #1e293b);
+  color: var(--text-primary, #f8fafc);
+}
+
+.video-call-controls .btn-control:hover {
+  background: var(--bg-hover, #475569);
+}
+
+.video-call-controls .btn-control.active {
+  background: var(--color-error, #ef4444);
+  color: white;
+}
+
+.video-call-controls .btn-end-call {
+  background: var(--color-error, #ef4444);
+  color: white;
+  width: 56px;
+  height: 56px;
+}
+
+.video-call-controls .btn-end-call:hover {
+  background: #dc2626;
+}
+
+/* ========================================
+   Picture-in-Picture Mode
+   ======================================== */
+.video-pip-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 320px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  overflow: hidden;
+  border: 1px solid var(--border-color, #334155);
+  transition: all 0.3s ease;
+  cursor: move;
+}
+
+.video-pip-widget.hidden {
+  display: none;
+}
+
+.video-pip-widget.minimized {
+  width: 200px;
+}
+
+.video-pip-widget.minimized .pip-videos {
+  display: none;
+}
+
+/* PiP Header */
+.pip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary, #334155);
+  border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.pip-header .pip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pip-header .pip-title .call-indicator {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.pip-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.pip-header-actions button {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pip-header-actions button:hover {
+  background: var(--bg-hover, #475569);
+  color: var(--text-primary, #f8fafc);
+}
+
+/* PiP Videos */
+.pip-videos {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.pip-videos .pip-remote-video {
+  width: 100%;
+  height: 100%;
+}
+
+.pip-videos .pip-remote-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pip-videos .pip-local-video {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 80px;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid var(--bg-secondary, #1e293b);
+}
+
+.pip-videos .pip-local-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* PiP Controls */
+.pip-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--bg-tertiary, #334155);
+}
+
+.pip-controls button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pip-controls .pip-btn-control {
+  background: var(--bg-secondary, #1e293b);
+  color: var(--text-primary, #f8fafc);
+}
+
+.pip-controls .pip-btn-control:hover {
+  background: var(--bg-hover, #475569);
+}
+
+.pip-controls .pip-btn-control.active {
+  background: var(--color-error, #ef4444);
+  color: white;
+}
+
+.pip-controls .pip-btn-end {
+  background: var(--color-error, #ef4444);
+  color: white;
+}
+
+.pip-controls .pip-btn-end:hover {
+  background: #dc2626;
+}
+
+/* ========================================
+   Call Button in Header
+   ======================================== */
+.video-call-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--brand-orange, #f97316);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.video-call-trigger:hover {
+  background: #ea580c;
+}
+
+.video-call-trigger.in-call {
+  background: #22c55e;
+}
+
+.video-call-trigger.in-call:hover {
+  background: #16a34a;
+}
+
+/* ========================================
+   Incoming Call Modal
+   ======================================== */
+.incoming-call-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incoming-call-modal.hidden {
+  display: none;
+}
+
+.incoming-call-content {
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.incoming-call-content .caller-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--brand-orange, #f97316);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 600;
+  color: white;
+  margin: 0 auto 16px;
+}
+
+.incoming-call-content h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: var(--text-primary, #f8fafc);
+}
+
+.incoming-call-content p {
+  margin: 0 0 24px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+}
+
+.incoming-call-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.incoming-call-actions button {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.incoming-call-actions .btn-decline {
+  background: var(--color-error, #ef4444);
+  color: white;
+}
+
+.incoming-call-actions .btn-decline:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.incoming-call-actions .btn-accept {
+  background: #22c55e;
+  color: white;
+}
+
+.incoming-call-actions .btn-accept:hover {
+  background: #16a34a;
+  transform: scale(1.1);
+}
+
+/* ========================================
+   User Presence List
+   ======================================== */
+.presence-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.presence-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.presence-user:hover {
+  background: var(--bg-tertiary, #334155);
+}
+
+.presence-user .user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-tertiary, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  position: relative;
+}
+
+.presence-user .user-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.presence-user .online-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: #22c55e;
+  border: 2px solid var(--bg-secondary, #1e293b);
+  border-radius: 50%;
+}
+
+.presence-user .online-indicator.offline {
+  background: var(--text-muted, #64748b);
+}
+
+.presence-user .user-info {
+  flex: 1;
+}
+
+.presence-user .user-name {
+  font-weight: 500;
+  color: var(--text-primary, #f8fafc);
+  font-size: 14px;
+}
+
+.presence-user .user-status {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.presence-user .call-user-btn {
+  padding: 6px 12px;
+  background: var(--brand-orange, #f97316);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.presence-user:hover .call-user-btn {
+  opacity: 1;
+}
+
+.presence-user .call-user-btn:hover {
+  background: #ea580c;
+}
+
+/* ========================================
+   Start Call Modal
+   ======================================== */
+.start-call-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.start-call-modal.hidden {
+  display: none;
+}
+
+.start-call-content {
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.start-call-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.start-call-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary, #f8fafc);
+}
+
+.start-call-header .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.start-call-header .close-btn:hover {
+  background: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #f8fafc);
+}
+
+.start-call-body {
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.start-call-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.start-call-tabs button {
+  flex: 1;
+  padding: 10px;
+  background: var(--bg-tertiary, #334155);
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.start-call-tabs button.active {
+  background: var(--brand-orange, #f97316);
+  color: white;
+}
+
+.start-call-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color, #334155);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Email Invite Form */
+.email-invite-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.email-invite-form input {
+  padding: 12px;
+  background: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  color: var(--text-primary, #f8fafc);
+  font-size: 14px;
+}
+
+.email-invite-form input::placeholder {
+  color: var(--text-muted, #64748b);
+}
+
+.email-invite-form input:focus {
+  outline: none;
+  border-color: var(--brand-orange, #f97316);
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+@media (max-width: 768px) {
+  .video-call-panel {
+    width: 100%;
+  }
+
+  .video-pip-widget {
+    width: 160px;
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .video-pip-widget .pip-local-video {
+    width: 50px;
+  }
+}

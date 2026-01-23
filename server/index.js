@@ -23,6 +23,7 @@ const marinestreamRoutes = require('./routes/marinestream');
 const oauthRoutes = require('./routes/oauth');
 const syncRoutes = require('./routes/sync');
 const jobsRoutes = require('./routes/jobs');
+const videoRoutes = require('./routes/video');
 
 // Authoritative MMSI Registry - NEVER overwrite with blank/invalid data
 let mmsiRegistry;
@@ -43,8 +44,28 @@ const db = require('./db');
 const app = express();
 const server = http.createServer(app);
 
-// WebSocket server for AIS relay
-const wss = new WebSocketServer({ server, path: '/api/map/stream' });
+// WebSocket servers - use noServer mode for proper path-based routing
+const wss = new WebSocketServer({ noServer: true });
+const presenceWss = new WebSocketServer({ noServer: true });
+const presenceClients = new Map(); // Map of userId -> ws connection
+
+// Handle WebSocket upgrades manually for proper path routing
+server.on('upgrade', (request, socket, head) => {
+  const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
+  
+  if (pathname === '/api/map/stream') {
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  } else if (pathname === '/api/presence/stream') {
+    presenceWss.handleUpgrade(request, socket, head, (ws) => {
+      presenceWss.emit('connection', ws, request);
+    });
+  } else {
+    // Unknown WebSocket path - destroy the socket
+    socket.destroy();
+  }
+});
 
 // Middleware - CORS configuration for production and development
 const allowedOrigins = [
@@ -96,6 +117,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/marinestream', marinestreamRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/video', videoRoutes);
 
 // Auth callback page
 app.get('/auth/callback', (req, res) => {
@@ -270,19 +292,20 @@ function connectToAISStream() {
         });
       }
       
-      // Relay to all connected clients
+      // Relay to all connected clients (only valid JSON)
+      const jsonStr = JSON.stringify(message);
       connectedClients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-          client.send(data.toString());
+          try {
+            client.send(jsonStr);
+          } catch (sendErr) {
+            console.error('Error sending to client:', sendErr.message);
+          }
         }
       });
     } catch (err) {
-      // If parse fails, still relay the raw message
-      connectedClients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(data.toString());
-        }
-      });
+      // If parse fails, don't relay - could be malformed data
+      console.warn('Failed to parse AIS message, not relaying:', err.message);
     }
   });
 
@@ -296,7 +319,7 @@ function connectToAISStream() {
   });
 }
 
-// Handle client WebSocket connections
+// Handle client WebSocket connections (AIS)
 wss.on('connection', (ws, req) => {
   console.log('📱 Client connected to vessel stream');
   connectedClients.add(ws);
@@ -311,6 +334,193 @@ wss.on('connection', (ws, req) => {
     connectedClients.delete(ws);
   });
 });
+
+// Handle presence WebSocket connections
+presenceWss.on('connection', (ws, req) => {
+  console.log('👤 Client connected to presence stream');
+  let userId = null;
+  let userName = null;
+
+  ws.on('message', async (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      
+      switch (message.type) {
+        case 'register':
+          // User registers their presence
+          userId = message.userId;
+          userName = message.userName;
+          presenceClients.set(userId, ws);
+          
+          // Update database (with error handling for missing tables)
+          try {
+            await db.query(`
+              INSERT INTO user_presence (clerk_user_id, user_email, user_name, is_online, socket_id, current_page, updated_at)
+              VALUES ($1, $2, $3, true, $4, $5, NOW())
+              ON CONFLICT (clerk_user_id) DO UPDATE SET
+                is_online = true,
+                user_name = COALESCE($3, user_presence.user_name),
+                socket_id = $4,
+                current_page = $5,
+                last_seen = NOW(),
+                updated_at = NOW()
+            `, [userId, message.userEmail, userName, `ws-${Date.now()}`, message.page || '/']);
+            
+            console.log(`👤 User registered: ${userName || userId}`);
+            
+            // Broadcast updated presence list
+            broadcastPresence();
+            
+            // Send pending call invitations
+            const pendingResult = await db.query(`
+              SELECT ci.*, ch.status as call_status
+              FROM call_invitations ci
+              LEFT JOIN call_history ch ON ci.channel_name = ch.channel_name
+              WHERE ci.to_user_id = $1 
+                AND ci.status = 'pending'
+                AND ci.expires_at > NOW()
+                AND (ch.status IS NULL OR ch.status = 'active')
+            `, [userId]);
+            
+            if (pendingResult.rows.length > 0) {
+              ws.send(JSON.stringify({
+                type: 'pending_invitations',
+                invitations: pendingResult.rows
+              }));
+            }
+          } catch (dbErr) {
+            // Tables may not exist yet - continue without DB
+            console.warn('Presence DB error (tables may not exist):', dbErr.message);
+          }
+          break;
+
+        case 'page_change':
+          // User navigated to a different page
+          if (userId) {
+            try {
+              await db.query(`
+                UPDATE user_presence SET current_page = $1, updated_at = NOW()
+                WHERE clerk_user_id = $2
+              `, [message.page, userId]);
+            } catch (dbErr) {
+              // Ignore DB errors for page change
+            }
+          }
+          break;
+
+        case 'call_invite':
+          // Forward call invitation to target user
+          const targetWs = presenceClients.get(message.toUserId);
+          if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+            targetWs.send(JSON.stringify({
+              type: 'incoming_call',
+              channelName: message.channelName,
+              fromUserId: userId,
+              fromUserName: userName,
+              callType: message.callType || 'video'
+            }));
+          }
+          break;
+
+        case 'call_response':
+          // Forward call response to caller
+          const callerWs = presenceClients.get(message.toUserId);
+          if (callerWs && callerWs.readyState === WebSocket.OPEN) {
+            callerWs.send(JSON.stringify({
+              type: 'call_response',
+              accepted: message.accepted,
+              fromUserId: userId,
+              fromUserName: userName,
+              channelName: message.channelName
+            }));
+          }
+          break;
+
+        case 'heartbeat':
+          // Keep connection alive and update last_seen
+          if (userId) {
+            try {
+              await db.query(`
+                UPDATE user_presence SET last_seen = NOW(), updated_at = NOW()
+                WHERE clerk_user_id = $1
+              `, [userId]);
+            } catch (dbErr) {
+              // Ignore DB errors for heartbeat
+            }
+          }
+          ws.send(JSON.stringify({ type: 'heartbeat_ack' }));
+          break;
+      }
+    } catch (err) {
+      console.error('Presence message error:', err);
+    }
+  });
+
+  ws.on('close', async () => {
+    if (userId) {
+      presenceClients.delete(userId);
+      
+      // Update database (with error handling)
+      try {
+        await db.query(`
+          UPDATE user_presence SET is_online = false, last_seen = NOW(), updated_at = NOW()
+          WHERE clerk_user_id = $1
+        `, [userId]);
+        console.log(`👤 User disconnected: ${userName || userId}`);
+        // Broadcast updated presence list
+        broadcastPresence();
+      } catch (dbErr) {
+        console.log(`👤 User disconnected: ${userName || userId} (DB update skipped)`);
+      }
+    }
+  });
+
+  ws.on('error', (err) => {
+    console.error('Presence WebSocket error:', err.message);
+    if (userId) {
+      presenceClients.delete(userId);
+    }
+  });
+});
+
+// Broadcast presence list to all connected clients
+async function broadcastPresence() {
+  try {
+    let users = [];
+    try {
+      const result = await db.query(`
+        SELECT clerk_user_id, user_name, user_email, is_online, current_page, last_seen
+        FROM user_presence
+        WHERE is_online = true OR last_seen > NOW() - INTERVAL '5 minutes'
+        ORDER BY is_online DESC, last_seen DESC
+      `);
+      users = result.rows;
+    } catch (dbErr) {
+      // Tables may not exist - use in-memory presence
+      users = Array.from(presenceClients.keys()).map(id => ({
+        clerk_user_id: id,
+        is_online: true
+      }));
+    }
+    
+    const message = JSON.stringify({
+      type: 'presence_update',
+      users: users
+    });
+    
+    presenceClients.forEach((ws) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      }
+    });
+  } catch (err) {
+    console.error('Broadcast presence error:', err);
+  }
+}
+
+// Store reference for route handlers
+app.presenceClients = presenceClients;
+app.broadcastPresence = broadcastPresence;
 
 // Error handling middleware
 app.use((err, req, res, next) => {

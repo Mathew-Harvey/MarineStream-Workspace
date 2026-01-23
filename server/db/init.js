@@ -20,15 +20,33 @@ async function initDatabase() {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' 
-      ? { rejectUnauthorized: false } 
-      : false,
+    ssl: { rejectUnauthorized: false }  // Render requires SSL
   });
 
   try {
     // Test connection
     const client = await pool.connect();
     console.log('✅ Connected to PostgreSQL');
+
+    // Drop existing tables to allow clean recreation
+    console.log('🗑️  Dropping existing tables for clean recreation...');
+    await client.query(`
+      DROP TABLE IF EXISTS call_invitations CASCADE;
+      DROP TABLE IF EXISTS call_history CASCADE;
+      DROP TABLE IF EXISTS user_presence CASCADE;
+      DROP TABLE IF EXISTS jobs CASCADE;
+      DROP TABLE IF EXISTS job_drafts CASCADE;
+      DROP TABLE IF EXISTS vessel_positions CASCADE;
+      DROP TABLE IF EXISTS fleet_vessels CASCADE;
+      DROP TABLE IF EXISTS fleets CASCADE;
+      DROP TABLE IF EXISTS audit_log CASCADE;
+      DROP TABLE IF EXISTS user_preferences CASCADE;
+      DROP TABLE IF EXISTS app_access CASCADE;
+      DROP TABLE IF EXISTS applications CASCADE;
+      DROP TABLE IF EXISTS vessels CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
+      DROP TABLE IF EXISTS organizations CASCADE;
+    `);
 
     // Read and execute schema
     const schemaPath = path.join(__dirname, 'schema.sql');

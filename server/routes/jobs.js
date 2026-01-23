@@ -22,15 +22,16 @@ router.post('/draft', async (req, res) => {
     }
     
     // Extract user info from metadata
-    const userId = data.metadata?.userId || null;
+    const clerkUserId = data.metadata?.userId || null;
     const userEmail = data.metadata?.userEmail || null;
+    const userName = data.metadata?.userName || null;
     
     // Insert new draft
     const result = await db.query(`
-      INSERT INTO job_drafts (user_id, user_email, data, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
+      INSERT INTO job_drafts (clerk_user_id, user_email, user_name, data, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW())
       RETURNING id, created_at
-    `, [userId, userEmail, JSON.stringify(data)]);
+    `, [clerkUserId, userEmail, userName, JSON.stringify(data)]);
     
     res.json({
       success: true,
@@ -41,7 +42,7 @@ router.post('/draft', async (req, res) => {
     });
   } catch (error) {
     console.error('Create draft error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -86,7 +87,7 @@ router.put('/draft', async (req, res) => {
     });
   } catch (error) {
     console.error('Update draft error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -98,14 +99,25 @@ router.put('/draft', async (req, res) => {
  */
 router.get('/draft/current', async (req, res) => {
   try {
-    // Get most recent draft (optionally filter by user if auth available)
-    const result = await db.query(`
-      SELECT id, user_id, user_email, data, created_at, updated_at
+    // Get clerk user ID from query param if provided
+    const { userId } = req.query;
+    
+    let query = `
+      SELECT id, clerk_user_id, user_email, user_name, data, created_at, updated_at
       FROM job_drafts
       WHERE status = 'draft'
-      ORDER BY updated_at DESC
-      LIMIT 1
-    `);
+    `;
+    const params = [];
+    
+    // Filter by user if provided
+    if (userId) {
+      query += ` AND clerk_user_id = $1`;
+      params.push(userId);
+    }
+    
+    query += ` ORDER BY updated_at DESC LIMIT 1`;
+    
+    const result = await db.query(query, params);
     
     if (result.rows.length === 0) {
       return res.json({
@@ -119,8 +131,9 @@ router.get('/draft/current', async (req, res) => {
       success: true,
       data: {
         id: draft.id,
-        userId: draft.user_id,
+        userId: draft.clerk_user_id,
         userEmail: draft.user_email,
+        userName: draft.user_name,
         data: draft.data,
         createdAt: draft.created_at,
         updatedAt: draft.updated_at
@@ -128,7 +141,7 @@ router.get('/draft/current', async (req, res) => {
     });
   } catch (error) {
     console.error('Get draft error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -143,7 +156,7 @@ router.get('/draft/:id', async (req, res) => {
     const { id } = req.params;
     
     const result = await db.query(`
-      SELECT id, user_id, user_email, data, created_at, updated_at
+      SELECT id, clerk_user_id, user_email, user_name, data, created_at, updated_at
       FROM job_drafts
       WHERE id = $1
     `, [id]);
@@ -160,8 +173,9 @@ router.get('/draft/:id', async (req, res) => {
       success: true,
       data: {
         id: draft.id,
-        userId: draft.user_id,
+        userId: draft.clerk_user_id,
         userEmail: draft.user_email,
+        userName: draft.user_name,
         data: draft.data,
         createdAt: draft.created_at,
         updatedAt: draft.updated_at
@@ -169,7 +183,7 @@ router.get('/draft/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get draft error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -202,7 +216,7 @@ router.delete('/draft/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Delete draft error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -224,20 +238,20 @@ router.post('/', async (req, res) => {
       });
     }
     
-    const userId = data.metadata?.userId || null;
-    const userEmail = data.metadata?.userEmail || null;
+    const clerkUserId = data.metadata?.userId || null;
     const vesselName = data.data?.vessel?.name || data.data?.vessel?.displayName || 'Unknown';
+    const vesselId = data.data?.vessel?.id || null;
     const jobType = data.data?.jobType || 'Job';
     
     // Insert the job
     const result = await db.query(`
       INSERT INTO jobs (
-        user_id, user_email, vessel_name, job_type, 
-        data, risex_synced, created_at, updated_at
+        clerk_user_id, draft_id, vessel_name, vessel_id, job_type, 
+        data, status, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW(), NOW())
       RETURNING id, created_at
-    `, [userId, userEmail, vesselName, jobType, JSON.stringify(data), false]);
+    `, [clerkUserId, draftId, vesselName, vesselId, jobType, JSON.stringify(data)]);
     
     const jobId = result.rows[0].id;
     
@@ -245,9 +259,9 @@ router.post('/', async (req, res) => {
     if (draftId) {
       await db.query(`
         UPDATE job_drafts 
-        SET status = 'submitted', job_id = $1, updated_at = NOW()
-        WHERE id = $2
-      `, [jobId, draftId]);
+        SET status = 'submitted', updated_at = NOW()
+        WHERE id = $1
+      `, [draftId]);
     }
     
     // Attempt Rise-X sync if requested and PAT available
@@ -260,7 +274,7 @@ router.post('/', async (req, res) => {
         
         // Update job with sync status
         await db.query(`
-          UPDATE jobs SET risex_sync_status = 'pending', updated_at = NOW()
+          UPDATE jobs SET status = 'pending', updated_at = NOW()
           WHERE id = $1
         `, [jobId]);
       } catch (syncError) {
@@ -279,7 +293,7 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Create job error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -291,15 +305,25 @@ router.post('/', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const { limit = 50, offset = 0 } = req.query;
+    const { limit = 50, offset = 0, userId } = req.query;
     
-    const result = await db.query(`
-      SELECT id, user_id, user_email, vessel_name, job_type, 
-             risex_synced, risex_sync_status, created_at, updated_at
+    let query = `
+      SELECT id, clerk_user_id, vessel_name, vessel_id, job_type, job_number,
+             status, rise_x_job_id, rise_x_synced_at, created_at, updated_at
       FROM jobs
-      ORDER BY created_at DESC
-      LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+    `;
+    const params = [];
+    
+    // Filter by user if provided
+    if (userId) {
+      query += ` WHERE clerk_user_id = $1`;
+      params.push(userId);
+    }
+    
+    query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    params.push(limit, offset);
+    
+    const result = await db.query(query, params);
     
     res.json({
       success: true,
@@ -307,7 +331,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('List jobs error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -322,8 +346,8 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     
     const result = await db.query(`
-      SELECT id, user_id, user_email, vessel_name, job_type, 
-             data, risex_synced, risex_sync_status, risex_job_id,
+      SELECT id, clerk_user_id, vessel_name, vessel_id, job_type, job_number,
+             data, status, rise_x_job_id, rise_x_synced_at,
              created_at, updated_at
       FROM jobs
       WHERE id = $1
@@ -342,7 +366,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get job error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       error: error.message
     });

@@ -139,38 +139,6 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 
 -- ============================================
--- Job Drafts (auto-saved during form entry)
--- ============================================
-CREATE TABLE IF NOT EXISTS job_drafts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255), -- Clerk user ID
-    user_email VARCHAR(255),
-    data JSONB NOT NULL, -- Full form data
-    status VARCHAR(50) DEFAULT 'draft', -- 'draft', 'submitted', 'discarded'
-    job_id UUID, -- Reference to finalized job if submitted
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================
--- Jobs (finalized jobs with Rise-X sync status)
--- ============================================
-CREATE TABLE IF NOT EXISTS jobs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id VARCHAR(255), -- Clerk user ID
-    user_email VARCHAR(255),
-    vessel_name VARCHAR(255),
-    job_type VARCHAR(100),
-    data JSONB NOT NULL, -- Full job data
-    risex_synced BOOLEAN DEFAULT FALSE,
-    risex_sync_status VARCHAR(50), -- 'pending', 'synced', 'failed'
-    risex_job_id VARCHAR(255), -- ID from Rise-X if synced
-    risex_sync_error TEXT, -- Error message if sync failed
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================
 -- Job Drafts (auto-saved job data)
 -- ============================================
 CREATE TABLE IF NOT EXISTS job_drafts (
@@ -206,6 +174,54 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 
 -- ============================================
+-- User Presence (online status tracking)
+-- ============================================
+CREATE TABLE IF NOT EXISTS user_presence (
+    clerk_user_id VARCHAR(255) PRIMARY KEY,
+    user_email VARCHAR(255),
+    user_name VARCHAR(255),
+    is_online BOOLEAN DEFAULT FALSE,
+    last_seen TIMESTAMPTZ DEFAULT NOW(),
+    socket_id VARCHAR(255),
+    current_page VARCHAR(255), -- Track which page user is on
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- Call History
+-- ============================================
+CREATE TABLE IF NOT EXISTS call_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_name VARCHAR(255) NOT NULL UNIQUE,
+    initiated_by VARCHAR(255) NOT NULL, -- Clerk user ID
+    initiator_name VARCHAR(255),
+    participants JSONB DEFAULT '[]', -- Array of {userId, userName, joinedAt, leftAt}
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    ended_at TIMESTAMPTZ,
+    duration_seconds INTEGER,
+    status VARCHAR(50) DEFAULT 'active', -- 'active', 'ended', 'missed'
+    call_type VARCHAR(50) DEFAULT 'video', -- 'video', 'audio', 'screen_share'
+    metadata JSONB DEFAULT '{}'
+);
+
+-- ============================================
+-- Call Invitations
+-- ============================================
+CREATE TABLE IF NOT EXISTS call_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_name VARCHAR(255) NOT NULL,
+    from_user_id VARCHAR(255) NOT NULL,
+    from_user_name VARCHAR(255),
+    to_user_id VARCHAR(255), -- NULL if email invite
+    to_email VARCHAR(255), -- For external invites
+    invite_token VARCHAR(255), -- Unique token for email invites
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'accepted', 'declined', 'expired'
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '24 hours'),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    responded_at TIMESTAMPTZ
+);
+
+-- ============================================
 -- Vessel Position Cache (Last Known Positions)
 -- ============================================
 CREATE TABLE IF NOT EXISTS vessel_positions (
@@ -238,12 +254,6 @@ CREATE INDEX IF NOT EXISTS idx_fleets_org ON fleets(organization_id);
 CREATE INDEX IF NOT EXISTS idx_fleets_active ON fleets(is_active) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_fleet_vessels_fleet ON fleet_vessels(fleet_id);
 CREATE INDEX IF NOT EXISTS idx_fleet_vessels_vessel ON fleet_vessels(vessel_id);
-CREATE INDEX IF NOT EXISTS idx_job_drafts_user ON job_drafts(user_id);
-CREATE INDEX IF NOT EXISTS idx_job_drafts_status ON job_drafts(status);
-CREATE INDEX IF NOT EXISTS idx_job_drafts_updated ON job_drafts(updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(user_id);
-CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_jobs_risex_sync ON jobs(risex_synced, risex_sync_status);
 CREATE INDEX IF NOT EXISTS idx_job_drafts_user ON job_drafts(clerk_user_id);
 CREATE INDEX IF NOT EXISTS idx_job_drafts_status ON job_drafts(status);
 CREATE INDEX IF NOT EXISTS idx_job_drafts_updated ON job_drafts(updated_at DESC);
@@ -251,6 +261,16 @@ CREATE INDEX IF NOT EXISTS idx_jobs_user ON jobs(clerk_user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS idx_jobs_vessel ON jobs(vessel_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_presence_online ON user_presence(is_online) WHERE is_online = true;
+CREATE INDEX IF NOT EXISTS idx_user_presence_last_seen ON user_presence(last_seen DESC);
+CREATE INDEX IF NOT EXISTS idx_call_history_channel ON call_history(channel_name);
+CREATE INDEX IF NOT EXISTS idx_call_history_initiator ON call_history(initiated_by);
+CREATE INDEX IF NOT EXISTS idx_call_history_status ON call_history(status);
+CREATE INDEX IF NOT EXISTS idx_call_history_started ON call_history(started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_call_invitations_channel ON call_invitations(channel_name);
+CREATE INDEX IF NOT EXISTS idx_call_invitations_to_user ON call_invitations(to_user_id);
+CREATE INDEX IF NOT EXISTS idx_call_invitations_token ON call_invitations(invite_token);
+CREATE INDEX IF NOT EXISTS idx_call_invitations_status ON call_invitations(status);
 
 -- ============================================
 -- Seed Data: Franmarine Organization
